@@ -82,8 +82,8 @@ npm >= 8.0.0
 ### 安装与启动
 ```bash
 # 1. 克隆项目
-git clone https://github.com/your-username/applanding-open.git
-cd applanding-open
+git clone git@github.com:lutaSci/luta-loadingpage-filing.git
+cd luta-loadingpage-filing
 
 # 2. 安装依赖
 npm install
