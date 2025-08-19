@@ -1,0 +1,10 @@
+version: "3.9"
+
+services:
+  applanding:
+    build: .
+    container_name: applanding
+    image: applanding:latest
+    ports:
+      - "80:80"
+    restart: always
