@@ -21,10 +21,10 @@ const Terms = () => {
     // 动态更新页面标题
     useEffect(() => {
         const titles = {
-            zh: '用户协议 - 口袋粉丝App',
-            en: 'Terms of Service - Lulufans',
-            ja: '利用規約 - Lulufans',
-            ko: '이용약관 - Lulufans'
+            zh: '用户协议 - 汝塔APP',
+            en: 'Terms of Service - LUTA APP',
+            ja: '利用規約 - LUTA APP',
+            ko: '이용약관 - LUTA APP'
         };
         document.title = titles[language];
     }, [language]);
