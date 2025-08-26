@@ -23,4 +23,4 @@ echo "[ok] 启动完成。首次签发证书可能需数十秒。"
 echo "[next] 访问：https://lutaai.co 与 https://lutaai.com"
 echo "[tip] 查看日志：docker logs -f caddy | cat"
 
-docker-compose up -d --build
+docker compose up -d --build
