@@ -1,10 +1,33 @@
 version: "3.9"
 
 services:
-  applanding:
-    build: .
+  app:
     container_name: applanding
-    image: applanding:latest
+    build:
+      context: .
+      dockerfile: dockerfile
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    expose:
+      - "80"
+
+  caddy:
+    image: caddy:2.8
+    container_name: caddy
+    restart: unless-stopped
     ports:
       - "80:80"
-    restart: always
+      - "443:443"
+    environment:
+      - ACME_EMAIL=${ACME_EMAIL:-}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  caddy_data:
+  caddy_config:
