@@ -5,8 +5,8 @@ export const config = {
         description: '读经伴侣 - 让每个读经都充满生机'
     },
     downloads: {
-        ios: 'https://apps.apple.com/app',
-        android: 'https://luta-app.oss-cn-beijing.aliyuncs.com/v1.1/android-app-arm64-v8a-debug.apk.1.1'
+        ios: 'https://testflight.apple.com/join/48vCAeVp',
+        android: 'https://luta-app.oss-cn-beijing.aliyuncs.com/v1.1/android-app-release.apk'
     },
     apkApi: '',
     pages: {
