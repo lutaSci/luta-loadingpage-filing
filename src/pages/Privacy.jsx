@@ -21,11 +21,11 @@ const Privacy = () => {
     // 动态更新页面标题
     useEffect(() => {
         const titles = {
-            zh: '隐私政策 - 口袋粉丝App',
-            'zhTW': '隱私政策 - 口袋粉絲App',
-            en: 'Privacy Policy - Lulufans',
-            ja: 'プライバシーポリシー - Lulufans',
-            ko: '개인정보 보호정책 - Lulufans'
+            zh: '隐私政策 - 汝塔APP',
+            'zhTW': '隱私政策 - 汝塔APP',
+            en: 'Privacy Policy - LUTA APP',
+            ja: 'プライバシーポリシー - LUTA APP',
+            ko: '개인정보 보호정책 - LUTA APP'
         };
         document.title = titles[language];
     }, [language]);
