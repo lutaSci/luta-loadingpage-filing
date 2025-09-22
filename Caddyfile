@@ -1,0 +1,37 @@
+{
+  # 可选：为 ACME 指定邮箱（也可在站点块中使用 tls {$ACME_EMAIL}）
+  # email {$ACME_EMAIL}
+}
+
+lutaai.co, lutaai.com {
+  encode zstd gzip
+
+  # 安全响应头
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+  }
+
+  # 反向代理到内部 Nginx（构建出的静态站点）
+  reverse_proxy app:80
+
+  # 自动签发/续期证书（从环境变量读取邮箱，可留空）
+  tls {$ACME_EMAIL}
+}
+
+# www 域名重定向到对应裸域（各自 301）
+www.lutaai.co {
+  redir https://lutaai.co{uri} permanent
+  tls {$ACME_EMAIL}
+}
+
+www.lutaai.com {
+  redir https://lutaai.com{uri} permanent
+  tls {$ACME_EMAIL}
+}
+
+
+
