@@ -18,5 +18,6 @@ export const config = {
         twitter: 'https://x.com/yooxin_tech',
         github: 'https://github.com/lutaSci',
         email: 'aivor@lutaai.com'
-    }
+    },
+    wecomQrCode: 'https://luta-app.oss-cn-beijing.aliyuncs.com/assets/%E6%B1%9D%E5%A1%94%E5%86%85%E6%B5%8B%E9%80%9A%E7%9F%A5%E7%BE%A4.png'
 } 

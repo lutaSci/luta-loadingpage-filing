@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Smartphone } from 'lucide-react'
+import { Apple, Smartphone, QrCode, X, Download as DownloadIcon } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { memo, useState, useEffect } from 'react'
@@ -91,6 +91,7 @@ const DownloadButtons = memo(() => {
 
     // 响应式屏幕检测
     const [isDesktop, setIsDesktop] = useState(false)
+    const [isWecomOpen, setIsWecomOpen] = useState(false)
 
     useEffect(() => {
         const checkScreenSize = () => {
@@ -107,6 +108,19 @@ const DownloadButtons = memo(() => {
             window.removeEventListener('resize', checkScreenSize)
         }
     }, [])
+
+    // ESC 关闭模态
+    useEffect(() => {
+        const onKeydown = (e) => {
+            if (e.key === 'Escape') {
+                closeModal()
+            }
+        }
+        if (isWecomOpen) {
+            document.addEventListener('keydown', onKeydown)
+        }
+        return () => document.removeEventListener('keydown', onKeydown)
+    }, [isWecomOpen])
 
     // 处理按钮悬停
     const handleButtonHover = (type, isEntering, event) => {
@@ -125,6 +139,12 @@ const DownloadButtons = memo(() => {
                 [type]: { isHovering: false, position: { x: 0, y: 0 } }
             }))
         }
+    }
+
+    // 关闭模态框函数
+    const closeModal = () => {
+        console.log('关闭模态框被调用')
+        setIsWecomOpen(false)
     }
 
     return (
@@ -200,6 +220,21 @@ const DownloadButtons = memo(() => {
                 </div>
             </motion.div>
 
+            {/* WeCom 入群按钮 - 与下载按钮一致风格 */}
+            <motion.div
+                className="group relative"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setIsWecomOpen(true)}
+            >
+                <div className="relative w-[280px] sm:w-[260px] md:w-[280px] lg:w-[300px] cursor-pointer">
+                    <div className="flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300 shadow-lg">
+                        <QrCode className="w-5 h-5 md:w-6 md:h-6 text-white/80 group-hover:scale-110 transition-transform drop-shadow-sm" />
+                        <span className="text-sm md:text-base lg:text-lg font-bold text-white/90 drop-shadow-sm">{t('wecomButton')}</span>
+                    </div>
+                </div>
+            </motion.div>
+
             {/* 二维码悬浮显示 */}
             <AnimatePresence>
                 {isDesktop && hoverState.ios.isHovering && (
@@ -217,6 +252,76 @@ const DownloadButtons = memo(() => {
                         url={androidUrl}
                         position={hoverState.android.position}
                     />
+                )}
+            </AnimatePresence>
+
+            {/* WeCom 入群二维码模态框 */}
+            <AnimatePresence>
+                {isWecomOpen && (
+                    <motion.div
+                        key="wecom-modal"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+                        onClick={closeModal}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, y: 10, opacity: 0 }}
+                            animate={{ scale: 1, y: 0, opacity: 1 }}
+                            exit={{ scale: 0.95, y: 10, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                            className="relative w-full max-w-sm sm:max-w-md rounded-3xl border border-white/20 bg-white/10 backdrop-blur-xl shadow-2xl overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <button
+                                aria-label={t('close')}
+                                type="button"
+                                className="absolute right-3 top-3 p-2 rounded-full bg-black/30 hover:bg-black/40 text-white/90 transition-colors z-10"
+                                onClick={(e) => { 
+                                    e.preventDefault(); 
+                                    e.stopPropagation(); 
+                                    closeModal(); 
+                                }}
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                            <div className="p-5 sm:p-6 text-center">
+                                <h3 className="text-lg sm:text-xl font-extrabold text-white drop-shadow">{t('wecomJoin')}</h3>
+                                <p className="mt-2 text-xs sm:text-sm text-white/80">{isDesktop ? t('wecomTipDesktop') : t('wecomTipMobile')}</p>
+
+                                <div className="mt-4 sm:mt-6 mx-auto w-56 h-56 sm:w-64 sm:h-64 rounded-2xl overflow-hidden bg-white/90 p-2 shadow-lg">
+                                    <img
+                                        src={config.wecomQrCode}
+                                        alt={t('wecomJoin')}
+                                        className="w-full h-full object-contain rounded-xl"
+                                    />
+                                </div>
+
+                                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+                                    <a
+                                        href={config.wecomQrCode}
+                                        download
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                                    >
+                                        <DownloadIcon className="w-4 h-4" />
+                                        <span className="text-sm font-semibold">{t('saveImage')}</span>
+                                    </a>
+                                    {!isDesktop && (
+                                        <a
+                                            href={config.wecomQrCode}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white hover:bg-white/20"
+                                        >
+                                            <QrCode className="w-4 h-4" />
+                                            <span className="text-sm font-semibold">{t('openImage')}</span>
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </motion.div>
