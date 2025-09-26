@@ -33,3 +33,15 @@ www.lutaai.com {
   tls {$ACME_EMAIL}
 }
 
+
+# luta-ai.com 系列域名重定向到 lutaai.com（301）
+luta-ai.com {
+  redir https://lutaai.com{uri} permanent
+  tls {$ACME_EMAIL}
+}
+
+www.luta-ai.com {
+  redir https://lutaai.com{uri} permanent
+  tls {$ACME_EMAIL}
+}
+
