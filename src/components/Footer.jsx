@@ -16,15 +16,15 @@ const Footer = memo(() => {
 
     return (
         <motion.footer
-            className="absolute bottom-0 left-0 right-0 z-20 text-center py-6 md:py-8 px-4"
+            className="absolute bottom-0 left-0 right-0 z-10 text-center py-6 md:py-8 px-4 pointer-events-none"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.5, duration: 0.6 }}
         >
             <div className="max-w-4xl mx-auto">
                 {/* 简洁的导航按钮 */}
-                <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 mb-4">
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 mb-4 pointer-events-auto">
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="pointer-events-auto">
                         <Link
                             to="/privacy"
                             style={linkStyle}
@@ -36,7 +36,7 @@ const Footer = memo(() => {
 
                     <span style={{ color: Colors.opacity.white30 }}>|</span>
 
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="pointer-events-auto">
                         <Link
                             to="/terms"
                             style={linkStyle}
@@ -48,7 +48,7 @@ const Footer = memo(() => {
 
                     <span style={{ color: Colors.opacity.white30 }}>|</span>
 
-                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="pointer-events-auto">
                         <Link
                             to="/contact"
                             style={linkStyle}

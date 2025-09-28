@@ -149,7 +149,8 @@ const DownloadButtons = memo(() => {
 
     return (
         <motion.div
-            className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center px-4 max-w-4xl mx-auto relative"
+            className="flex flex-col sm:flex-row gap-3 md:gap-4 justify-center items-center px-4 max-w-4xl mx-auto relative z-30 mb-24 md:mb-28"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))' }}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 0.6 }}

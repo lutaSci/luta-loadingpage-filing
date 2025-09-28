@@ -96,7 +96,7 @@ const MainContent = memo(() => {
     )
 
     return (
-        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
+        <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 pt-8 pb-24 md:pb-28" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 6rem)' }}>
             <motion.div
                 className="text-center space-y-8 md:space-y-12"
                 initial={{ opacity: 0, scale: 0.95 }}
