@@ -61,17 +61,31 @@ const Footer = memo(() => {
 
                 {/* 简洁的版权信息 */}
                 <motion.div
-                    className="text-center"
+                    className="text-center space-y-2"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 2, duration: 0.8 }}
                 >
-                    <span
-                        style={{ color: Colors.opacity.white50 }}
-                        className="text-xs md:text-sm"
-                    >
-                        {t("copyright")}
-                    </span>
+                    <div>
+                        <span
+                            style={{ color: Colors.opacity.white50 }}
+                            className="text-xs md:text-sm"
+                        >
+                            {t("copyright")}
+                        </span>
+                    </div>
+                    {/* 备案信息 */}
+                    <div className="flex flex-col items-center gap-1 pointer-events-auto">
+                        <a
+                            href="https://beian.miit.gov.cn/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: Colors.opacity.white50 }}
+                            className="text-xs hover:text-white transition-colors duration-300"
+                        >
+                            {t("icpFull")}
+                        </a>
+                    </div>
                 </motion.div>
             </div>
         </motion.footer>

@@ -19,7 +19,9 @@ const translations = {
         privacy: "隐私政策",
         terms: "使用协议",
         contact: "联系我们",
-        copyright: "© 2024 深圳市师利千秋文化科技有限公司. 保留所有权利.",
+        copyright: "© 2024 深圳市狮利千秋文化科技有限公司. 保留所有权利.",
+        icp: "粤ICP备2025461997号",
+        icpFull: "粤ICP备2025461997号-1",
         backToHome: "返回首页",
 
         contactTitle: "联系我们",
@@ -61,7 +63,9 @@ const translations = {
         privacy: "隱私政策",
         terms: "使用協議",
         contact: "聯絡我們",
-        copyright: "© 2024 深圳市師利千秋文化科技有限公司. 版權所有。",
+        copyright: "© 2024 深圳市狮利千秋文化科技有限公司. 版權所有。",
+        icp: "粤ICP备2025461997号",
+        icpFull: "粤ICP备2025461997号-1",
         backToHome: "返回首頁",
 
         contactTitle: "聯絡我們",
@@ -104,6 +108,8 @@ const translations = {
         terms: "Terms of Service",
         contact: "Contact Us",
         copyright: "© 2024 Shenzhen Shili Qianqiu Culture & Technology Co., Ltd. All rights reserved.",
+        icp: "ICP Filing No. 粤ICP备2025461997号",
+        icpFull: "ICP Filing No. 粤ICP备2025461997号-1",
         backToHome: "Back to Home",
 
         contactTitle: "Contact Us",
@@ -145,7 +151,9 @@ const translations = {
         privacy: "プライバシーポリシー",
         terms: "利用規約",
         contact: "お問い合わせ",
-        copyright: "© 2024 深圳市師利千秋文化科技有限公司. All rights reserved.",
+        copyright: "© 2024 深圳市狮利千秋文化科技有限公司. All rights reserved.",
+        icp: "粤ICP备2025461997号",
+        icpFull: "粤ICP备2025461997号-1",
         backToHome: "ホームに戻る",
 
         contactTitle: "お問い合わせ",
@@ -188,6 +196,8 @@ const translations = {
         terms: "이용약관",
         contact: "문의하기",
         copyright: "© 2024 Shenzhen Shili Qianqiu Culture & Technology Co., Ltd. All rights reserved.",
+        icp: "粤ICP备2025461997号",
+        icpFull: "粤ICP备2025461997号-1",
         backToHome: "홈으로 돌아가기",
 
         contactTitle: "문의하기",
