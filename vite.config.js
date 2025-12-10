@@ -51,4 +51,12 @@ export default defineConfig({
     },
   },
   assetsInclude: ['**/*.md'], // 支持Markdown文件作为资源
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://47.76.135.140:8000',
+        changeOrigin: true,
+      }
+    }
+  }
 })

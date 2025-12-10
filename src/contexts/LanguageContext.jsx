@@ -273,11 +273,11 @@ export const LanguageProvider = ({ children }) => {
     const [currentLanguage, setCurrentLanguage] = useState(detectLanguage);
     const [appVersion, setAppVersion] = useState(DEFAULT_VERSION);
 
-    // 从服务端获取版本号
+    // 从服务端获取版本号（通过代理绕过 HTTPS 混合内容限制）
     useEffect(() => {
         const fetchAppVersion = async () => {
             try {
-                const response = await fetch('http://47.76.135.140:8000/api/v1/app/info');
+                const response = await fetch('/api/v1/app/info');
                 const result = await response.json();
                 if (result.code === 0 && result.data?.appVersion) {
                     // 提取版本号（格式如 "1.6.5 4500"，只取前面的版本号部分）
