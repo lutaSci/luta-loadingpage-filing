@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Smartphone, QrCode, X, Download as DownloadIcon } from 'lucide-react'
+import { Apple, FileCheckCorner, Smartphone, QrCode, X, Download as DownloadIcon } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { memo, useState, useEffect } from 'react'
@@ -222,7 +222,7 @@ const DownloadButtons = memo(() => {
             </motion.div>
 
             {/* WeCom 入群按钮 - 与下载按钮一致风格 */}
-            <motion.div
+            {/* <motion.div
                 className="group relative"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -232,6 +232,39 @@ const DownloadButtons = memo(() => {
                     <div className="flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300 shadow-lg">
                         <QrCode className="w-5 h-5 md:w-6 md:h-6 text-white/80 group-hover:scale-110 transition-transform drop-shadow-sm" />
                         <span className="text-sm md:text-base lg:text-lg font-bold text-white/90 drop-shadow-sm">{t('wecomButton')}</span>
+                    </div>
+                </div>
+            </motion.div> */}
+
+            {/* iOS 下载按钮 - 移动端优化尺寸 */}
+            <motion.div
+                className="group relative"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onMouseEnter={(e) => {
+                    if (isDesktop) {
+                        handleButtonHover('ios', true, e)
+                    }
+                }}
+                onMouseLeave={() => {
+                    if (isDesktop) {
+                        handleButtonHover('ios', false)
+                    }
+                }}
+                onClick={(e) => {
+                    if (!isDesktop) {
+                        // 移动端直接跳转
+                        window.open(config.downloads.installDoc, '_blank')
+                    } else {
+                        // 桌面端阻止默认跳转，显示二维码
+                        e.preventDefault()
+                    }
+                }}
+            >
+                <div className="relative w-[280px] sm:w-[260px] md:w-[280px] lg:w-[300px] cursor-pointer">
+                    <div className="flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300 shadow-lg">
+                        <FileCheckCorner className="w-5 h-5 md:w-6 md:h-6 text-white/80 group-hover:scale-110 transition-transform drop-shadow-sm" />
+                        <span className="text-sm md:text-base lg:text-lg font-bold text-white/90 drop-shadow-sm">{t('installDoc')}</span>
                     </div>
                 </div>
             </motion.div>

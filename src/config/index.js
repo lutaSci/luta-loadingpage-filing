@@ -6,7 +6,8 @@ export const config = {
     },
     downloads: {
         ios: 'https://testflight.apple.com/join/48vCAeVp',
-        android: 'https://download.lutaai.com/v1.1/android-app-release.apk'
+        android: 'https://download.lutaai.com/v1.1/android-app-release.apk',
+        installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
     },
     apkApi: '',
     pages: {
