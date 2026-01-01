@@ -8,7 +8,7 @@ const translations = {
     zh: {
         title: "汝塔APP",
         subtitle: "您的读经伴侣",
-        glitchTextPrefix: "内测",
+        glitchTextPrefix: "版本",
         appStore: "苹果手机安装",
         googlePlay: "安卓 华为鸿蒙手机安装",
         installDoc: "安装教程",
@@ -53,7 +53,7 @@ const translations = {
     zhTW: {
         title: "汝塔APP",
         subtitle: "您的讀經夥伴",
-        glitchTextPrefix: "內測",
+        glitchTextPrefix: "版本",   
         appStore: "蘋果手機",
         googlePlay: "安卓 華為鴻蒙手機",
         installDoc: "安裝教學",
@@ -98,7 +98,7 @@ const translations = {
     en: {
         title: "LUTA",
         subtitle: "Your scripture companion",
-        glitchTextPrefix: "Beta",
+        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         installDoc: "install Docs",
@@ -143,7 +143,7 @@ const translations = {
     ja: {
         title: "LUTA",
         subtitle: "経典学習のパートナー",
-        glitchTextPrefix: "ベータ",
+        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         installDoc: "install Docs",
@@ -188,7 +188,7 @@ const translations = {
     ko: {
         title: "LUTA",
         subtitle: "경전 학습 동반자",
-        glitchTextPrefix: "베타",
+        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         installDoc: "install Docs",
@@ -300,7 +300,7 @@ export const LanguageProvider = ({ children }) => {
 
     // 生成带版本号的 glitchText
     const getGlitchText = () => {
-        const prefix = translations[currentLanguage]?.glitchTextPrefix || 'Beta';
+        const prefix = translations[currentLanguage]?.glitchTextPrefix || 'Version';
         return `${prefix} V${appVersion}`;
     };
 
