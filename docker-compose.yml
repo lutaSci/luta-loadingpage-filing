@@ -9,25 +9,25 @@ services:
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    expose:
-      - "80"
-
-  caddy:
-    image: caddy:2.8
-    container_name: caddy
-    restart: unless-stopped
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      - ACME_EMAIL=${ACME_EMAIL:-}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - app
+      - "8000:80"
 
-volumes:
-  caddy_data:
-  caddy_config:
+  # caddy:
+  #   image: caddy:2.8
+  #   container_name: caddy
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   environment:
+  #     - ACME_EMAIL=${ACME_EMAIL:-}
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   depends_on:
+  #     - app
+
+# volumes:
+#   caddy_data:
+#   caddy_config:
