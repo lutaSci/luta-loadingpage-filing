@@ -3,6 +3,7 @@ import SplitText from './SplitText'
 import GlitchText from './GlitchText'
 import DownloadButtons from './DownloadButtons'
 import { useLanguage } from '../contexts/LanguageContext'
+import { Colors } from '../design/colors'
 import logo1 from '../assets/logo_1.png'
 import { memo, useMemo, useState, useEffect, useCallback } from 'react'
 
@@ -151,8 +152,8 @@ const MainContent = memo(() => {
                             className="w-full h-full object-cover rounded-[2.5rem] md:rounded-[3.5rem] lg:rounded-[3.5rem]"
                             style={{
                                 willChange: 'auto',
-                                filter: 'drop-shadow(0 4px 12px rgba(34, 69, 25, 0.5))',
-                                boxShadow: '0 8px 32px rgba(3, 111, 39, 0.3), 0 4px 16px rgba(0,0,0,0.3), 0 2px 8px rgba(7, 94, 45, 0.3)'
+                                filter: Colors.logoShadow.filter,
+                                boxShadow: Colors.logoShadow.boxShadow,
                             }}
                             initial={{
                                 opacity: 0,

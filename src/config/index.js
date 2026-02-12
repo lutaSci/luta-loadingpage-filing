@@ -7,7 +7,12 @@ export const config = {
     downloads: {
         ios: 'https://testflight.apple.com/join/48vCAeVp',
         android: 'https://download.lutaai.com/v1.1/android-app-release.apk',
+        googlePlay: 'https://play.google.com/store/apps/details?id=com.luta.reader',
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
+    },
+    // 春节活动 - 拼图送祝福
+    springFestival: {
+        puzzleUrl: 'https://game.lutaai.com',
     },
     apkApi: '',
     pages: {

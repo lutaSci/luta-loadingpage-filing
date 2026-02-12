@@ -17,16 +17,24 @@ function App() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* 3D 丝绸着色器背景 - 增强流动效果 */}
+      {/* 3D 丝绸着色器背景 - 参数跟随主题 */}
       <div className="absolute inset-0 z-0">
         <Silk
-          speed={10}
-          scale={1}
+          speed={Colors.background.silkParams.speed}
+          scale={Colors.background.silkParams.scale}
           color={Colors.background.silk}
-          noiseIntensity={2.8}
-          rotation={0.3}
+          noiseIntensity={Colors.background.silkParams.noiseIntensity}
+          rotation={Colors.background.silkParams.rotation}
         />
       </div>
+
+      {/* 暖光叠层 - 提亮丝绸暗部，营造灯笼光晕 */}
+      {Colors.background.warmOverlay !== 'none' && (
+        <div
+          className="absolute inset-0 z-[1] pointer-events-none"
+          style={{ background: Colors.background.warmOverlay }}
+        />
+      )}
 
       {/* 右上角语言切换按钮 */}
       <motion.div
