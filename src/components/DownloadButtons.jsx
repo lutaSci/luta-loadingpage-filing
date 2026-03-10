@@ -212,13 +212,13 @@ const DownloadButtons = memo(() => {
         const buttons = []
 
         // 1. 春节活动按钮 - 所有用户可见，排在第一个
-        buttons.push(
-            <SpringFestivalButton
-                key="puzzle"
-                label={t('puzzleBlessing')}
-                onClick={handlePuzzleClick}
-            />
-        )
+        // buttons.push(
+        //     <SpringFestivalButton
+        //         key="puzzle"
+        //         label={t('puzzleBlessing')}
+        //         onClick={handlePuzzleClick}
+        //     />
+        // )
 
         if (device.isIOS) {
             // ====== iOS 设备 ======
