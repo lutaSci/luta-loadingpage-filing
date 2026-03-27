@@ -22,6 +22,38 @@ const translations = {
         openImage: "打开二维码",
         close: "关闭",
 
+        helpButton: "帮助",
+        helpToastMessage: "已将客服微信号 {wechatId} 复制到剪贴板，请前往微信添加好友获取帮助",
+        copiedToast: "已复制",
+
+        editorChoice: "编辑推荐",
+        iosAppleVerified: "🍎 官方认证",
+        androidSafeInstall: "✅ 安全安装",
+
+        iosSteps: "只需2步，2分钟安装成功",
+        androidSteps: "只需1步，2分钟安装成功",
+
+        iosStep1Title: "第1步 · 安装 TestFlight",
+        iosStep1Desc: "Apple 官方的应用测试工具，安全可靠",
+        iosStep1Cta: "前往 App Store 下载",
+        iosStep2Title: "第2步 · 安装汝塔",
+        iosStep2Desc: "官方正版，您的读经伴侣",
+        iosStep2Cta: "立即安装汝塔",
+
+        androidStep1Title: "获取官方安装包",
+        androidStep1Desc: "下载完成后按提示点击「允许安装」即可",
+        androidStep1Cta: "下载汝塔安装包",
+        androidStep1CtaGooglePlay: "前往 Google Play 下载",
+
+        wechatMaskTitle: "请在浏览器中打开",
+        wechatMaskStep1: "点击右上角 「···」按钮",
+        wechatMaskStep2: "选择「在浏览器中打开」",
+
+        needHelp: "需要帮助",
+
+        pcTabIos: "苹果 iPhone",
+        pcTabAndroid: "安卓 / 华为鸿蒙",
+
         privacy: "隐私政策",
         terms: "使用协议",
         contact: "联系我们",
@@ -68,6 +100,38 @@ const translations = {
         saveImage: "保存二維碼",
         openImage: "打開二維碼",
         close: "關閉",
+
+        helpButton: "幫助",
+        helpToastMessage: "已將客服微信號 {wechatId} 複製到剪貼板，請前往微信添加好友獲取幫助",
+        copiedToast: "已複製",
+
+        editorChoice: "編輯推薦",
+        iosAppleVerified: "🍎 官方認證",
+        androidSafeInstall: "✅ 安全安裝",
+
+        iosSteps: "只需2步，2分鐘安裝成功",
+        androidSteps: "只需1步，2分鐘安裝成功",
+
+        iosStep1Title: "第1步 · 安裝 TestFlight",
+        iosStep1Desc: "Apple 官方的應用測試工具，安全可靠",
+        iosStep1Cta: "前往 App Store 下載",
+        iosStep2Title: "第2步 · 安裝汝塔",
+        iosStep2Desc: "官方正版，您的讀經夥伴",
+        iosStep2Cta: "立即安裝汝塔",
+
+        androidStep1Title: "獲取官方安裝包",
+        androidStep1Desc: "點擊下方按鈕獲取安裝包，下載完成後按提示點擊「允許安裝」即可",
+        androidStep1Cta: "下載汝塔安裝包",
+        androidStep1CtaGooglePlay: "前往 Google Play 下載",
+
+        wechatMaskTitle: "請在瀏覽器中打開",
+        wechatMaskStep1: "點擊右上角 「···」按鈕",
+        wechatMaskStep2: "選擇「在瀏覽器中打開」",
+
+        needHelp: "需要幫助",
+
+        pcTabIos: "蘋果 iPhone",
+        pcTabAndroid: "安卓 / 華為鴻蒙",
 
         privacy: "隱私政策",
         terms: "使用協議",
@@ -116,6 +180,38 @@ const translations = {
         openImage: "Open QR",
         close: "Close",
 
+        helpButton: "Help",
+        helpToastMessage: "WeChat ID {wechatId} has been copied. Please add us on WeChat for support.",
+        copiedToast: "Copied",
+
+        editorChoice: "Editor's Choice",
+        iosAppleVerified: "🍎 Verified by Apple",
+        androidSafeInstall: "✅ Safe to Install",
+
+        iosSteps: "Just 2 steps, ready in 2 min",
+        androidSteps: "Just 1 step, ready in 2 min",
+
+        iosStep1Title: "Step 1 · Install TestFlight",
+        iosStep1Desc: "Apple's official beta testing tool, safe and trusted",
+        iosStep1Cta: "Get TestFlight from App Store",
+        iosStep2Title: "Step 2 · Install LUTA",
+        iosStep2Desc: "Your official scripture companion",
+        iosStep2Cta: "Install LUTA Now",
+
+        androidStep1Title: "Get the Official App",
+        androidStep1Desc: "Tap the button below to download. Once done, tap \"Allow Install\" to continue.",
+        androidStep1Cta: "Download LUTA",
+        androidStep1CtaGooglePlay: "Get it on Google Play",
+
+        wechatMaskTitle: "Please open in browser",
+        wechatMaskStep1: "Tap the ··· button at the top right",
+        wechatMaskStep2: "Select \"Open in Browser\"",
+
+        needHelp: "Need Help",
+
+        pcTabIos: "iPhone",
+        pcTabAndroid: "Android / HarmonyOS",
+
         privacy: "Privacy Policy",
         terms: "Terms of Service",
         contact: "Contact Us",
@@ -163,6 +259,38 @@ const translations = {
         openImage: "QRを開く",
         close: "閉じる",
 
+        helpButton: "ヘルプ",
+        helpToastMessage: "WeChat ID {wechatId} をコピーしました。WeChatで友達追加してサポートを受けてください。",
+        copiedToast: "コピー済み",
+
+        editorChoice: "編集のおすすめ",
+        iosAppleVerified: "🍎 Apple公式認証",
+        androidSafeInstall: "✅ 安全インストール",
+
+        iosSteps: "たった2ステップ、2分で完了",
+        androidSteps: "たった1ステップ、2分で完了",
+
+        iosStep1Title: "ステップ1 · TestFlightをインストール",
+        iosStep1Desc: "Apple公式のテストツール、安全で信頼できます",
+        iosStep1Cta: "App StoreでTestFlightを取得",
+        iosStep2Title: "ステップ2 · LUTAをインストール",
+        iosStep2Desc: "公式版、あなたの経典学習パートナー",
+        iosStep2Cta: "LUTAをインストール",
+
+        androidStep1Title: "公式アプリを取得",
+        androidStep1Desc: "下のボタンをタップしてダウンロード。完了後「インストールを許可」をタップしてください。",
+        androidStep1Cta: "LUTAをダウンロード",
+        androidStep1CtaGooglePlay: "Google Playで入手",
+
+        wechatMaskTitle: "ブラウザで開いてください",
+        wechatMaskStep1: "右上の「···」ボタンをタップ",
+        wechatMaskStep2: "「ブラウザで開く」を選択",
+
+        needHelp: "ヘルプ",
+
+        pcTabIos: "iPhone",
+        pcTabAndroid: "Android / HarmonyOS",
+
         privacy: "プライバシーポリシー",
         terms: "利用規約",
         contact: "お問い合わせ",
@@ -209,6 +337,38 @@ const translations = {
         saveImage: "QR 저장",
         openImage: "QR 열기",
         close: "닫기",
+
+        helpButton: "도움말",
+        helpToastMessage: "WeChat ID {wechatId} 가 복사되었습니다. WeChat에서 친구 추가하여 도움을 받으세요.",
+        copiedToast: "복사됨",
+
+        editorChoice: "에디터 추천",
+        iosAppleVerified: "🍎 Apple 공식 인증",
+        androidSafeInstall: "✅ 안전 설치",
+
+        iosSteps: "단 2단계, 2분이면 완료",
+        androidSteps: "단 1단계, 2분이면 완료",
+
+        iosStep1Title: "1단계 · TestFlight 설치",
+        iosStep1Desc: "Apple 공식 테스트 도구, 안전하고 신뢰할 수 있습니다",
+        iosStep1Cta: "App Store에서 TestFlight 다운로드",
+        iosStep2Title: "2단계 · LUTA 설치",
+        iosStep2Desc: "공식 버전, 당신의 경전 학습 동반자",
+        iosStep2Cta: "LUTA 설치하기",
+
+        androidStep1Title: "공식 앱 다운로드",
+        androidStep1Desc: "아래 버튼을 눌러 다운로드하세요. 완료 후 \"설치 허용\"을 눌러주세요.",
+        androidStep1Cta: "LUTA 다운로드",
+        androidStep1CtaGooglePlay: "Google Play에서 다운로드",
+
+        wechatMaskTitle: "브라우저에서 열어주세요",
+        wechatMaskStep1: "오른쪽 상단 「···」 버튼을 탭",
+        wechatMaskStep2: "「브라우저에서 열기」를 선택",
+
+        needHelp: "도움이 필요해요",
+
+        pcTabIos: "iPhone",
+        pcTabAndroid: "Android / HarmonyOS",
 
         privacy: "개인정보처리방침",
         terms: "이용약관",

@@ -20,6 +20,16 @@ export const detectDevice = () => {
 };
 
 /**
+ * 检测是否在微信内置浏览器中
+ * 微信 UA 包含 "MicroMessenger"
+ * @returns {boolean}
+ */
+export const detectIsWeChat = () => {
+    const ua = navigator.userAgent || '';
+    return /MicroMessenger/i.test(ua);
+};
+
+/**
  * 检测用户是否在中国大陆
  * 基于时区 + 浏览器语言的启发式判断：
  * - 时区为 Asia/Shanghai（大陆统一时区）
@@ -34,11 +44,9 @@ export const detectIsMainlandChina = () => {
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const language = (navigator.language || '').toLowerCase();
 
-        // 时区为 Asia/Shanghai 或 Asia/Chongqing 或 Asia/Urumqi 等中国大陆时区
         const chinaTimezones = ['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Urumqi', 'Asia/Harbin'];
         const isChinaTimezone = chinaTimezones.includes(timezone);
 
-        // 语言为简体中文（排除 zh-TW、zh-HK 等）
         const isSimplifiedChinese =
             language === 'zh' ||
             language === 'zh-cn' ||
@@ -46,7 +54,6 @@ export const detectIsMainlandChina = () => {
 
         return isChinaTimezone && isSimplifiedChinese;
     } catch {
-        // 检测失败时保守判断为非大陆
         return false;
     }
 };

@@ -1,23 +1,40 @@
 import { motion } from 'framer-motion'
-import { DanmakuEffect } from './components/DanmakuEffect'
-import { LikeEffect } from './components/LikeEffect'
 import { ParticleSystem } from './components/ParticleSystem'
 import Silk from './components/Silk'
 import LanguageSwitch from './components/LanguageSwitch'
 import MainContent from './components/MainContent'
 import Footer from './components/Footer'
-import { memo } from 'react'
+import Toast, { toast } from './components/Toast'
+import { memo, useCallback } from 'react'
 import { Colors } from './design/colors'
-
-
+import { useLanguage } from './contexts/LanguageContext'
+import { config } from './config'
+import { CircleHelp } from 'lucide-react'
 
 function App() {
+  const { t } = useLanguage()
 
-
+  const handleHelpClick = useCallback(async () => {
+    const wechatId = config.support.wechatId
+    try {
+      await navigator.clipboard.writeText(wechatId)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = wechatId
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    toast(t('helpToastMessage').replace('{wechatId}', wechatId))
+  }, [t])
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* 3D 丝绸着色器背景 - 参数跟随主题 */}
+      <Toast />
+
       <div className="absolute inset-0 z-0">
         <Silk
           speed={Colors.background.silkParams.speed}
@@ -28,7 +45,6 @@ function App() {
         />
       </div>
 
-      {/* 暖光叠层 - 提亮丝绸暗部，营造灯笼光晕 */}
       {Colors.background.warmOverlay !== 'none' && (
         <div
           className="absolute inset-0 z-[1] pointer-events-none"
@@ -36,7 +52,25 @@ function App() {
         />
       )}
 
-      {/* 右上角语言切换按钮 */}
+      {/* 左上角：帮助 */}
+      <motion.div
+        className="absolute top-4 left-4 z-30"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.5, duration: 0.6 }}
+      >
+        <motion.button
+          className="flex items-center space-x-1.5 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleHelpClick}
+        >
+          <CircleHelp className="w-4 h-4 text-white/80" />
+          <span className="text-sm text-white/90 font-medium">{t('helpButton')}</span>
+        </motion.button>
+      </motion.div>
+
+      {/* 右上角：语言切换 */}
       <motion.div
         className="absolute top-4 right-4 z-30"
         initial={{ opacity: 0, x: 20 }}
@@ -46,22 +80,9 @@ function App() {
         <LanguageSwitch />
       </motion.div>
 
-      {/* 主要内容 */}
       <MainContent />
-
-      {/* 底部导航 */}
       <Footer />
-
-      {/* 优化的粒子系统 */}
       <ParticleSystem />
-
-      {/* 弹幕效果 - 仅在桌面端显示 */}
-      {/* <div className="hidden md:block">
-        <DanmakuEffect />
-      </div> */}
-
-      {/* 点赞效果 */}
-      {/* <LikeEffect /> */}
     </div>
   );
 }

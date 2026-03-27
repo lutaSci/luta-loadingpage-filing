@@ -1,355 +1,344 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, FileCheckCorner, Smartphone, Puzzle } from 'lucide-react'
+import { Apple, Download, ExternalLink, HelpCircle, Smartphone } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
-import { memo, useState, useEffect, useMemo } from 'react'
-import { detectDevice, detectIsMainlandChina } from '../lib/deviceDetection'
-import QRCode from 'qrcode'
+import { Colors } from '../design/colors'
+import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
+import WeChatMask from './WeChatMask'
 
-// 二维码悬浮组件
-const QRCodePopover = memo(({ url, position }) => {
-    const [qrDataUrl, setQrDataUrl] = useState('')
+const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
+const SILK_COLOR_HOVER = `rgb(${Colors.background.silk.map(c => Math.min(255, Math.round(c * 1.15))).join(',')})`
+const SILK_COLOR_ACTIVE = `rgb(${Colors.background.silk.map(c => Math.round(c * 0.85)).join(',')})`
 
+// ============================================
+// 分步引导卡片
+// ============================================
+const StepCard = memo(({ stepLabel, title, description, ctaText, ctaIcon: CtaIcon, onClick, delay = 0 }) => (
+    <motion.div
+        className="w-full max-w-sm mx-auto"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.5, ease: 'easeOut' }}
+    >
+        <div className="bg-white/8 backdrop-blur-md rounded-2xl border border-white/15 overflow-hidden">
+            {stepLabel && (
+                <div className="px-5 pt-4 pb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider" style={{ color: SILK_COLOR }}>
+                        {stepLabel}
+                    </span>
+                </div>
+            )}
+            <div className="px-5 pt-2 pb-3">
+                <h3 className="text-base font-bold text-white/95 mb-1">{title}</h3>
+                <p className="text-xs text-white/60 leading-relaxed">{description}</p>
+            </div>
+            <div className="px-5 pb-5">
+                <motion.button
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all duration-200 shadow-lg"
+                    style={{
+                        backgroundColor: SILK_COLOR,
+                        boxShadow: `0 4px 14px rgba(${Colors.background.silk.join(',')}, 0.35)`,
+                    }}
+                    whileHover={{ scale: 1.02, backgroundColor: SILK_COLOR_HOVER }}
+                    whileTap={{ scale: 0.97, backgroundColor: SILK_COLOR_ACTIVE }}
+                    onClick={onClick}
+                >
+                    {CtaIcon && <CtaIcon className="w-4 h-4" />}
+                    <span>{ctaText}</span>
+                </motion.button>
+            </div>
+        </div>
+    </motion.div>
+))
+StepCard.displayName = 'StepCard'
+
+// ============================================
+// 底部辅助链接按钮
+// ============================================
+const HelpLinkButton = memo(({ label, onClick, delay = 0 }) => (
+    <motion.button
+        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-200 text-white/60 hover:text-white/80 text-sm"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.97 }}
+        onClick={onClick}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.4 }}
+    >
+        <HelpCircle className="w-3.5 h-3.5" />
+        <span>{label}</span>
+    </motion.button>
+))
+HelpLinkButton.displayName = 'HelpLinkButton'
+
+// ============================================
+// PC 端标签切换
+// ============================================
+const PcTabSwitcher = memo(({ activeTab, onTabChange, iosLabel, androidLabel }) => (
+    <motion.div
+        className="flex items-center justify-center gap-1 p-1 rounded-full bg-white/8 backdrop-blur-sm border border-white/10 mb-6 max-w-xs mx-auto"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+    >
+        <button
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeTab === 'ios'
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-white/50 hover:text-white/70'
+            }`}
+            onClick={() => onTabChange('ios')}
+        >
+            <Apple className="w-3.5 h-3.5" />
+            {iosLabel}
+        </button>
+        <button
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                activeTab === 'android'
+                    ? 'bg-white/15 text-white shadow-sm'
+                    : 'text-white/50 hover:text-white/70'
+            }`}
+            onClick={() => onTabChange('android')}
+        >
+            <Smartphone className="w-3.5 h-3.5" />
+            {androidLabel}
+        </button>
+    </motion.div>
+))
+PcTabSwitcher.displayName = 'PcTabSwitcher'
+
+// ============================================
+// PC 端标签内容切换（固定高度容器，防止布局抖动）
+// ============================================
+const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidApkUrl }) => {
+    const containerRef = useRef(null)
+    const [containerHeight, setContainerHeight] = useState(0)
+
+    // 测量当前内容高度，保留最大值
     useEffect(() => {
-        if (url) {
-            QRCode.toDataURL(url, {
-                width: 200,
-                margin: 2,
-                color: {
-                    dark: '#000000',
-                    light: '#FFFFFF',
-                },
-            }).then(setQrDataUrl).catch(console.error)
+        if (!containerRef.current) return
+        const measure = () => {
+            const h = containerRef.current.scrollHeight
+            setContainerHeight(prev => Math.max(prev, h))
         }
-    }, [url])
-
-    if (!qrDataUrl) return null
+        measure()
+        const timer = setTimeout(measure, 100)
+        return () => clearTimeout(timer)
+    }, [pcTab])
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 10 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="fixed z-50 pointer-events-none"
-            style={{
-                left: position.x,
-                top: position.y - 180,
-                transform: 'translateX(-50%)'
-            }}
-        >
-            <div className="bg-white/15 backdrop-blur-md p-3 rounded-2xl shadow-lg border border-white/20 overflow-hidden">
-                <img
-                    src={qrDataUrl}
-                    alt="扫码下载"
-                    className="w-40 h-40 mx-auto rounded-xl shadow-lg"
-                />
+        <div>
+            <PcTabSwitcher
+                activeTab={pcTab}
+                onTabChange={onPcTabChange}
+                iosLabel={t('pcTabIos')}
+                androidLabel={t('pcTabAndroid')}
+            />
+            <div
+                ref={containerRef}
+                style={{ minHeight: containerHeight || undefined }}
+                className="transition-[min-height] duration-300"
+            >
+                <AnimatePresence mode="wait" initial={false}>
+                    {pcTab === 'ios' ? (
+                        <motion.div
+                            key="ios"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                        >
+                            <IOSGuide t={t} />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="android"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                        >
+                            {isMainlandChina
+                                ? <AndroidGuideChina t={t} apkUrl={androidApkUrl} />
+                                : <AndroidGuideOverseas t={t} />
+                            }
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
-            {/* 小箭头指向按钮 */}
-            <div className="absolute bottom-[-6px] left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-white/20"></div>
-        </motion.div>
+        </div>
     )
 })
-
-QRCodePopover.displayName = 'QRCodePopover'
+PcTabContent.displayName = 'PcTabContent'
 
 // ============================================
-// 通用按钮样式组件
+// iOS 引导内容
 // ============================================
-
-// 标准下载按钮（半透明毛玻璃风格）
-const DownloadButton = memo(({ icon: Icon, label, onClick, onMouseEnter, onMouseLeave }) => (
-    <motion.div
-        className="group relative"
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-        onClick={onClick}
-    >
-        <div className="relative w-[280px] sm:w-[260px] md:w-[280px] lg:w-[300px] cursor-pointer">
-            <div className="flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:px-6 md:py-3 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300 shadow-lg">
-                <Icon className="w-5 h-5 md:w-6 md:h-6 text-white/80 group-hover:scale-110 transition-transform drop-shadow-sm" />
-                <span className="text-sm md:text-base lg:text-lg font-bold text-white/90 drop-shadow-sm">{label}</span>
-            </div>
-        </div>
-    </motion.div>
+const IOSGuide = memo(({ t }) => (
+    <div className="space-y-3">
+        <StepCard
+            // stepLabel={t('iosStep1Title')}
+            title={t('iosStep1Title')}
+            description={t('iosStep1Desc')}
+            ctaText={t('iosStep1Cta')}
+            ctaIcon={Apple}
+            onClick={() => window.open(config.downloads.testFlightAppStore, '_blank')}
+            delay={0.1}
+        />
+        <StepCard
+            // stepLabel={t('iosStep2Title')}
+            title={t('iosStep2Title')}
+            description={t('iosStep2Desc')}
+            ctaText={t('iosStep2Cta')}
+            ctaIcon={Download}
+            onClick={() => { window.location.href = config.downloads.iosTestFlight }}
+            delay={0.2}
+        />
+    </div>
 ))
+IOSGuide.displayName = 'IOSGuide'
 
-DownloadButton.displayName = 'DownloadButton'
-
-// 春节活动按钮（红金渐变，醒目风格）
-const SpringFestivalButton = memo(({ label, onClick }) => (
-    <motion.div
-        className="group relative"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-    >
-        <div className="relative w-[280px] sm:w-[260px] md:w-[280px] lg:w-[300px] cursor-pointer">
-            <div className="flex items-center justify-center gap-2 md:gap-3 px-5 py-3 md:px-6 md:py-3 rounded-full bg-gradient-to-r from-red-600 via-red-500 to-amber-500 border border-amber-400/40 hover:from-red-500 hover:via-red-400 hover:to-amber-400 transition-all duration-300 shadow-lg shadow-red-500/25">
-                <Puzzle className="w-5 h-5 md:w-6 md:h-6 text-amber-200 group-hover:scale-110 group-hover:rotate-12 transition-transform drop-shadow-sm" />
-                <span className="text-sm md:text-base lg:text-lg font-bold text-white drop-shadow-sm">{label}</span>
-            </div>
-        </div>
-    </motion.div>
+// ============================================
+// Android 引导内容（国内，非微信）
+// ============================================
+const AndroidGuideChina = memo(({ t, apkUrl }) => (
+    <div className="space-y-3">
+        <StepCard
+            title={t('androidStep1Title')}
+            description={t('androidStep1Desc')}
+            ctaText={t('androidStep1Cta')}
+            ctaIcon={Download}
+            onClick={() => window.open(apkUrl, '_blank')}
+            delay={0.1}
+        />
+    </div>
 ))
+AndroidGuideChina.displayName = 'AndroidGuideChina'
 
-SpringFestivalButton.displayName = 'SpringFestivalButton'
+// ============================================
+// Android 引导内容（国内，微信环境 - 需要 mask 引导）
+// ============================================
+const AndroidGuideChinaWeChat = memo(({ t, onShowMask }) => (
+    <div className="space-y-3">
+        <StepCard
+            title={t('androidStep1Title')}
+            description={t('androidStep1Desc')}
+            ctaText={t('androidStep1Cta')}
+            ctaIcon={Download}
+            onClick={onShowMask}
+            delay={0.1}
+        />
+    </div>
+))
+AndroidGuideChinaWeChat.displayName = 'AndroidGuideChinaWeChat'
+
+// ============================================
+// Android 引导内容（海外 - Google Play）
+// ============================================
+const AndroidGuideOverseas = memo(({ t }) => (
+    <div className="space-y-3">
+        <StepCard
+            title={t('androidStep1Title')}
+            description={t('androidStep1Desc')}
+            ctaText={t('androidStep1CtaGooglePlay')}
+            ctaIcon={ExternalLink}
+            onClick={() => window.open(config.downloads.googlePlay, '_blank')}
+            delay={0.1}
+        />
+    </div>
+))
+AndroidGuideOverseas.displayName = 'AndroidGuideOverseas'
 
 // ============================================
 // 主组件
 // ============================================
-const DownloadButtons = memo(() => {
+const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const { t } = useLanguage()
 
-    // 设备与地区检测（仅初始化一次）
     const device = useMemo(() => detectDevice(), [])
     const isMainlandChina = useMemo(() => detectIsMainlandChina(), [])
+    const isWeChat = useMemo(() => detectIsWeChat(), [])
 
-    // Android APK 下载链接（中国大陆用户使用）
     const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android)
+    const [showWeChatMask, setShowWeChatMask] = useState(false)
 
     useEffect(() => {
-        if (!isMainlandChina) return // 非大陆用户不需要 APK 链接
-        if (!config.apkApi) return
-
+        if (!isMainlandChina || !config.apkApi) return
         fetch(config.apkApi)
-            .then((res) => {
-                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`)
+            .then(res => {
+                if (!res.ok) throw new Error(`HTTP ${res.status}`)
                 return res.json()
             })
-            .then((data) => {
-                if (data.data) {
-                    setAndroidApkUrl(data.data)
-                }
-            })
-            .catch((error) => {
-                console.error('请求安卓下载链接失败:', error)
-            })
+            .then(data => { if (data.data) setAndroidApkUrl(data.data) })
+            .catch(err => console.error('APK URL fetch failed:', err))
     }, [isMainlandChina])
 
-    // 悬停状态管理（桌面端二维码）
-    const [hoverState, setHoverState] = useState({
-        ios: { isHovering: false, position: { x: 0, y: 0 } },
-        android: { isHovering: false, position: { x: 0, y: 0 } }
-    })
-
-    // 响应式屏幕检测（用于二维码显示逻辑）
-    const [isLargeScreen, setIsLargeScreen] = useState(false)
-
-    useEffect(() => {
-        const checkScreenSize = () => {
-            setIsLargeScreen(window.innerWidth >= 1024)
-        }
-        checkScreenSize()
-        window.addEventListener('resize', checkScreenSize)
-        return () => window.removeEventListener('resize', checkScreenSize)
+    const handleInstallDocClick = useCallback(() => {
+        window.open(config.downloads.installDoc, '_blank')
     }, [])
 
-    // 处理按钮悬停（桌面端二维码）
-    const handleButtonHover = (type, isEntering, event) => {
-        if (isEntering && event) {
-            const rect = event.currentTarget.getBoundingClientRect()
-            const x = rect.left + rect.width / 2
-            const y = rect.top
-            setHoverState(prev => ({
-                ...prev,
-                [type]: { isHovering: true, position: { x, y } }
-            }))
-        } else {
-            setHoverState(prev => ({
-                ...prev,
-                [type]: { isHovering: false, position: { x: 0, y: 0 } }
-            }))
-        }
-    }
+    const handleShowMask = useCallback(() => {
+        setShowWeChatMask(true)
+    }, [])
 
-    // ============================================
-    // 按钮点击处理函数
-    // ============================================
-
-    // 春节活动 - 拼图送祝福
-    const handlePuzzleClick = () => {
-        window.open(config.springFestival.puzzleUrl, '_blank')
-    }
-
-    // iOS App Store
-    const handleIOSClick = (e) => {
-        if (device.isDesktop && isLargeScreen) {
-            // 桌面端大屏：不跳转，通过悬停显示二维码
-            e.preventDefault()
-        } else {
-            // 移动端：直接跳转
-            window.open(config.downloads.ios, '_blank')
-        }
-    }
-
-    // Android / 鸿蒙 - 中国大陆（APK 直接下载）
-    const handleAndroidChinaClick = (e) => {
-        if (device.isDesktop && isLargeScreen) {
-            e.preventDefault()
-        } else {
-            window.open(androidApkUrl, '_blank')
-        }
-    }
-
-    // Android / 鸿蒙 - 海外（Google Play Store 链接）
-    const handleGooglePlayClick = () => {
-        // 无论移动端还是桌面端，都直接打开 Google Play 链接
-        window.open(config.downloads.googlePlay, '_blank')
-    }
-
-    // Install Docs - 所有设备直接打开链接
-    const handleInstallDocClick = () => {
-        window.open(config.downloads.installDoc, '_blank')
-    }
-
-    // ============================================
-    // 渲染按钮列表
-    // ============================================
-    const renderButtons = () => {
-        const buttons = []
-
-        // 1. 春节活动按钮 - 所有用户可见，排在第一个
-        // buttons.push(
-        //     <SpringFestivalButton
-        //         key="puzzle"
-        //         label={t('puzzleBlessing')}
-        //         onClick={handlePuzzleClick}
-        //     />
-        // )
-
+    const renderContent = () => {
+        // 移动端 iOS
         if (device.isIOS) {
-            // ====== iOS 设备 ======
-            // [App Store] [Install Docs]
-            buttons.push(
-                <DownloadButton
-                    key="ios"
-                    icon={Apple}
-                    label={t('appStore')}
-                    onClick={handleIOSClick}
-                />
-            )
-        } else if (device.isAndroid || device.isHarmonyOS) {
-            // ====== Android / 鸿蒙 ======
-            if (isMainlandChina) {
-                // 中国大陆：APK 下载
-                buttons.push(
-                    <DownloadButton
-                        key="android-china"
-                        icon={Smartphone}
-                        label={t('downloadApk')}
-                        onClick={handleAndroidChinaClick}
-                        onMouseEnter={(e) => {
-                            if (isLargeScreen) handleButtonHover('android', true, e)
-                        }}
-                        onMouseLeave={() => {
-                            if (isLargeScreen) handleButtonHover('android', false)
-                        }}
-                    />
-                )
-            } else {
-                // 海外：Google Play
-                buttons.push(
-                    <DownloadButton
-                        key="google-play"
-                        icon={Smartphone}
-                        label={t('googlePlay')}
-                        onClick={handleGooglePlayClick}
-                    />
-                )
-            }
-        } else {
-            // ====== 桌面端 ======
-            // 显示 App Store + Android 按钮
-            buttons.push(
-                <DownloadButton
-                    key="ios-desktop"
-                    icon={Apple}
-                    label={t('appStore')}
-                    onClick={handleIOSClick}
-                    onMouseEnter={(e) => {
-                        if (isLargeScreen) handleButtonHover('ios', true, e)
-                    }}
-                    onMouseLeave={() => {
-                        if (isLargeScreen) handleButtonHover('ios', false)
-                    }}
-                />
-            )
-
-            if (isMainlandChina) {
-                // 桌面端 + 中国大陆：APK 下载（悬停二维码）
-                buttons.push(
-                    <DownloadButton
-                        key="android-desktop-china"
-                        icon={Smartphone}
-                        label={t('downloadApk')}
-                        onClick={handleAndroidChinaClick}
-                        onMouseEnter={(e) => {
-                            if (isLargeScreen) handleButtonHover('android', true, e)
-                        }}
-                        onMouseLeave={() => {
-                            if (isLargeScreen) handleButtonHover('android', false)
-                        }}
-                    />
-                )
-            } else {
-                // 桌面端 + 海外：Google Play（直接链接跳转）
-                buttons.push(
-                    <DownloadButton
-                        key="google-play-desktop"
-                        icon={Smartphone}
-                        label={t('googlePlay')}
-                        onClick={handleGooglePlayClick}
-                    />
-                )
-            }
+            return <IOSGuide t={t} />
         }
 
-        // Install Docs - 所有用户都显示，所有设备直接打开链接
-        buttons.push(
-            <DownloadButton
-                key="install-doc"
-                icon={FileCheckCorner}
-                label={t('installDoc')}
-                onClick={handleInstallDocClick}
-            />
-        )
+        // 移动端 Android / 鸿蒙
+        if (device.isAndroid || device.isHarmonyOS) {
+            if (isMainlandChina) {
+                if (isWeChat) {
+                    return <AndroidGuideChinaWeChat t={t} onShowMask={handleShowMask} />
+                }
+                return <AndroidGuideChina t={t} apkUrl={androidApkUrl} />
+            }
+            // 海外 Android：非微信直接 Google Play，微信需 mask
+            if (isWeChat) {
+                // 海外微信：也用 Google Play，但同样引导去浏览器
+                return <AndroidGuideOverseas t={t} />
+            }
+            return <AndroidGuideOverseas t={t} />
+        }
 
-        return buttons
+        // PC 端：标签切换
+        return <PcTabContent
+            pcTab={pcTab}
+            onPcTabChange={onPcTabChange}
+            t={t}
+            isMainlandChina={isMainlandChina}
+            androidApkUrl={androidApkUrl}
+        />
     }
 
     return (
-        <motion.div
-            className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 justify-center items-center px-4 max-w-4xl mx-auto relative z-30 mb-24 md:mb-28"
-            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))' }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-        >
-            {renderButtons()}
+        <>
+            <motion.div
+                className="flex flex-col items-center px-4 max-w-lg mx-auto relative z-30 mb-24 md:mb-28"
+                style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px))' }}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 0.6 }}
+            >
+                {renderContent()}
 
-            {/* 桌面端二维码悬浮显示 */}
-            <AnimatePresence>
-                {isLargeScreen && hoverState.ios.isHovering && (
-                    <QRCodePopover
-                        key="ios-qr"
-                        url={config.downloads.ios}
-                        position={hoverState.ios.position}
+                <div className="mt-4">
+                    <HelpLinkButton
+                        label={t('needHelp')}
+                        onClick={handleInstallDocClick}
+                        delay={0.5}
                     />
-                )}
-            </AnimatePresence>
-            <AnimatePresence>
-                {isLargeScreen && hoverState.android.isHovering && (
-                    <QRCodePopover
-                        key="android-qr"
-                        url={androidApkUrl}
-                        position={hoverState.android.position}
-                    />
-                )}
-            </AnimatePresence>
-        </motion.div>
+                </div>
+            </motion.div>
+
+            <WeChatMask
+                visible={showWeChatMask}
+                onClose={() => setShowWeChatMask(false)}
+            />
+        </>
     )
 })
 
