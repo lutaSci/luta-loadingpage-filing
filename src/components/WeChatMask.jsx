@@ -1,11 +1,12 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { memo } from 'react'
+import { createPortal } from 'react-dom'
 import { useLanguage } from '../contexts/LanguageContext'
 
 const WeChatMask = memo(({ visible, onClose }) => {
     const { t } = useLanguage()
 
-    return (
+    return createPortal(
         <AnimatePresence>
             {visible && (
                 <motion.div
@@ -74,7 +75,8 @@ const WeChatMask = memo(({ visible, onClose }) => {
                     </motion.p>
                 </motion.div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     )
 })
 
