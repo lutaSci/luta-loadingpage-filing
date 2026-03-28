@@ -45,6 +45,10 @@ const translations = {
         androidStep1Cta: "下载汝塔安装包",
         androidStep1CtaGooglePlay: "前往 Google Play 下载",
 
+        wechatGuideTitle: "在浏览器中安装",
+        wechatGuideDesc: "微信中无法直接安装，请先在浏览器中打开本页面",
+        wechatGuideCta: "去浏览器打开",
+
         wechatMaskTitle: "请在浏览器中打开",
         wechatMaskStep1: "点击右上角 「···」按钮",
         wechatMaskStep2: "选择「在浏览器中打开」",
@@ -123,6 +127,10 @@ const translations = {
         androidStep1Desc: "點擊下方按鈕獲取安裝包，下載完成後按提示點擊「允許安裝」即可",
         androidStep1Cta: "下載汝塔安裝包",
         androidStep1CtaGooglePlay: "前往 Google Play 下載",
+
+        wechatGuideTitle: "在瀏覽器中安裝",
+        wechatGuideDesc: "微信中無法直接安裝，請先在瀏覽器中打開本頁面",
+        wechatGuideCta: "去瀏覽器打開",
 
         wechatMaskTitle: "請在瀏覽器中打開",
         wechatMaskStep1: "點擊右上角 「···」按鈕",
@@ -203,6 +211,10 @@ const translations = {
         androidStep1Cta: "Download LUTA",
         androidStep1CtaGooglePlay: "Get it on Google Play",
 
+        wechatGuideTitle: "Open in Browser to Install",
+        wechatGuideDesc: "Cannot install directly in WeChat. Please open this page in your browser first.",
+        wechatGuideCta: "Open in Browser",
+
         wechatMaskTitle: "Please open in browser",
         wechatMaskStep1: "Tap the ··· button at the top right",
         wechatMaskStep2: "Select \"Open in Browser\"",
@@ -282,6 +294,10 @@ const translations = {
         androidStep1Cta: "LUTAをダウンロード",
         androidStep1CtaGooglePlay: "Google Playで入手",
 
+        wechatGuideTitle: "ブラウザでインストール",
+        wechatGuideDesc: "WeChat内では直接インストールできません。ブラウザでこのページを開いてください。",
+        wechatGuideCta: "ブラウザで開く",
+
         wechatMaskTitle: "ブラウザで開いてください",
         wechatMaskStep1: "右上の「···」ボタンをタップ",
         wechatMaskStep2: "「ブラウザで開く」を選択",
@@ -360,6 +376,10 @@ const translations = {
         androidStep1Desc: "아래 버튼을 눌러 다운로드하세요. 완료 후 \"설치 허용\"을 눌러주세요.",
         androidStep1Cta: "LUTA 다운로드",
         androidStep1CtaGooglePlay: "Google Play에서 다운로드",
+
+        wechatGuideTitle: "브라우저에서 설치",
+        wechatGuideDesc: "WeChat에서는 직접 설치할 수 없습니다. 브라우저에서 이 페이지를 열어주세요.",
+        wechatGuideCta: "브라우저에서 열기",
 
         wechatMaskTitle: "브라우저에서 열어주세요",
         wechatMaskStep1: "오른쪽 상단 「···」 버튼을 탭",

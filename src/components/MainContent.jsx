@@ -5,10 +5,11 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { Colors } from '../design/colors'
 import logo1 from '../assets/logo_1.png'
 import { memo, useMemo, useState, useCallback } from 'react'
-import { detectDevice } from '../lib/deviceDetection'
+import { detectDevice, detectIsWeChat } from '../lib/deviceDetection'
 import { Award } from 'lucide-react'
 
 const device = detectDevice()
+const isWeChat = detectIsWeChat()
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
 const SILK_COLOR_DARK = `rgb(${Colors.background.silk.map(c => Math.round(c * 0.75)).join(',')})` // 暗一档用于渐变
@@ -19,7 +20,10 @@ const MainContent = memo(() => {
     const [pcTab, setPcTab] = useState('ios')
 
     const showIOSContent = device.isIOS || (device.isDesktop && pcTab === 'ios')
-    const stepsText = showIOSContent ? t('iosSteps') : t('androidSteps')
+
+    const stepsText = isWeChat
+        ? t('wechatGuideDesc')
+        : showIOSContent ? t('iosSteps') : t('androidSteps')
 
     const handlePcTabChange = useCallback((tab) => {
         setPcTab(tab)

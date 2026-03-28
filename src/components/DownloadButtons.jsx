@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Download, ExternalLink, HelpCircle, Smartphone } from 'lucide-react'
+import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, Smartphone } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { Colors } from '../design/colors'
@@ -217,21 +217,21 @@ const AndroidGuideChina = memo(({ t, apkUrl }) => (
 AndroidGuideChina.displayName = 'AndroidGuideChina'
 
 // ============================================
-// Android 引导内容（国内，微信环境 - 需要 mask 引导）
+// 微信环境统一引导（所有设备）
 // ============================================
-const AndroidGuideChinaWeChat = memo(({ t, onShowMask }) => (
+const WeChatGuide = memo(({ t, onShowMask }) => (
     <div className="space-y-3">
         <StepCard
-            title={t('androidStep1Title')}
-            description={t('androidStep1Desc')}
-            ctaText={t('androidStep1Cta')}
-            ctaIcon={Download}
+            title={t('wechatGuideTitle')}
+            description={t('wechatGuideDesc')}
+            ctaText={t('wechatGuideCta')}
+            ctaIcon={ExternalLinkIcon}
             onClick={onShowMask}
             delay={0.1}
         />
     </div>
 ))
-AndroidGuideChinaWeChat.displayName = 'AndroidGuideChinaWeChat'
+WeChatGuide.displayName = 'WeChatGuide'
 
 // ============================================
 // Android 引导内容（海外 - Google Play）
@@ -261,7 +261,7 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
     const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android)
-    const [showWeChatMask, setShowWeChatMask] = useState(false)
+    const [showWeChatMask, setShowWeChatMask] = useState(isWeChat)
 
     useEffect(() => {
         if (!isMainlandChina || !config.apkApi) return
@@ -283,28 +283,25 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     }, [])
 
     const renderContent = () => {
-        // 移动端 iOS
+        // 微信环境：所有设备统一引导去浏览器打开
+        if (isWeChat) {
+            return <WeChatGuide t={t} onShowMask={handleShowMask} />
+        }
+
+        // 非微信 - 移动端 iOS
         if (device.isIOS) {
             return <IOSGuide t={t} />
         }
 
-        // 移动端 Android / 鸿蒙
+        // 非微信 - 移动端 Android / 鸿蒙
         if (device.isAndroid || device.isHarmonyOS) {
             if (isMainlandChina) {
-                if (isWeChat) {
-                    return <AndroidGuideChinaWeChat t={t} onShowMask={handleShowMask} />
-                }
                 return <AndroidGuideChina t={t} apkUrl={androidApkUrl} />
-            }
-            // 海外 Android：非微信直接 Google Play，微信需 mask
-            if (isWeChat) {
-                // 海外微信：也用 Google Play，但同样引导去浏览器
-                return <AndroidGuideOverseas t={t} />
             }
             return <AndroidGuideOverseas t={t} />
         }
 
-        // PC 端：标签切换
+        // 非微信 - PC 端：标签切换
         return <PcTabContent
             pcTab={pcTab}
             onPcTabChange={onPcTabChange}
