@@ -34,10 +34,11 @@ const translations = {
         androidSteps: "只需1步，2分钟安装成功",
 
         iosStep1Title: "第1步 · 安装 TestFlight",
-        iosStep1Desc: "Apple 官方的应用测试工具，安全可靠",
+        iosStep1Desc: "Apple 官方安装工具，仅需下载即可，下载后直接返回此页面",
         iosStep1Cta: "前往 App Store 下载",
+        iosTip: "💡 下载完成后，直接返回此页面点击第2步，汝塔将自动安装",
         iosStep2Title: "第2步 · 安装汝塔",
-        iosStep2Desc: "官方正版，您的读经伴侣",
+        iosStep2Desc: "点击按钮自动打开 TestFlight 并安装，如已打开 TestFlight 请先关闭",
         iosStep2Cta: "立即安装汝塔",
 
         androidStep1Title: "获取官方安装包",
@@ -117,10 +118,11 @@ const translations = {
         androidSteps: "只需1步，2分鐘安裝成功",
 
         iosStep1Title: "第1步 · 安裝 TestFlight",
-        iosStep1Desc: "Apple 官方的應用測試工具，安全可靠",
+        iosStep1Desc: "Apple 官方安裝工具，僅需下載即可，下載後直接返回此頁面",
         iosStep1Cta: "前往 App Store 下載",
+        iosTip: "💡 下載完成後，直接返回此頁面點擊第2步，汝塔將自動安裝",
         iosStep2Title: "第2步 · 安裝汝塔",
-        iosStep2Desc: "官方正版，您的讀經夥伴",
+        iosStep2Desc: "點擊按鈕自動打開 TestFlight 並安裝，如已打開 TestFlight 請先關閉",
         iosStep2Cta: "立即安裝汝塔",
 
         androidStep1Title: "獲取官方安裝包",
@@ -200,10 +202,11 @@ const translations = {
         androidSteps: "Just 1 step, ready in 2 min",
 
         iosStep1Title: "Step 1 · Install TestFlight",
-        iosStep1Desc: "Apple's official beta testing tool, safe and trusted",
+        iosStep1Desc: "Apple's official install tool — just download it, then come back to this page",
         iosStep1Cta: "Get TestFlight from App Store",
+        iosTip: "💡 After downloading, return to this page and tap Step 2 — LUTA will install automatically",
         iosStep2Title: "Step 2 · Install LUTA",
-        iosStep2Desc: "Your official scripture companion",
+        iosStep2Desc: "This button opens TestFlight automatically. If TestFlight is already open, close it first",
         iosStep2Cta: "Install LUTA Now",
 
         androidStep1Title: "Get the Official App",
@@ -283,10 +286,11 @@ const translations = {
         androidSteps: "たった1ステップ、2分で完了",
 
         iosStep1Title: "ステップ1 · TestFlightをインストール",
-        iosStep1Desc: "Apple公式のテストツール、安全で信頼できます",
+        iosStep1Desc: "Apple公式のインストールツール。ダウンロードのみでOK、その後このページに戻ってください",
         iosStep1Cta: "App StoreでTestFlightを取得",
+        iosTip: "💡 ダウンロード後、このページに戻ってステップ2をタップすれば、LUTAが自動でインストールされます",
         iosStep2Title: "ステップ2 · LUTAをインストール",
-        iosStep2Desc: "公式版、あなたの経典学習パートナー",
+        iosStep2Desc: "ボタンをタップするとTestFlightが自動で開きます。既に開いている場合は先に閉じてください",
         iosStep2Cta: "LUTAをインストール",
 
         androidStep1Title: "公式アプリを取得",
@@ -366,10 +370,11 @@ const translations = {
         androidSteps: "단 1단계, 2분이면 완료",
 
         iosStep1Title: "1단계 · TestFlight 설치",
-        iosStep1Desc: "Apple 공식 테스트 도구, 안전하고 신뢰할 수 있습니다",
+        iosStep1Desc: "Apple 공식 설치 도구입니다. 다운로드만 하고 이 페이지로 돌아와 주세요",
         iosStep1Cta: "App Store에서 TestFlight 다운로드",
+        iosTip: "💡 다운로드 후 이 페이지로 돌아와 2단계를 탭하면 LUTA가 자동으로 설치됩니다",
         iosStep2Title: "2단계 · LUTA 설치",
-        iosStep2Desc: "공식 버전, 당신의 경전 학습 동반자",
+        iosStep2Desc: "버튼을 누르면 TestFlight가 자동으로 열립니다. 이미 열려 있다면 먼저 닫아주세요",
         iosStep2Cta: "LUTA 설치하기",
 
         androidStep1Title: "공식 앱 다운로드",

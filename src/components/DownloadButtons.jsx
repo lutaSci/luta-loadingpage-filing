@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, Smartphone } from 'lucide-react'
+import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, Info, Smartphone } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { Colors } from '../design/colors'
@@ -175,10 +175,24 @@ PcTabContent.displayName = 'PcTabContent'
 // ============================================
 // iOS 引导内容
 // ============================================
+const IOSTip = memo(({ text, delay = 0 }) => (
+    <motion.div
+        className="w-full max-w-sm mx-auto"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay, duration: 0.4, ease: 'easeOut' }}
+    >
+        <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-400/20 backdrop-blur-sm">
+            <Info className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-200/90 leading-relaxed">{text}</p>
+        </div>
+    </motion.div>
+))
+IOSTip.displayName = 'IOSTip'
+
 const IOSGuide = memo(({ t }) => (
     <div className="space-y-3">
         <StepCard
-            // stepLabel={t('iosStep1Title')}
             title={t('iosStep1Title')}
             description={t('iosStep1Desc')}
             ctaText={t('iosStep1Cta')}
@@ -186,8 +200,8 @@ const IOSGuide = memo(({ t }) => (
             onClick={() => window.open(config.downloads.testFlightAppStore, '_blank')}
             delay={0.1}
         />
+        <IOSTip text={t('iosTip')} delay={0.15} />
         <StepCard
-            // stepLabel={t('iosStep2Title')}
             title={t('iosStep2Title')}
             description={t('iosStep2Desc')}
             ctaText={t('iosStep2Cta')}
