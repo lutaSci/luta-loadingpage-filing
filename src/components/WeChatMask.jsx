@@ -39,24 +39,24 @@ const WeChatMask = memo(({ visible, onClose }) => {
                         </svg>
 
                         {/* 操作提示卡片 */}
-                        <div className="bg-white rounded-2xl p-5 mt-2 mr-2 shadow-2xl max-w-[280px]">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4">
+                        <div className="bg-white rounded-2xl p-6 mt-2 mr-2 shadow-2xl max-w-[300px]">
+                            <h3 className="text-xl font-bold text-gray-900 mb-4">
                                 {t('wechatMaskTitle')}
                             </h3>
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                                 <div className="flex items-start gap-3">
-                                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500 text-white text-sm font-bold flex items-center justify-center">
+                                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white text-base font-bold flex items-center justify-center">
                                         1
                                     </span>
-                                    <p className="text-sm text-gray-700 pt-1 leading-relaxed">
+                                    <p className="text-base text-gray-700 pt-1 leading-relaxed">
                                         {t('wechatMaskStep1')}
                                     </p>
                                 </div>
                                 <div className="flex items-start gap-3">
-                                    <span className="flex-shrink-0 w-7 h-7 rounded-full bg-green-500 text-white text-sm font-bold flex items-center justify-center">
+                                    <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500 text-white text-base font-bold flex items-center justify-center">
                                         2
                                     </span>
-                                    <p className="text-sm text-gray-700 pt-1 leading-relaxed">
+                                    <p className="text-base text-gray-700 pt-1 leading-relaxed">
                                         {t('wechatMaskStep2')}
                                     </p>
                                 </div>

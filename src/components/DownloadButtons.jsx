@@ -24,13 +24,13 @@ const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick,
         transition={{ delay, duration: 0.5, ease: 'easeOut' }}
     >
         <div className="bg-white/8 backdrop-blur-md rounded-2xl border border-white/15 overflow-hidden">
-            <div className="px-5 pt-4 pb-3">
-                <h3 className="text-base font-bold text-white/95 mb-1">{title}</h3>
-                <p className="text-xs text-white/60 leading-relaxed">{description}</p>
+            <div className="px-5 pt-5 pb-3">
+                <h3 className="text-lg font-bold text-white/95 mb-1.5">{title}</h3>
+                <p className="text-sm text-white/70 leading-relaxed">{description}</p>
             </div>
-            <div className="px-5 pb-4">
+            <div className="px-5 pb-5">
                 <motion.button
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-white font-bold text-sm transition-all duration-200 shadow-lg"
+                    className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-white font-bold text-base transition-all duration-200 shadow-lg"
                     style={{
                         backgroundColor: SILK_COLOR,
                         boxShadow: `0 4px 14px rgba(${Colors.background.silk.join(',')}, 0.35)`,
@@ -39,15 +39,15 @@ const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick,
                     whileTap={{ scale: 0.97, backgroundColor: SILK_COLOR_ACTIVE }}
                     onClick={onClick}
                 >
-                    {CtaIcon && <CtaIcon className="w-4 h-4" />}
+                    {CtaIcon && <CtaIcon className="w-5 h-5" />}
                     <span>{ctaText}</span>
                 </motion.button>
             </div>
             {note && (
-                <div className="px-5 pb-4">
-                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/20">
-                        <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-                        <p className="text-xs text-amber-200/90 leading-relaxed">{note}</p>
+                <div className="px-5 pb-5">
+                    <div className="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg bg-amber-500/10 border border-amber-400/20">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-amber-200/90 leading-relaxed">{note}</p>
                     </div>
                 </div>
             )}
@@ -82,33 +82,33 @@ const TestFlightConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
                         transition={{ duration: 0.25, ease: 'easeOut' }}
                     >
                         <div className="bg-gray-900/95 backdrop-blur-md rounded-2xl border border-white/15 p-6 shadow-2xl">
-                            <h3 className="text-lg font-bold text-white mb-4 text-center">
+                            <h3 className="text-xl font-bold text-white mb-4 text-center">
                                 {t('iosTestFlightConfirmTitle')}
                             </h3>
 
-                            <div className="space-y-2.5 mb-5">
-                                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
                                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                                    <span className="text-sm text-emerald-200 font-medium">
+                                    <span className="text-base text-emerald-200 font-medium">
                                         {t('iosTestFlightConfirmDo1')}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
+                                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
                                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
-                                    <span className="text-sm text-emerald-200 font-medium">
+                                    <span className="text-base text-emerald-200 font-medium">
                                         {t('iosTestFlightConfirmDo2')}
                                     </span>
                                 </div>
-                                <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20">
+                                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 border border-red-400/20">
                                     <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
-                                    <span className="text-sm text-red-200 font-medium">
+                                    <span className="text-base text-red-200 font-medium">
                                         {t('iosTestFlightConfirmDont')}
                                     </span>
                                 </div>
                             </div>
 
                             <motion.button
-                                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl text-white font-bold text-sm shadow-lg"
+                                className="w-full flex items-center justify-center gap-2.5 px-5 py-4 rounded-xl text-white font-bold text-base shadow-lg"
                                 style={{
                                     backgroundColor: SILK_COLOR,
                                     boxShadow: `0 4px 14px rgba(${Colors.background.silk.join(',')}, 0.35)`,
@@ -117,7 +117,7 @@ const TestFlightConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
                                 whileTap={{ scale: 0.97 }}
                                 onClick={onConfirm}
                             >
-                                <Apple className="w-4 h-4" />
+                                <Apple className="w-5 h-5" />
                                 <span>{t('iosTestFlightConfirmBtn')}</span>
                             </motion.button>
                         </div>
@@ -135,7 +135,7 @@ TestFlightConfirmOverlay.displayName = 'TestFlightConfirmOverlay'
 // ============================================
 const HelpLinkButton = memo(({ label, onClick, delay = 0 }) => (
     <motion.button
-        className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-200 text-white/60 hover:text-white/80 text-sm"
+        className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 transition-colors duration-200 text-white/60 hover:text-white/80 text-sm"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
@@ -143,7 +143,7 @@ const HelpLinkButton = memo(({ label, onClick, delay = 0 }) => (
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay, duration: 0.4 }}
     >
-        <HelpCircle className="w-3.5 h-3.5" />
+        <HelpCircle className="w-4 h-4" />
         <span>{label}</span>
     </motion.button>
 ))
