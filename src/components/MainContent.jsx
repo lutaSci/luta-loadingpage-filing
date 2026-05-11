@@ -132,7 +132,7 @@ const MainContent = memo(() => {
                                 transition={{ delay: 0.8, duration: 0.4 }}
                             >
                                 <Award className="w-3.5 h-3.5" />
-                                <span>{showIOSContent ? t('editorChoice').replace('🍎 ', '') : t('androidSafeInstall').replace('✅ ', '')}</span>
+                                <span>{showIOSContent ? 'App Store' : t('editorChoice')}</span>
                             </motion.div>
                         )}
                     </div>

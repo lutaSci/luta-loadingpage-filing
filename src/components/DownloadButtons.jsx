@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone } from 'lucide-react'
+import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone, FlaskConical, ChevronDown } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { Colors } from '../design/colors'
@@ -57,9 +57,9 @@ const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick,
 StepCard.displayName = 'StepCard'
 
 // ============================================
-// iOS 第1步确认弹层
+// TestFlight 确认弹层
 // ============================================
-const IOSConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
+const TestFlightConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
     return createPortal(
         <AnimatePresence>
             {visible && (
@@ -83,26 +83,26 @@ const IOSConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
                     >
                         <div className="bg-gray-900/95 backdrop-blur-md rounded-2xl border border-white/15 p-6 shadow-2xl">
                             <h3 className="text-lg font-bold text-white mb-4 text-center">
-                                {t('iosConfirmTitle')}
+                                {t('iosTestFlightConfirmTitle')}
                             </h3>
 
                             <div className="space-y-2.5 mb-5">
                                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
                                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                                     <span className="text-sm text-emerald-200 font-medium">
-                                        {t('iosConfirmDo1')}
+                                        {t('iosTestFlightConfirmDo1')}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-400/20">
                                     <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
                                     <span className="text-sm text-emerald-200 font-medium">
-                                        {t('iosConfirmDo2')}
+                                        {t('iosTestFlightConfirmDo2')}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20">
                                     <XCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
                                     <span className="text-sm text-red-200 font-medium">
-                                        {t('iosConfirmDont')}
+                                        {t('iosTestFlightConfirmDont')}
                                     </span>
                                 </div>
                             </div>
@@ -118,7 +118,7 @@ const IOSConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
                                 onClick={onConfirm}
                             >
                                 <Apple className="w-4 h-4" />
-                                <span>{t('iosConfirmBtn')}</span>
+                                <span>{t('iosTestFlightConfirmBtn')}</span>
                             </motion.button>
                         </div>
                     </motion.div>
@@ -128,7 +128,7 @@ const IOSConfirmOverlay = memo(({ visible, t, onConfirm, onClose }) => {
         document.body
     )
 })
-IOSConfirmOverlay.displayName = 'IOSConfirmOverlay'
+TestFlightConfirmOverlay.displayName = 'TestFlightConfirmOverlay'
 
 // ============================================
 // 底部辅助链接按钮
@@ -255,24 +255,38 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
 PcTabContent.displayName = 'PcTabContent'
 
 // ============================================
-// iOS 引导内容
+// iOS 引导 — App Store 主按钮 + 可展开的 TestFlight 内测流程
 // ============================================
 const IOSGuide = memo(({ t }) => {
+    const [showBeta, setShowBeta] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
 
-    const handleStep1Click = useCallback(() => {
-        trackEvent('ios_step1_click')
+    const handleAppStoreClick = useCallback(() => {
+        trackEvent('ios_appstore_click')
+        window.open(config.downloads.appStore, '_blank')
+    }, [])
+
+    const handleBetaToggle = useCallback(() => {
+        setShowBeta(prev => {
+            const next = !prev
+            trackEvent('ios_beta_toggle', { expanded: next })
+            return next
+        })
+    }, [])
+
+    const handleBetaStep1Click = useCallback(() => {
+        trackEvent('ios_beta_step1_click')
         setShowConfirm(true)
     }, [])
 
-    const handleConfirm = useCallback(() => {
-        trackEvent('ios_step1_confirm')
+    const handleBetaStep1Confirm = useCallback(() => {
+        trackEvent('ios_beta_step1_confirm')
         setShowConfirm(false)
         window.open(config.downloads.testFlightAppStore, '_blank')
     }, [])
 
-    const handleStep2Click = useCallback(() => {
-        trackEvent('ios_step2_click')
+    const handleBetaStep2Click = useCallback(() => {
+        trackEvent('ios_beta_step2_click')
         window.location.href = config.downloads.iosTestFlight
     }, [])
 
@@ -280,28 +294,70 @@ const IOSGuide = memo(({ t }) => {
         <>
             <div className="space-y-3">
                 <StepCard
-                    title={t('iosStep1Title')}
-                    description={t('iosStep1Desc')}
-                    ctaText={t('iosStep1Cta')}
+                    title={t('iosAppStoreTitle')}
+                    description={t('iosAppStoreDesc')}
+                    ctaText={t('iosAppStoreCta')}
                     ctaIcon={Apple}
-                    onClick={handleStep1Click}
-                    note={t('iosStep1Note')}
+                    onClick={handleAppStoreClick}
                     delay={0.1}
                 />
-                <StepCard
-                    title={t('iosStep2Title')}
-                    description={t('iosStep2Desc')}
-                    ctaText={t('iosStep2Cta')}
-                    ctaIcon={Download}
-                    onClick={handleStep2Click}
-                    note={t('iosStep2Note')}
-                    delay={0.2}
-                />
+
+                <motion.button
+                    className="flex items-center justify-center gap-1.5 mx-auto text-xs text-white/40 hover:text-white/65 transition-colors duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleBetaToggle}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.4 }}
+                >
+                    <FlaskConical className="w-3 h-3" />
+                    <span>{t('iosTestFlightLabel')}</span>
+                    <motion.span
+                        animate={{ rotate: showBeta ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <ChevronDown className="w-3 h-3" />
+                    </motion.span>
+                </motion.button>
+
+                <AnimatePresence>
+                    {showBeta && (
+                        <motion.div
+                            className="space-y-3"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            style={{ overflow: 'hidden' }}
+                        >
+                            <StepCard
+                                title={t('iosTestFlightStep1Title')}
+                                description={t('iosTestFlightStep1Desc')}
+                                ctaText={t('iosTestFlightStep1Cta')}
+                                ctaIcon={Apple}
+                                onClick={handleBetaStep1Click}
+                                note={t('iosTestFlightStep1Note')}
+                                delay={0}
+                            />
+                            <StepCard
+                                title={t('iosTestFlightStep2Title')}
+                                description={t('iosTestFlightStep2Desc')}
+                                ctaText={t('iosTestFlightStep2Cta')}
+                                ctaIcon={Download}
+                                onClick={handleBetaStep2Click}
+                                note={t('iosTestFlightStep2Note')}
+                                delay={0}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
-            <IOSConfirmOverlay
+
+            <TestFlightConfirmOverlay
                 visible={showConfirm}
                 t={t}
-                onConfirm={handleConfirm}
+                onConfirm={handleBetaStep1Confirm}
                 onClose={() => setShowConfirm(false)}
             />
         </>
@@ -330,7 +386,7 @@ const AndroidGuideChina = memo(({ t, apkUrl }) => (
 AndroidGuideChina.displayName = 'AndroidGuideChina'
 
 // ============================================
-// 微信环境统一引导（所有设备）
+// 微信环境引导（仅 Android/鸿蒙 —— iOS 在微信中可直接跳 App Store）
 // ============================================
 const WeChatGuide = memo(({ t, onShowMask }) => (
     <div className="space-y-3">
@@ -380,7 +436,8 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
     const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android)
-    const [showWeChatMask, setShowWeChatMask] = useState(isWeChat)
+    const needWeChatMask = isWeChat && !device.isIOS
+    const [showWeChatMask, setShowWeChatMask] = useState(needWeChatMask)
 
     useEffect(() => {
         if (!isMainlandChina || !config.apkApi) return
@@ -403,12 +460,12 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     }, [])
 
     const renderContent = () => {
-        if (isWeChat) {
-            return <WeChatGuide t={t} onShowMask={handleShowMask} />
-        }
-
         if (device.isIOS) {
             return <IOSGuide t={t} />
+        }
+
+        if (isWeChat && (device.isAndroid || device.isHarmonyOS)) {
+            return <WeChatGuide t={t} onShowMask={handleShowMask} />
         }
 
         if (device.isAndroid || device.isHarmonyOS) {

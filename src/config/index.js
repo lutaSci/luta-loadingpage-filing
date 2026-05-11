@@ -5,7 +5,7 @@ export const config = {
         description: '读经伴侣 - 让每个读经都充满生机'
     },
     downloads: {
-        ios: 'https://testflight.apple.com/join/48vCAeVp',
+        appStore: 'https://apps.apple.com/us/app/%E6%B1%9D%E5%A1%94/id6752280249',
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
         testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
         android: 'https://download.lutaai.com/v1.1/android-app-release.apk',

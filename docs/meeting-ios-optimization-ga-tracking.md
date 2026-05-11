@@ -136,41 +136,66 @@
 
 ### 3.2 事件定义
 
-#### 核心转化事件
+#### iOS 核心转化事件（App Store 主流程）
 
 | 事件名 | 触发时机 | 参数 | 分析价值 |
 |--------|----------|------|----------|
-| `ios_step1_click` | 用户点击第1步按钮 | — | iOS漏斗入口 |
-| `ios_step1_confirm` | 用户确认弹层后跳转 App Store | — | 信息确认率 |
-| `ios_step2_click` | 用户点击第2步安装汝塔 | — | iOS安装完成率 |
-| `android_download_click` | 用户点击Android下载 | `source`: `apk` / `google_play` | Android下载量 |
+| `ios_appstore_click` | 用户点击「前往 App Store 下载」主按钮 | — | **iOS 主漏斗唯一转化点** |
+
+#### iOS 内测事件（TestFlight 流程）
+
+| 事件名 | 触发时机 | 参数 | 分析价值 |
+|--------|----------|------|----------|
+| `ios_beta_toggle` | 用户点击「参与内测」展开/收起 | `expanded`: `true` / `false` | 内测兴趣度 |
+| `ios_beta_step1_click` | 用户点击内测第1步按钮 | — | 内测漏斗入口 |
+| `ios_beta_step1_confirm` | 用户确认弹层后跳转下载 TestFlight | — | 内测信息确认率 |
+| `ios_beta_step2_click` | 用户点击内测第2步安装汝塔 | — | 内测安装完成率 |
+
+#### Android 转化事件
+
+| 事件名 | 触发时机 | 参数 | 分析价值 |
+|--------|----------|------|----------|
+| `android_download_click` | 用户点击 Android 下载 | `source`: `apk` / `google_play` | Android 下载量 |
 
 #### 辅助行为事件
 
 | 事件名 | 触发时机 | 参数 | 分析价值 |
 |--------|----------|------|----------|
-| `pc_tab_switch` | PC端切换iOS/Android标签 | `tab`: `ios` / `android` | PC端设备偏好 |
+| `pc_tab_switch` | PC 端切换 iOS/Android 标签 | `tab`: `ios` / `android` | PC 端设备偏好 |
 | `install_doc_click` | 点击「需要帮助」 | — | 用户困惑程度指标 |
-| `wechat_guide_click` | 微信环境点击引导 | — | 微信流量占比 |
+| `wechat_guide_click` | 微信 Android 环境点击引导 | — | 微信流量占比 |
 
 ### 3.3 关键转化漏斗
 
-#### iOS 安装漏斗
+#### iOS 主漏斗（App Store）
 
 ```
 页面访问 (page_view)
     ↓
-点击第1步 (ios_step1_click)         ← 意向率
-    ↓
-确认弹层并跳转 (ios_step1_confirm)   ← 信息接受率
-    ↓
-点击第2步安装 (ios_step2_click)      ← 安装完成率
+点击 App Store 下载 (ios_appstore_click)    ← 一步转化
 ```
 
 **关键指标**：
-- `ios_step1_confirm / ios_step1_click` = 弹层确认率（预期 > 90%）
-- `ios_step2_click / ios_step1_confirm` = **回流安装率**（核心指标，当前痛点）
-- `ios_step2_click / page_view` = iOS总体安装转化率
+- `ios_appstore_click / page_view` = **iOS 总体安装转化率**（核心指标）
+- 对比优化前的 3 步漏斗（step1 → confirm → step2），预期大幅提升
+
+#### iOS 内测漏斗（TestFlight）
+
+```
+页面访问 (page_view)
+    ↓
+展开内测区域 (ios_beta_toggle, expanded=true)   ← 内测兴趣率
+    ↓
+点击第1步 (ios_beta_step1_click)                ← 内测意向率
+    ↓
+确认弹层并跳转 (ios_beta_step1_confirm)         ← 信息接受率
+    ↓
+点击第2步安装 (ios_beta_step2_click)             ← 内测安装完成率
+```
+
+**关键指标**：
+- `ios_beta_toggle(expanded=true) / page_view` = 内测兴趣占比（预期较低，因主流程已是 App Store）
+- `ios_beta_step2_click / ios_beta_step1_confirm` = 内测回流安装率
 
 #### Android 安装漏斗
 
@@ -182,15 +207,22 @@
 
 ### 3.4 数据分析建议
 
-1. **重点监控** `ios_step1_confirm → ios_step2_click` 的转化率
-   - 优化前预估：较低（大量用户卡在 TestFlight 兑换码）
-   - 优化后目标：> 60%
-   - 如果仍然较低，说明用户下载 TestFlight 后仍未返回网页
+1. **重点监控** `ios_appstore_click` 转化率
+   - App Store 上架后，iOS 转化率应大幅高于之前的 TestFlight 流程
+   - 与 Android 的 `android_download_click` 转化率对比，评估各平台表现
 
-2. **`install_doc_click` 作为困惑指标**
+2. **内测流量监控**
+   - `ios_beta_toggle` 的触发频率反映用户对内测版的兴趣
+   - 如果内测流量持续走低，后续可考虑移除内测入口
+
+3. **`install_doc_click` 作为困惑指标**
    - 如果此事件频率高，说明安装流程仍不够清晰
 
-3. **A/B 测试预留**
+4. **微信 iOS vs 非微信 iOS 对比**
+   - App Store 链接在微信中可直接跳转，无需引导用户到浏览器
+   - 可通过 GA 的用户属性对比两个环境下 `ios_appstore_click` 的转化差异
+
+5. **A/B 测试预留**
    - 当前事件结构支持后续通过 GA experiments 进行文案 A/B 测试
 
 ---
