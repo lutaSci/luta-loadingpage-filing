@@ -8,6 +8,7 @@ export const config = {
         appStore: 'https://apps.apple.com/us/app/%E6%B1%9D%E5%A1%94/id6752280249',
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
         testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
+        iosOverseasWaitlistFormUrl: 'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
         android: 'https://download.lutaai.com/v1.1/android-app-release.apk',
         googlePlay: 'https://play.google.com/store/apps/details?id=com.luta.reader',
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'

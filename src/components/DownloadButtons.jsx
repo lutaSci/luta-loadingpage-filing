@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone, FlaskConical, ChevronDown } from 'lucide-react'
+import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone, FlaskConical, ChevronDown, Mail } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { Colors } from '../design/colors'
@@ -16,7 +16,7 @@ const SILK_COLOR_ACTIVE = `rgb(${Colors.background.silk.map(c => Math.round(c * 
 // ============================================
 // 分步引导卡片
 // ============================================
-const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick, note, delay = 0 }) => (
+const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick, note, delay = 0, disabled = false }) => (
     <motion.div
         className="w-full max-w-sm mx-auto"
         initial={{ opacity: 0, y: 20 }}
@@ -30,14 +30,15 @@ const StepCard = memo(({ title, description, ctaText, ctaIcon: CtaIcon, onClick,
             </div>
             <div className="px-5 pb-5">
                 <motion.button
-                    className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-white font-bold text-base transition-all duration-200 shadow-lg"
+                    className={`w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl text-white font-bold text-base transition-all duration-200 shadow-lg ${disabled ? 'cursor-not-allowed opacity-70' : ''}`}
                     style={{
-                        backgroundColor: SILK_COLOR,
-                        boxShadow: `0 4px 14px rgba(${Colors.background.silk.join(',')}, 0.35)`,
+                        backgroundColor: disabled ? 'rgba(255,255,255,0.16)' : SILK_COLOR,
+                        boxShadow: disabled ? 'none' : `0 4px 14px rgba(${Colors.background.silk.join(',')}, 0.35)`,
                     }}
-                    whileHover={{ scale: 1.02, backgroundColor: SILK_COLOR_HOVER }}
-                    whileTap={{ scale: 0.97, backgroundColor: SILK_COLOR_ACTIVE }}
+                    whileHover={disabled ? undefined : { scale: 1.02, backgroundColor: SILK_COLOR_HOVER }}
+                    whileTap={disabled ? undefined : { scale: 0.97, backgroundColor: SILK_COLOR_ACTIVE }}
                     onClick={onClick}
+                    disabled={disabled}
                 >
                     {CtaIcon && <CtaIcon className="w-5 h-5" />}
                     <span>{ctaText}</span>
@@ -231,7 +232,10 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
                         >
-                            <IOSGuide t={t} />
+                            {isMainlandChina
+                                ? <IOSGuide t={t} />
+                                : <IOSWaitlistGuide t={t} placement="desktop_ios_tab" />
+                            }
                         </motion.div>
                     ) : (
                         <motion.div
@@ -253,6 +257,40 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
     )
 })
 PcTabContent.displayName = 'PcTabContent'
+
+// ============================================
+// 海外 iOS 等待名单
+// ============================================
+const IOSWaitlistGuide = memo(({ t, placement }) => {
+    const waitlistUrl = config.downloads.iosOverseasWaitlistFormUrl?.trim()
+    const hasWaitlistUrl = Boolean(waitlistUrl)
+
+    useEffect(() => {
+        trackEvent('ios_waitlist_impression', { placement })
+    }, [placement])
+
+    const handleWaitlistClick = useCallback(() => {
+        if (!waitlistUrl) return
+        trackEvent('ios_waitlist_click', { placement })
+        window.open(waitlistUrl, '_blank', 'noopener,noreferrer')
+    }, [placement, waitlistUrl])
+
+    return (
+        <div className="space-y-3">
+            <StepCard
+                title={t('iosWaitlistTitle')}
+                description={t('iosWaitlistDesc')}
+                ctaText={hasWaitlistUrl ? t('iosWaitlistCta') : t('iosWaitlistUnavailableCta')}
+                ctaIcon={Mail}
+                onClick={handleWaitlistClick}
+                note={t('iosWaitlistNote')}
+                delay={0.1}
+                disabled={!hasWaitlistUrl}
+            />
+        </div>
+    )
+})
+IOSWaitlistGuide.displayName = 'IOSWaitlistGuide'
 
 // ============================================
 // iOS 引导 — App Store 主按钮 + 可展开的 TestFlight 内测流程
@@ -461,6 +499,9 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
 
     const renderContent = () => {
         if (device.isIOS) {
+            if (!isMainlandChina) {
+                return <IOSWaitlistGuide t={t} placement="mobile_ios" />
+            }
             return <IOSGuide t={t} />
         }
 
