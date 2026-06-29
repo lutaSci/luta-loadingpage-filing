@@ -341,7 +341,7 @@ const IOSGuide = memo(({ t }) => {
                 />
 
                 <motion.button
-                    className="flex items-center justify-center gap-1.5 mx-auto text-xs text-white/40 hover:text-white/65 transition-colors duration-200"
+                    className="flex items-center justify-center gap-2 mx-auto px-3.5 py-2 rounded-full bg-white/6 border border-white/10 text-sm sm:text-base font-semibold text-white/65 hover:bg-white/10 hover:text-white/90 transition-colors duration-200"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={handleBetaToggle}
@@ -349,13 +349,13 @@ const IOSGuide = memo(({ t }) => {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.4 }}
                 >
-                    <FlaskConical className="w-3 h-3" />
+                    <FlaskConical className="w-4 h-4" />
                     <span>{t('iosTestFlightLabel')}</span>
                     <motion.span
                         animate={{ rotate: showBeta ? 180 : 0 }}
                         transition={{ duration: 0.2 }}
                     >
-                        <ChevronDown className="w-3 h-3" />
+                        <ChevronDown className="w-4 h-4" />
                     </motion.span>
                 </motion.button>
 
