@@ -5,7 +5,7 @@ export const config = {
         description: '读经伴侣 - 让每个读经都充满生机'
     },
     downloads: {
-        appStore: 'https://apps.apple.com/us/app/%E6%B1%9D%E5%A1%94/id6752280249',
+        appStore: 'https://apps.apple.com/cn/app/%E6%B1%9D%E5%A1%94/id6752280249',
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
         testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
         iosOverseasWaitlistFormUrl: 'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
