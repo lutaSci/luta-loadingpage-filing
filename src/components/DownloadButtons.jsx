@@ -259,7 +259,7 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
 PcTabContent.displayName = 'PcTabContent'
 
 // ============================================
-// 海外 iOS 等待名单
+// 海外 iOS 开放通知
 // ============================================
 const IOSWaitlistGuide = memo(({ t, placement }) => {
     const waitlistUrl = config.downloads.iosOverseasWaitlistFormUrl?.trim()
