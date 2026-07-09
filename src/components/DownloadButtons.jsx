@@ -7,6 +7,7 @@ import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
 import { trackEvent } from '../lib/analytics'
+import { buildContinueUrl, getAttributionState } from '../lib/attributionState'
 import WeChatMask from './WeChatMask'
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -233,7 +234,7 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
                             transition={{ duration: 0.15 }}
                         >
                             {isMainlandChina
-                                ? <IOSGuide t={t} />
+                                ? <IOSGuide t={t} placement="desktop_ios_tab" />
                                 : <IOSWaitlistGuide t={t} placement="desktop_ios_tab" />
                             }
                         </motion.div>
@@ -246,8 +247,8 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
                             transition={{ duration: 0.15 }}
                         >
                             {isMainlandChina
-                                ? <AndroidGuideChina t={t} apkUrl={androidApkUrl} />
-                                : <AndroidGuideOverseas t={t} />
+                                ? <AndroidGuideChina t={t} apkUrl={androidApkUrl} placement="desktop_android_tab" />
+                                : <AndroidGuideOverseas t={t} placement="desktop_android_tab" />
                             }
                         </motion.div>
                     )}
@@ -271,8 +272,15 @@ const IOSWaitlistGuide = memo(({ t, placement }) => {
 
     const handleWaitlistClick = useCallback(() => {
         if (!waitlistUrl) return
-        trackEvent('ios_waitlist_click', { placement })
-        window.open(waitlistUrl, '_blank', 'noopener,noreferrer')
+        const attrs = getAttributionState()
+        trackEvent('ios_waitlist_click', {
+            placement,
+            click_id: attrs?.click_id,
+            utm_campaign: attrs?.utm_campaign,
+            content_id: attrs?.content_id,
+        })
+        const url = buildContinueUrl('waitlist', placement) || waitlistUrl
+        window.open(url, '_blank', 'noopener,noreferrer')
     }, [placement, waitlistUrl])
 
     return (
@@ -295,14 +303,20 @@ IOSWaitlistGuide.displayName = 'IOSWaitlistGuide'
 // ============================================
 // iOS 引导 — App Store 主按钮 + 可展开的 TestFlight 内测流程
 // ============================================
-const IOSGuide = memo(({ t }) => {
+const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
     const [showBeta, setShowBeta] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
 
     const handleAppStoreClick = useCallback(() => {
-        trackEvent('ios_appstore_click')
-        window.open(config.downloads.appStore, '_blank')
-    }, [])
+        const attrs = getAttributionState()
+        trackEvent('ios_appstore_click', {
+            click_id: attrs?.click_id,
+            utm_campaign: attrs?.utm_campaign,
+            content_id: attrs?.content_id,
+        })
+        const url = buildContinueUrl('apple', placement) || config.downloads.appStore
+        window.open(url, '_blank')
+    }, [placement])
 
     const handleBetaToggle = useCallback(() => {
         setShowBeta(prev => {
@@ -406,21 +420,32 @@ IOSGuide.displayName = 'IOSGuide'
 // ============================================
 // Android 引导内容（国内，非微信）
 // ============================================
-const AndroidGuideChina = memo(({ t, apkUrl }) => (
-    <div className="space-y-3">
-        <StepCard
-            title={t('androidStep1Title')}
-            description={t('androidStep1Desc')}
-            ctaText={t('androidStep1Cta')}
-            ctaIcon={Download}
-            onClick={() => {
-                trackEvent('android_download_click', { source: 'apk' })
-                window.open(apkUrl, '_blank')
-            }}
-            delay={0.1}
-        />
-    </div>
-))
+const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' }) => {
+    const handleClick = useCallback(() => {
+        const attrs = getAttributionState()
+        trackEvent('android_download_click', {
+            source: 'apk',
+            click_id: attrs?.click_id,
+            utm_campaign: attrs?.utm_campaign,
+            content_id: attrs?.content_id,
+        })
+        const url = buildContinueUrl('apk', placement) || apkUrl
+        window.open(url, '_blank')
+    }, [apkUrl, placement])
+
+    return (
+        <div className="space-y-3">
+            <StepCard
+                title={t('androidStep1Title')}
+                description={t('androidStep1Desc')}
+                ctaText={t('androidStep1Cta')}
+                ctaIcon={Download}
+                onClick={handleClick}
+                delay={0.1}
+            />
+        </div>
+    )
+})
 AndroidGuideChina.displayName = 'AndroidGuideChina'
 
 // ============================================
@@ -446,21 +471,32 @@ WeChatGuide.displayName = 'WeChatGuide'
 // ============================================
 // Android 引导内容（海外 - Google Play）
 // ============================================
-const AndroidGuideOverseas = memo(({ t }) => (
-    <div className="space-y-3">
-        <StepCard
-            title={t('androidStep1Title')}
-            description={t('androidStep1Desc')}
-            ctaText={t('androidStep1CtaGooglePlay')}
-            ctaIcon={ExternalLink}
-            onClick={() => {
-                trackEvent('android_download_click', { source: 'google_play' })
-                window.open(config.downloads.googlePlay, '_blank')
-            }}
-            delay={0.1}
-        />
-    </div>
-))
+const AndroidGuideOverseas = memo(({ t, placement = 'mobile_android_overseas' }) => {
+    const handleClick = useCallback(() => {
+        const attrs = getAttributionState()
+        trackEvent('android_download_click', {
+            source: 'google_play',
+            click_id: attrs?.click_id,
+            utm_campaign: attrs?.utm_campaign,
+            content_id: attrs?.content_id,
+        })
+        const url = buildContinueUrl('google', placement) || config.downloads.googlePlay
+        window.open(url, '_blank')
+    }, [placement])
+
+    return (
+        <div className="space-y-3">
+            <StepCard
+                title={t('androidStep1Title')}
+                description={t('androidStep1Desc')}
+                ctaText={t('androidStep1CtaGooglePlay')}
+                ctaIcon={ExternalLink}
+                onClick={handleClick}
+                delay={0.1}
+            />
+        </div>
+    )
+})
 AndroidGuideOverseas.displayName = 'AndroidGuideOverseas'
 
 // ============================================
@@ -502,7 +538,7 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
             if (!isMainlandChina) {
                 return <IOSWaitlistGuide t={t} placement="mobile_ios" />
             }
-            return <IOSGuide t={t} />
+            return <IOSGuide t={t} placement="mobile_ios" />
         }
 
         if (isWeChat && (device.isAndroid || device.isHarmonyOS)) {
@@ -511,9 +547,9 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
 
         if (device.isAndroid || device.isHarmonyOS) {
             if (isMainlandChina) {
-                return <AndroidGuideChina t={t} apkUrl={androidApkUrl} />
+                return <AndroidGuideChina t={t} apkUrl={androidApkUrl} placement="mobile_android_china" />
             }
-            return <AndroidGuideOverseas t={t} />
+            return <AndroidGuideOverseas t={t} placement="mobile_android_overseas" />
         }
 
         return <PcTabContent
