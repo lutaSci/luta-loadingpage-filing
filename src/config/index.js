@@ -13,6 +13,10 @@ export const config = {
         googlePlay: 'https://play.google.com/store/apps/details?id=com.luta.reader',
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
     },
+    attribution: {
+        continueBase: import.meta.env?.VITE_ATTRIBUTION_CONTINUE_BASE || 'https://go.lutaai.com',
+        defaultSlug: import.meta.env?.VITE_ATTRIBUTION_DEFAULT_SLUG || 'website-direct',
+    },
     springFestival: {
         puzzleUrl: 'https://game.lutaai.com',
     },

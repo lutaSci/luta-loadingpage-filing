@@ -1,5 +1,5 @@
-const CONTINUE_BASE = 'https://go.lutaai.com'
-const DEFAULT_SLUG = 'website-direct'
+import { config } from '../config/index.js'
+
 const DIRECT_CLICK_ID_STORAGE_KEY = 'luta_direct_attribution_click'
 
 const ATTRIBUTION_FIELDS = [
@@ -94,7 +94,7 @@ export function buildContinueUrl(store, placement) {
     const state = getAttributionState()
     if (!state) return null
 
-    const slug = state.slug || DEFAULT_SLUG
+    const slug = state.slug || config.attribution.defaultSlug
 
     const qs = new URLSearchParams()
     qs.set('store', store)
@@ -107,5 +107,5 @@ export function buildContinueUrl(store, placement) {
     }
     qs.set('slug', slug)
 
-    return `${CONTINUE_BASE}/r/${encodeURIComponent(slug)}/continue?${qs.toString()}`
+    return `${config.attribution.continueBase}/r/${encodeURIComponent(slug)}/continue?${qs.toString()}`
 }
