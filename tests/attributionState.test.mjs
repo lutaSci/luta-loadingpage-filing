@@ -71,6 +71,10 @@ test('direct UTM landing generates website-direct click id and reuses it for sam
     assert.match(firstState.click_id, /^clk_web_uuid-/)
     assert.equal(firstUrl.searchParams.get('slug'), 'website-direct')
     assert.equal(firstUrl.searchParams.get('click_id'), firstState.click_id)
+    assert.deepEqual(first.resolveRouteContext(true), {
+        market: 'cn',
+        source: 'heuristic',
+    })
 
     const second = await loadAttributionModule(
         'https://lutaai.com/?utm_source=direct_qc&utm_medium=owned&utm_campaign=direct_campaign',
@@ -83,6 +87,19 @@ test('direct UTM landing generates website-direct click id and reuses it for sam
         'direct-changed',
     )
     assert.notEqual(changed.getAttributionState().click_id, firstState.click_id)
+})
+
+test('direct UTM route_market is reported as an explicit attribution parameter', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const mod = await loadAttributionModule(
+        'https://lutaai.com/?utm_source=owned&utm_campaign=global_launch&route_market=global',
+        'direct-explicit-market',
+    )
+
+    assert.deepEqual(mod.resolveRouteContext(true), {
+        market: 'global',
+        source: 'attribution_param',
+    })
 })
 
 test('unattributed landing returns null so buttons use original store URL', async () => {

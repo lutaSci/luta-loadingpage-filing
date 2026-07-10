@@ -108,7 +108,12 @@ export function getAttributionEntryType() {
 export function resolveRouteContext(heuristicIsMainland) {
     const state = getAttributionState()
     if (state?.route_market === 'cn' || state?.route_market === 'global') {
-        return { market: state.route_market, source: 'slug' }
+        return {
+            market: state.route_market,
+            source: state.slug && state.slug !== config.attribution.defaultSlug
+                ? 'slug'
+                : 'attribution_param',
+        }
     }
 
     const legacyMarket = state?.slug
