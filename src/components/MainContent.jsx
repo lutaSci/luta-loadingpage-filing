@@ -7,10 +7,12 @@ import logo1 from '../assets/logo_1.png'
 import { memo, useMemo, useState, useCallback } from 'react'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
 import { Award } from 'lucide-react'
+import { resolveRouteContext } from '../lib/attributionState'
 
 const device = detectDevice()
 const isWeChat = detectIsWeChat()
-const isMainlandChina = detectIsMainlandChina()
+const routeContext = resolveRouteContext(detectIsMainlandChina())
+const isMainlandChina = routeContext.market === 'cn'
 const isMobile = device.isMobile
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)

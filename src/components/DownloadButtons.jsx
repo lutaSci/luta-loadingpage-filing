@@ -6,8 +6,8 @@ import { Colors } from '../design/colors'
 import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
-import { trackEvent } from '../lib/analytics'
-import { buildContinueUrl, getAttributionState } from '../lib/attributionState'
+import { trackEvent, trackWebsiteEvent } from '../lib/analytics'
+import { buildContinueUrl, buildWaitlistFallbackUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
 import WeChatMask from './WeChatMask'
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -263,11 +263,15 @@ PcTabContent.displayName = 'PcTabContent'
 // 海外 iOS 开放通知
 // ============================================
 const IOSWaitlistGuide = memo(({ t, placement }) => {
-    const waitlistUrl = config.downloads.iosOverseasWaitlistFormUrl?.trim()
+    const waitlistUrl = buildWaitlistFallbackUrl(config.downloads.iosOverseasWaitlistFormUrl?.trim())
     const hasWaitlistUrl = Boolean(waitlistUrl)
 
     useEffect(() => {
         trackEvent('ios_waitlist_impression', { placement })
+        trackWebsiteEvent('website_download_option_viewed', {
+            cta_target: 'waitlist',
+            placement,
+        })
     }, [placement])
 
     const handleWaitlistClick = useCallback(() => {
@@ -278,6 +282,10 @@ const IOSWaitlistGuide = memo(({ t, placement }) => {
             click_id: attrs?.click_id,
             utm_campaign: attrs?.utm_campaign,
             content_id: attrs?.content_id,
+        })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'waitlist',
+            placement,
         })
         const url = buildContinueUrl('waitlist', placement) || waitlistUrl
         window.open(url, '_blank', 'noopener,noreferrer')
@@ -307,12 +315,23 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
     const [showBeta, setShowBeta] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
 
+    useEffect(() => {
+        trackWebsiteEvent('website_download_option_viewed', {
+            cta_target: 'apple_store',
+            placement,
+        })
+    }, [placement])
+
     const handleAppStoreClick = useCallback(() => {
         const attrs = getAttributionState()
         trackEvent('ios_appstore_click', {
             click_id: attrs?.click_id,
             utm_campaign: attrs?.utm_campaign,
             content_id: attrs?.content_id,
+        })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'apple_store',
+            placement,
         })
         const url = buildContinueUrl('apple', placement) || config.downloads.appStore
         window.open(url, '_blank')
@@ -322,25 +341,40 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
         setShowBeta(prev => {
             const next = !prev
             trackEvent('ios_beta_toggle', { expanded: next })
+            if (next) {
+                trackWebsiteEvent('website_download_option_viewed', {
+                    cta_target: 'testflight_beta',
+                    placement,
+                })
+            }
             return next
         })
-    }, [])
+    }, [placement])
 
     const handleBetaStep1Click = useCallback(() => {
-        trackEvent('ios_beta_step1_click')
+        trackEvent('ios_beta_step1_click', { placement })
         setShowConfirm(true)
-    }, [])
+    }, [placement])
 
     const handleBetaStep1Confirm = useCallback(() => {
-        trackEvent('ios_beta_step1_confirm')
+        trackEvent('ios_beta_step1_confirm', { placement })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'testflight_app',
+            placement,
+        })
         setShowConfirm(false)
-        window.open(config.downloads.testFlightAppStore, '_blank')
-    }, [])
+        const url = buildContinueUrl('testflight_app', placement) || config.downloads.testFlightAppStore
+        window.open(url, '_blank')
+    }, [placement])
 
     const handleBetaStep2Click = useCallback(() => {
-        trackEvent('ios_beta_step2_click')
-        window.location.href = config.downloads.iosTestFlight
-    }, [])
+        trackEvent('ios_beta_step2_click', { placement })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'testflight_beta',
+            placement,
+        })
+        window.location.href = buildContinueUrl('testflight_beta', placement) || config.downloads.iosTestFlight
+    }, [placement])
 
     return (
         <>
@@ -421,6 +455,13 @@ IOSGuide.displayName = 'IOSGuide'
 // Android 引导内容（国内，非微信）
 // ============================================
 const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' }) => {
+    useEffect(() => {
+        trackWebsiteEvent('website_download_option_viewed', {
+            cta_target: 'apk',
+            placement,
+        })
+    }, [placement])
+
     const handleClick = useCallback(() => {
         const attrs = getAttributionState()
         trackEvent('android_download_click', {
@@ -428,6 +469,10 @@ const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' 
             click_id: attrs?.click_id,
             utm_campaign: attrs?.utm_campaign,
             content_id: attrs?.content_id,
+        })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'apk',
+            placement,
         })
         const url = buildContinueUrl('apk', placement) || apkUrl
         window.open(url, '_blank')
@@ -451,7 +496,7 @@ AndroidGuideChina.displayName = 'AndroidGuideChina'
 // ============================================
 // 微信环境引导（仅 Android/鸿蒙 —— iOS 在微信中可直接跳 App Store）
 // ============================================
-const WeChatGuide = memo(({ t, onShowMask }) => (
+const WeChatGuide = memo(({ t, onShowMask, placement = 'mobile_android_wechat' }) => (
     <div className="space-y-3">
         <StepCard
             title={t('wechatGuideTitle')}
@@ -460,6 +505,10 @@ const WeChatGuide = memo(({ t, onShowMask }) => (
             ctaIcon={ExternalLinkIcon}
             onClick={() => {
                 trackEvent('wechat_guide_click')
+                trackWebsiteEvent('website_download_cta_clicked', {
+                    cta_target: 'wechat_guide',
+                    placement,
+                })
                 onShowMask()
             }}
             delay={0.1}
@@ -472,6 +521,13 @@ WeChatGuide.displayName = 'WeChatGuide'
 // Android 引导内容（海外 - Google Play）
 // ============================================
 const AndroidGuideOverseas = memo(({ t, placement = 'mobile_android_overseas' }) => {
+    useEffect(() => {
+        trackWebsiteEvent('website_download_option_viewed', {
+            cta_target: 'google_play',
+            placement,
+        })
+    }, [placement])
+
     const handleClick = useCallback(() => {
         const attrs = getAttributionState()
         trackEvent('android_download_click', {
@@ -479,6 +535,10 @@ const AndroidGuideOverseas = memo(({ t, placement = 'mobile_android_overseas' })
             click_id: attrs?.click_id,
             utm_campaign: attrs?.utm_campaign,
             content_id: attrs?.content_id,
+        })
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'google_play',
+            placement,
         })
         const url = buildContinueUrl('google', placement) || config.downloads.googlePlay
         window.open(url, '_blank')
@@ -506,7 +566,11 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const { t } = useLanguage()
 
     const device = useMemo(() => detectDevice(), [])
-    const isMainlandChina = useMemo(() => detectIsMainlandChina(), [])
+    const routeContext = useMemo(
+        () => resolveRouteContext(detectIsMainlandChina()),
+        [],
+    )
+    const isMainlandChina = routeContext.market === 'cn'
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
     const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android)
@@ -526,6 +590,10 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
 
     const handleInstallDocClick = useCallback(() => {
         trackEvent('install_doc_click')
+        trackWebsiteEvent('website_download_cta_clicked', {
+            cta_target: 'install_documentation',
+            placement: 'download_help',
+        })
         window.open(config.downloads.installDoc, '_blank')
     }, [])
 

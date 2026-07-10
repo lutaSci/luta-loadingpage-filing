@@ -7,6 +7,7 @@ export const config = {
     downloads: {
         appStore: 'https://apps.apple.com/cn/app/%E6%B1%9D%E5%A1%94/id6752280249',
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
+        iosTestFlightWeb: 'https://testflight.apple.com/join/48vCAeVp',
         testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
         iosOverseasWaitlistFormUrl: 'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
         android: 'https://download.lutaai.com/v1.1/android-app-release.apk',
@@ -16,6 +17,15 @@ export const config = {
     attribution: {
         continueBase: import.meta.env?.VITE_ATTRIBUTION_CONTINUE_BASE || 'https://go.lutaai.com',
         defaultSlug: import.meta.env?.VITE_ATTRIBUTION_DEFAULT_SLUG || 'website-direct',
+        legacySlugMarkets: {
+            'cn-store': 'cn',
+            'global-store': 'global',
+        },
+    },
+    analytics: {
+        posthogKey: import.meta.env?.VITE_POSTHOG_KEY || 'phc_AJ9WrJztG6H87z7xD7Xfa97abfCau4EbYXMSDUxo6Rsv',
+        posthogHost: import.meta.env?.VITE_POSTHOG_HOST || 'https://posthog.lutaai.com',
+        captureDevelopment: import.meta.env?.VITE_POSTHOG_CAPTURE_DEVELOPMENT === 'true',
     },
     springFestival: {
         puzzleUrl: 'https://game.lutaai.com',

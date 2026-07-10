@@ -5,14 +5,19 @@ import LanguageSwitch from './components/LanguageSwitch'
 import MainContent from './components/MainContent'
 import Footer from './components/Footer'
 import Toast, { toast } from './components/Toast'
-import { memo, useCallback } from 'react'
+import { memo, useCallback, useEffect } from 'react'
 import { Colors } from './design/colors'
 import { useLanguage } from './contexts/LanguageContext'
 import { config } from './config'
 import { CircleHelp } from 'lucide-react'
+import { trackWebsitePageView } from './lib/analytics'
 
 function App() {
   const { t } = useLanguage()
+
+  useEffect(() => {
+    trackWebsitePageView()
+  }, [])
 
   const handleHelpClick = useCallback(async () => {
     const wechatId = config.support.wechatId
