@@ -49,10 +49,10 @@ export const config = {
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
         iosTestFlightWeb: 'https://testflight.apple.com/join/48vCAeVp',
         testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
-        // Disabled until a public, unauthenticated waitlist endpoint is
-        // verified. Smart Link v2 waitlist choices come from the runtime
-        // distribution catalog instead of this static fallback.
-        iosOverseasWaitlistFormUrl: '',
+        // Public fallback for direct website visits that have no Smart Link
+        // state. Attributed journeys still prefer the backend-controlled
+        // waitlist continuation returned by buildContinueUrl().
+        iosOverseasWaitlistFormUrl: 'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
         // APK must come from a verified runtime catalog. Do not add a static
         // package URL here because version, size and SHA-256 would drift.
         android: '',
