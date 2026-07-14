@@ -11,6 +11,7 @@ import { useLanguage } from './contexts/LanguageContext'
 import { config } from './config'
 import { CircleHelp } from 'lucide-react'
 import { trackWebsitePageView } from './lib/analytics'
+import SmartLinkRecoveryNotice from './components/SmartLinkRecoveryNotice'
 
 function App() {
   const { t } = useLanguage()
@@ -39,6 +40,7 @@ function App() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <Toast />
+      <SmartLinkRecoveryNotice />
 
       <div className="absolute inset-0 z-0">
         <Silk

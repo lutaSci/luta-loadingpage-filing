@@ -93,6 +93,13 @@ const translations = {
         contactSupport: "技术支持",
         contactSupportDesc: "如果您在使用过程中遇到任何问题，请随时联系我们",
 
+        smartLinkRecoveryPreparingTitle: "这条链接还在准备中",
+        smartLinkRecoveryPausedTitle: "这条链接已暂停使用",
+        smartLinkRecoveryUnavailableTitle: "这条链接暂时无法继续",
+        smartLinkRecoveryDescription: "你没有做错任何事。我们不会把你带到不可用的商店；你仍可查看官网当前可用的安装方式。",
+        smartLinkRecoveryPrimaryAction: "查看可用安装方式",
+        smartLinkRecoveryDismiss: "关闭提示并继续浏览官网",
+
         metaDescription: "汝塔APP - 您的读经伴侣！",
         metaKeywords: "汝塔, LUTA, 读经伴侣, AI读经, 佛学学习, 经文理解, 闻思修",
 
@@ -194,6 +201,13 @@ const translations = {
         contactSocialDesc: "追蹤我們，掌握最新動態",
         contactSupport: "技術支援",
         contactSupportDesc: "若您在使用過程中遇到任何問題，歡迎隨時與我們聯繫",
+
+        smartLinkRecoveryPreparingTitle: "這條連結仍在準備中",
+        smartLinkRecoveryPausedTitle: "這條連結已暫停使用",
+        smartLinkRecoveryUnavailableTitle: "這條連結暫時無法繼續",
+        smartLinkRecoveryDescription: "你沒有做錯任何事。我們不會把你帶到無法使用的商店；你仍可查看官網目前可用的安裝方式。",
+        smartLinkRecoveryPrimaryAction: "查看可用安裝方式",
+        smartLinkRecoveryDismiss: "關閉提示並繼續瀏覽官網",
 
         metaDescription: "汝塔APP－您的讀經夥伴！",
         metaKeywords: "汝塔, LUTA, 讀經夥伴, AI讀經, 佛學學習, 經文理解, 聞思修",
@@ -297,6 +311,13 @@ const translations = {
         contactSupport: "Support",
         contactSupportDesc: "If you encounter any issues, feel free to reach out",
 
+        smartLinkRecoveryPreparingTitle: "This link is still being prepared",
+        smartLinkRecoveryPausedTitle: "This link is currently paused",
+        smartLinkRecoveryUnavailableTitle: "This link cannot continue right now",
+        smartLinkRecoveryDescription: "You did nothing wrong. We will not send you to an unavailable store; you can still view the installation methods currently available on our website.",
+        smartLinkRecoveryPrimaryAction: "View installation options",
+        smartLinkRecoveryDismiss: "Close this message and continue browsing",
+
         metaDescription: "LUTA - Your scripture companion",
         metaKeywords: "LUTA, scripture, Buddhist study, AI reading, sutra, learning, contemplation",
 
@@ -399,6 +420,13 @@ const translations = {
         contactSupport: "サポート",
         contactSupportDesc: "ご不明点があればお気軽にお問い合わせください",
 
+        smartLinkRecoveryPreparingTitle: "このリンクは現在準備中です",
+        smartLinkRecoveryPausedTitle: "このリンクは現在一時停止中です",
+        smartLinkRecoveryUnavailableTitle: "このリンクは現在ご利用いただけません",
+        smartLinkRecoveryDescription: "お客様の操作に問題はありません。利用できないストアには移動せず、公式サイトで現在利用できるインストール方法をご確認いただけます。",
+        smartLinkRecoveryPrimaryAction: "インストール方法を見る",
+        smartLinkRecoveryDismiss: "メッセージを閉じてサイトを見る",
+
         metaDescription: "LUTA - 経典学習のパートナー",
         metaKeywords: "LUTA, 経典, 仏教学習, AI 読書, 経文, 学習, 熟考",
 
@@ -500,6 +528,13 @@ const translations = {
         contactSocialDesc: "최신 소식을 확인하세요",
         contactSupport: "지원",
         contactSupportDesc: "앱 사용 중 문제가 발생하면 언제든지 문의해 주세요",
+
+        smartLinkRecoveryPreparingTitle: "이 링크는 아직 준비 중입니다",
+        smartLinkRecoveryPausedTitle: "이 링크는 현재 일시 중지되었습니다",
+        smartLinkRecoveryUnavailableTitle: "이 링크는 지금 계속할 수 없습니다",
+        smartLinkRecoveryDescription: "사용자님의 잘못이 아닙니다. 이용할 수 없는 스토어로 보내지 않으며, 공식 웹사이트에서 현재 이용 가능한 설치 방법을 확인할 수 있습니다.",
+        smartLinkRecoveryPrimaryAction: "설치 방법 보기",
+        smartLinkRecoveryDismiss: "안내를 닫고 웹사이트 계속 보기",
 
         metaDescription: "LUTA - 경전 학습 동반자",
         metaKeywords: "LUTA, 경전, 불교 학습, AI 독서, 수트라, 학습, 성찰",

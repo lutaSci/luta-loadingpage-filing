@@ -156,7 +156,13 @@ const MainContent = memo(() => {
                     )}
                 </motion.div>
 
-                <DownloadButtons pcTab={pcTab} onPcTabChange={handlePcTabChange} />
+                <div
+                    id="download-options"
+                    tabIndex={-1}
+                    className="rounded-3xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+                >
+                    <DownloadButtons pcTab={pcTab} onPcTabChange={handlePcTabChange} />
+                </div>
             </motion.div>
         </div>
     )
