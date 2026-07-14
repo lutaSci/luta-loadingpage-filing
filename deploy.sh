@@ -11,6 +11,7 @@ PUBLIC_SMOKE_BASE_URL="${PUBLIC_SMOKE_BASE_URL%/}"
 LUTA_API_BASE_URL="${LUTA_API_BASE_URL-https://api.lutaai.com}"
 LUTA_API_BASE_URL="${LUTA_API_BASE_URL%/}"
 CORS_SMOKE_ORIGIN="${CORS_SMOKE_ORIGIN-${PUBLIC_SMOKE_BASE_URL:-https://lutaai.com}}"
+CADDY_NETWORK_NAME="${CADDY_NETWORK_NAME:-caddy_default}"
 
 if ! docker compose version >/dev/null 2>&1; then
   echo "[error] docker compose 不可用，请安装 Docker Desktop 或 Compose v2"
@@ -19,6 +20,11 @@ fi
 
 if ! command -v curl >/dev/null 2>&1; then
   echo "[error] curl 不可用，无法执行发布后 smoke check"
+  exit 1
+fi
+
+if ! docker network inspect "$CADDY_NETWORK_NAME" >/dev/null 2>&1; then
+  echo "[error] Caddy 共享网络不存在：${CADDY_NETWORK_NAME}"
   exit 1
 fi
 
@@ -61,6 +67,12 @@ done
 if [[ "$health_status" != "healthy" ]]; then
   echo "[error] luta-web 健康检查失败：${health_status}"
   docker compose logs --tail=100 app || true
+  exit 1
+fi
+
+if ! docker inspect --format '{{json .NetworkSettings.Networks}}' "$container_id" \
+  | grep -q "\"${CADDY_NETWORK_NAME}\""; then
+  echo "[error] luta-web 未接入 Caddy 共享网络：${CADDY_NETWORK_NAME}"
   exit 1
 fi
 

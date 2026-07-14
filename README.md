@@ -183,15 +183,15 @@ export const Colors = {
 }
 ```
 
-## 🌐 生产部署：Docker + 宿主机 Caddy
+## 🌐 生产部署：Docker + 共享网络 Caddy
 
 Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
 ```text
 用户浏览器
   ├─ https://lutaai.com/*
-  │    → 宿主机 Caddy :443
-  │    → 127.0.0.1:8000
+  │    → Caddy 容器 :443
+  │    → caddy_default 私有 Docker 网络
   │    → Docker 容器 applanding / Nginx :80
   └─ https://api.lutaai.com/api/*
        → 浏览器直连 Luta API
@@ -203,8 +203,9 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
 - 使用已评审、已提交的 release commit，不从 dirty worktree 发布。
 - 宿主机已安装 Docker Compose v2 和 `curl`。
-- 宿主机 Caddy 正在管理 `lutaai.com` / `lutaai.co` 的 DNS、TLS 和 80/443。
-- Caddy 将官网流量转发到 `127.0.0.1:8000`；Docker 端口不对公网直接暴露。
+- Caddy 容器正在管理 `lutaai.com` / `lutaai.co` 的 DNS、TLS 和 80/443。
+- 外部网络 `caddy_default` 已存在；Caddy 通过容器名 `applanding:80` 转发官网流量。
+- `127.0.0.1:8000` 只用于宿主机 smoke check，不对公网直接暴露。
 - `https://api.lutaai.com` 允许官网 origin 的 CORS 请求，且 Smart Link 后端已先于网页发布。
 
 ### 发布命令
@@ -219,18 +220,18 @@ PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 
 `deploy.sh` 会：
 
-1. 检查 Compose 和 curl，并验证 Compose 配置。
+1. 检查 Compose、curl 和 `caddy_default` 共享网络，并验证 Compose 配置。
 2. 执行 `docker compose up -d --build app`，不先 `down` 整个服务。
 3. 等待容器 `/healthz` 进入 `healthy`。
 4. 验证本机 `/healthz` 和 `/install` SPA 入口。
 5. 验证 Caddy 公网 `/healthz` 和 `/install`。
 6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
 
-脚本不会管理或 reload 宿主机 Caddy。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
+脚本不会修改或 reload 共享 Caddy 容器。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
 
 ```bash
-sudo caddy validate --config /etc/caddy/Caddyfile
-sudo systemctl reload caddy
+docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
 ### 构建参数
@@ -241,6 +242,7 @@ sudo systemctl reload caddy
 | `PUBLIC_SMOKE_BASE_URL` | `https://lutaai.com` | 发布后公网 smoke 域名；生产保持默认 |
 | `LUTA_API_BASE_URL` | `https://api.lutaai.com` | 发布脚本验证的 API origin |
 | `CORS_SMOKE_ORIGIN` | `PUBLIC_SMOKE_BASE_URL` | API 必须明确允许的官网 origin |
+| `CADDY_NETWORK_NAME` | `caddy_default` | 官网容器与 Caddy 共享的外部 Docker 网络 |
 
 ### 手动验收
 
