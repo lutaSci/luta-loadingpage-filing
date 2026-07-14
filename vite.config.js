@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -47,16 +50,8 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(rootDir, './src'),
     },
   },
   assetsInclude: ['**/*.md'], // 支持Markdown文件作为资源
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://47.76.135.140:8000',
-        changeOrigin: true,
-      }
-    }
-  }
 })

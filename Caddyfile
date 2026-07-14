@@ -15,8 +15,8 @@ lutaai.co, lutaai.com {
     Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
   }
 
-  # 反向代理到内部 Nginx（构建出的静态站点）
-  reverse_proxy app:80
+  # Caddy runs on the host; the luta-web container only binds loopback:8000.
+  reverse_proxy 127.0.0.1:8000
 
   # 自动签发/续期证书（从环境变量读取邮箱，可留空）
   tls {$ACME_EMAIL}
@@ -44,4 +44,3 @@ www.luta-ai.com {
   redir https://lutaai.com{uri} permanent
   tls {$ACME_EMAIL}
 }
-

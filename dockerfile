@@ -7,6 +7,11 @@ WORKDIR /app
 
 ENV CI=true
 
+# Vite variables are compiled into the static bundle. Keep the production API
+# explicit so Docker and static previews use the same HTTPS backend contract.
+ARG VITE_LUTA_API_BASE=https://api.lutaai.com
+ENV VITE_LUTA_API_BASE=${VITE_LUTA_API_BASE}
+
 # Install dependencies using lockfile for reproducibility
 COPY package*.json ./
 RUN npm ci
@@ -29,6 +34,8 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
+    CMD wget -q -O /dev/null http://127.0.0.1/healthz || exit 1
 
+CMD ["nginx", "-g", "daemon off;"]
 

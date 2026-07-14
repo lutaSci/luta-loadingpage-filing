@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect } from 'react';
 
-// 默认版本号（API加载前显示）
-const DEFAULT_VERSION = "1.1.0";
+import { config } from '../config/index.js';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
@@ -31,10 +30,10 @@ const translations = {
         androidSafeInstall: "✅ 安全安装",
 
         iosSteps: "App Store 官方下载",
-        androidSteps: "只需1步，2分钟安装成功",
+        androidSteps: "选择适合你的官方安装方式",
 
         iosAppStoreTitle: "下载汝塔",
-        iosAppStoreDesc: "App Store 官方正版，一键安装",
+        iosAppStoreDesc: "前往 App Store 查看当前可用版本并安装",
         iosAppStoreCta: "前往 App Store 下载",
         iosWaitlistSteps: "iOS 即将开放",
         iosWaitlistTitle: "汝塔 iOS 版开放时通知我",
@@ -55,12 +54,13 @@ const translations = {
         iosTestFlightConfirmBtn: "好的，前往下载",
         iosTestFlightStep2Title: "第2步 · 安装内测版汝塔",
         iosTestFlightStep2Desc: "点击按钮后按照提示完成安装",
-        iosTestFlightStep2Cta: "一键安装内测版",
+        iosTestFlightStep2Cta: "安装内测版",
         iosTestFlightStep2Note: "若弹出「兑换码」页面，请先关闭 TestFlight 再点击此按钮",
 
         androidStep1Title: "获取官方安装包",
-        androidStep1Desc: "下载完成后按提示点击「允许安装」即可",
+        androidStep1Desc: "下载前请核对版本与文件信息，下载后按照浏览器和系统提示完成安装",
         androidStep1Cta: "下载汝塔安装包",
+        androidUnavailableCta: "安装包信息正在核验",
         androidStep1CtaGooglePlay: "前往 Google Play 下载",
 
         wechatGuideTitle: "在浏览器中安装",
@@ -132,10 +132,10 @@ const translations = {
         androidSafeInstall: "✅ 安全安裝",
 
         iosSteps: "App Store 官方下載",
-        androidSteps: "只需1步，2分鐘安裝成功",
+        androidSteps: "選擇適合你的官方安裝方式",
 
         iosAppStoreTitle: "下載汝塔",
-        iosAppStoreDesc: "App Store 官方正版，一鍵安裝",
+        iosAppStoreDesc: "前往 App Store 查看目前可用版本並安裝",
         iosAppStoreCta: "前往 App Store 下載",
         iosWaitlistSteps: "iOS 即將開放",
         iosWaitlistTitle: "汝塔 iOS 版開放時通知我",
@@ -156,12 +156,13 @@ const translations = {
         iosTestFlightConfirmBtn: "好的，前往下載",
         iosTestFlightStep2Title: "第2步 · 安裝內測版汝塔",
         iosTestFlightStep2Desc: "點擊按鈕後按照提示完成安裝",
-        iosTestFlightStep2Cta: "一鍵安裝內測版",
+        iosTestFlightStep2Cta: "安裝內測版",
         iosTestFlightStep2Note: "若彈出「兌換碼」頁面，請先關閉 TestFlight 再點擊此按鈕",
 
         androidStep1Title: "獲取官方安裝包",
-        androidStep1Desc: "點擊下方按鈕獲取安裝包，下載完成後按提示點擊「允許安裝」即可",
+        androidStep1Desc: "下載前請核對版本與檔案資訊，下載後按照瀏覽器和系統提示完成安裝",
         androidStep1Cta: "下載汝塔安裝包",
+        androidUnavailableCta: "安裝包資訊正在核驗",
         androidStep1CtaGooglePlay: "前往 Google Play 下載",
 
         wechatGuideTitle: "在瀏覽器中安裝",
@@ -233,10 +234,10 @@ const translations = {
         androidSafeInstall: "✅ Safe to Install",
 
         iosSteps: "Available on the App Store",
-        androidSteps: "Just 1 step, ready in 2 min",
+        androidSteps: "Choose an official installation method that works for you",
 
         iosAppStoreTitle: "Download LUTA",
-        iosAppStoreDesc: "Official version on the App Store, one-tap install",
+        iosAppStoreDesc: "Open the App Store to review the currently available version and install",
         iosAppStoreCta: "Download on the App Store",
         iosWaitlistSteps: "iOS is coming soon",
         iosWaitlistTitle: "Notify me when LUTA is ready on iOS",
@@ -261,8 +262,9 @@ const translations = {
         iosTestFlightStep2Note: "If a \"Redeem\" page appears, close TestFlight first, then tap this button again",
 
         androidStep1Title: "Get the Official App",
-        androidStep1Desc: "Tap the button below to download. Once done, tap \"Allow Install\" to continue.",
+        androidStep1Desc: "Review the version and file information before downloading, then follow your browser and system prompts.",
         androidStep1Cta: "Download LUTA",
+        androidUnavailableCta: "Package information is being verified",
         androidStep1CtaGooglePlay: "Get it on Google Play",
 
         wechatGuideTitle: "Open in Browser to Install",
@@ -334,10 +336,10 @@ const translations = {
         androidSafeInstall: "✅ 安全インストール",
 
         iosSteps: "App Storeで入手可能",
-        androidSteps: "たった1ステップ、2分で完了",
+        androidSteps: "利用しやすい公式インストール方法を選択",
 
         iosAppStoreTitle: "LUTAをダウンロード",
-        iosAppStoreDesc: "App Store公式版、ワンタップインストール",
+        iosAppStoreDesc: "App Storeで現在利用できるバージョンを確認してインストール",
         iosAppStoreCta: "App Storeでダウンロード",
         iosWaitlistSteps: "iOS版は準備中",
         iosWaitlistTitle: "LUTA iOS版が使えるようになったらお知らせ",
@@ -362,8 +364,9 @@ const translations = {
         iosTestFlightStep2Note: "「コードを入力」画面が出た場合は、TestFlightを閉じてこのボタンを再度タップしてください",
 
         androidStep1Title: "公式アプリを取得",
-        androidStep1Desc: "下のボタンをタップしてダウンロード。完了後「インストールを許可」をタップしてください。",
+        androidStep1Desc: "ダウンロード前にバージョンとファイル情報を確認し、ブラウザとシステムの案内に従ってください。",
         androidStep1Cta: "LUTAをダウンロード",
+        androidUnavailableCta: "パッケージ情報を確認中",
         androidStep1CtaGooglePlay: "Google Playで入手",
 
         wechatGuideTitle: "ブラウザでインストール",
@@ -435,10 +438,10 @@ const translations = {
         androidSafeInstall: "✅ 안전 설치",
 
         iosSteps: "App Store에서 다운로드",
-        androidSteps: "단 1단계, 2분이면 완료",
+        androidSteps: "사용하기 편한 공식 설치 방법을 선택하세요",
 
         iosAppStoreTitle: "LUTA 다운로드",
-        iosAppStoreDesc: "App Store 공식 버전, 원탭 설치",
+        iosAppStoreDesc: "App Store에서 현재 사용 가능한 버전을 확인하고 설치하세요",
         iosAppStoreCta: "App Store에서 다운로드",
         iosWaitlistSteps: "iOS 버전 준비 중",
         iosWaitlistTitle: "LUTA iOS 버전이 준비되면 알려드릴게요",
@@ -463,8 +466,9 @@ const translations = {
         iosTestFlightStep2Note: "\"코드 입력\" 화면이 나타나면, TestFlight를 닫고 이 버튼을 다시 눌러주세요",
 
         androidStep1Title: "공식 앱 다운로드",
-        androidStep1Desc: "아래 버튼을 눌러 다운로드하세요. 완료 후 \"설치 허용\"을 눌러주세요.",
+        androidStep1Desc: "다운로드 전에 버전과 파일 정보를 확인한 뒤 브라우저와 시스템 안내를 따르세요.",
         androidStep1Cta: "LUTA 다운로드",
+        androidUnavailableCta: "설치 파일 정보를 확인 중입니다",
         androidStep1CtaGooglePlay: "Google Play에서 다운로드",
 
         wechatGuideTitle: "브라우저에서 설치",
@@ -546,6 +550,9 @@ const detectLanguage = () => {
 // 创建语言上下文
 const LanguageContext = createContext();
 
+// The provider and its public hook intentionally share one module so existing
+// consumers keep a single context identity across the application.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useLanguage = () => {
     const context = useContext(LanguageContext);
     if (!context) {
@@ -556,13 +563,20 @@ export const useLanguage = () => {
 
 export const LanguageProvider = ({ children }) => {
     const [currentLanguage, setCurrentLanguage] = useState(detectLanguage);
-    const [appVersion, setAppVersion] = useState(DEFAULT_VERSION);
+    const [appVersion, setAppVersion] = useState(null);
 
-    // 从服务端获取版本号（通过代理绕过 HTTPS 混合内容限制）
+    // 从公开 HTTPS API 获取版本号；不要依赖某一种静态站点的同源代理。
     useEffect(() => {
+        if (window.location.pathname === '/install') return;
+
         const fetchAppVersion = async () => {
             try {
-                const response = await fetch('/api/v1/app/info');
+                const response = await fetch(config.api.appInfo, {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'omit',
+                    cache: 'no-store',
+                });
+                if (!response.ok) throw new Error('app info unavailable');
                 const result = await response.json();
                 if (result.code === 0 && result.data?.appVersion) {
                     // 提取版本号（格式如 "1.6.5 4500"，只取前面的版本号部分）
@@ -571,7 +585,6 @@ export const LanguageProvider = ({ children }) => {
                 }
             } catch (error) {
                 console.error('Failed to fetch app version:', error);
-                // 保持默认版本号
             }
         };
 
@@ -579,10 +592,11 @@ export const LanguageProvider = ({ children }) => {
     }, []);
 
     // 生成带版本号的 glitchText
-    const getGlitchText = () => {
+    const getGlitchText = useCallback(() => {
+        if (!appVersion) return '';
         const prefix = translations[currentLanguage]?.glitchTextPrefix || 'Version';
-        return `${prefix} V${appVersion}`;
-    };
+        return `${prefix} ${appVersion}`;
+    }, [appVersion, currentLanguage]);
 
     useEffect(() => {
         // 保存语言设置到localStorage
@@ -597,21 +611,26 @@ export const LanguageProvider = ({ children }) => {
 
         // 更新页面标题和meta信息
         const trans = translations[currentLanguage];
-        const glitchText = getGlitchText();
-        document.title = `${trans.title} - ${glitchText} | ${trans.subtitle}`;
+        const isInstallGate = window.location.pathname === '/install';
+        if (!isInstallGate) {
+            const glitchText = getGlitchText();
+            document.title = glitchText
+                ? `${trans.title} - ${glitchText} | ${trans.subtitle}`
+                : `${trans.title} | ${trans.subtitle}`;
+        }
 
         // 更新meta描述
         const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription) {
+        if (metaDescription && !isInstallGate) {
             metaDescription.setAttribute('content', trans.metaDescription);
         }
 
         // 更新meta关键词
         const metaKeywords = document.querySelector('meta[name="keywords"]');
-        if (metaKeywords) {
+        if (metaKeywords && !isInstallGate) {
             metaKeywords.setAttribute('content', trans.metaKeywords);
         }
-    }, [currentLanguage, appVersion]);
+    }, [currentLanguage, getGlitchText]);
 
     const changeLanguage = (language) => {
         if (translations[language]) {

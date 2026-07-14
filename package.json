@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "test:attribution": "node --test tests/attributionState.test.mjs",
+    "test:attribution": "node --test tests/*.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

@@ -1,33 +1,13 @@
-version: "3.9"
-
 services:
   app:
     container_name: applanding
     build:
       context: .
       dockerfile: dockerfile
+      args:
+        VITE_LUTA_API_BASE: ${VITE_LUTA_API_BASE:-https://api.lutaai.com}
     environment:
       - NODE_ENV=production
     restart: unless-stopped
     ports:
-      - "8000:80"
-
-  # caddy:
-  #   image: caddy:2.8
-  #   container_name: caddy
-  #   restart: unless-stopped
-  #   ports:
-  #     - "80:80"
-  #     - "443:443"
-  #   environment:
-  #     - ACME_EMAIL=${ACME_EMAIL:-}
-  #   volumes:
-  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
-  #     - caddy_data:/data
-  #     - caddy_config:/config
-  #   depends_on:
-  #     - app
-
-# volumes:
-#   caddy_data:
-#   caddy_config:
+      - "127.0.0.1:8000:80"

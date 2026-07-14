@@ -1,14 +1,51 @@
-import { config } from '../config'
+import { config } from '../config/index.js'
 import {
     getAttributionEntryType,
     getAttributionState,
     getTrafficPurpose,
     resolveRouteContext,
-} from './attributionState'
-import { detectDevice, detectIsMainlandChina } from './deviceDetection'
+} from './attributionState.js'
+import { detectDevice, detectIsMainlandChina } from './deviceDetection.js'
 
 const GA_ID = 'G-5QE6T3L0LD'
 let posthogClientPromise = null
+
+export const INSTALL_WEB_EVENT_NAMES = Object.freeze([
+    'install_gate_viewed',
+    'install_option_selected',
+    'install_recovery_action_clicked',
+])
+const INSTALL_EVENT_NAMES = new Set(INSTALL_WEB_EVENT_NAMES)
+// deep_link_handled is part of the approved dictionary but is emitted only by
+// the mobile client after it receives and resolves the link.
+
+const INSTALL_PROPERTY_KEYS = new Set([
+    'surface',
+    'page_path',
+    'device_os',
+    'locale',
+    'wechat_environment',
+    'has_state',
+    'load_status',
+    'contract_version',
+    'traffic_purpose',
+    'campaign_target_market',
+    'recommended_region',
+    'distribution_region_choice',
+    'option_id',
+    'distribution_channel',
+    'option_region',
+    'availability_status',
+    'market_choice_relation',
+    'option_count',
+    'decision_reason',
+    'recovery_action',
+    'terminal_outcome',
+    'entry_context',
+    'artifact_id',
+    'link_id',
+    'click_id',
+])
 
 export const initializeAnalytics = () => {
     if (typeof window === 'undefined') return Promise.resolve(null)
@@ -82,4 +119,51 @@ export const trackWebsiteEvent = (eventName, params = {}) => {
 
 export const trackWebsitePageView = () => {
     trackWebsiteEvent('website_page_viewed')
+}
+
+export function sanitizeInstallProperties(params) {
+    const safe = {}
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (!INSTALL_PROPERTY_KEYS.has(key)) return
+        if (key === 'click_id') {
+            if (typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) {
+                safe[key] = value
+            }
+            return
+        }
+        if (typeof value === 'boolean' || typeof value === 'number') {
+            safe[key] = value
+            return
+        }
+        if (typeof value === 'string' && value.length <= 160) safe[key] = value
+    })
+    return safe
+}
+
+/**
+ * Smart Link v2 and legacy-bridge events use a separate surface and allowlist.
+ * Signed state, full URLs, UTM free text and user-entered data are never sent.
+ */
+export const trackInstallEvent = (eventName, params = {}) => {
+    if (!INSTALL_EVENT_NAMES.has(eventName)) return
+    const device = detectDevice()
+    const properties = sanitizeInstallProperties({
+        surface: 'install_gate',
+        page_path: '/install',
+        device_os: device.isIOS
+            ? 'ios'
+            : device.isHarmonyOSNext
+                ? 'harmonyos_next'
+                : device.isAndroid
+                    ? 'android'
+                    : device.isHarmonyOS
+                        ? 'harmonyos_next'
+                        : 'desktop',
+        locale: navigator.language || 'unknown',
+        ...params,
+    })
+
+    initializeAnalytics()
+        .then(posthog => posthog?.capture(eventName, properties))
+        .catch(() => {})
 }

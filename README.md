@@ -19,7 +19,8 @@
 [![React](https://img.shields.io/badge/React-19.1.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Cloudflare Pages](https://img.shields.io/badge/Cloudflare_Pages-F38020?style=for-the-badge&logo=cloudflare&logoColor=white)](https://pages.cloudflare.com/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Caddy](https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)](https://caddyserver.com/)
 
 ## 📖 项目简介
 
@@ -37,9 +38,9 @@
 │  └─ 点赞动画                                                               │
 │                                                                             │
 │  🚀 性能优化          🔧 开发体验          📦 部署方案                       │
-│  ├─ 懒加载组件        ├─ 热模块替换        ├─ Cloudflare Pages              │
-│  ├─ 代码分割          ├─ ESLint规范        ├─ 自动化部署                     │
-│  ├─ 资源压缩          ├─ 路径别名          └─ CDN加速                       │
+│  ├─ 懒加载组件        ├─ 热模块替换        ├─ Docker + Nginx                │
+│  ├─ 代码分割          ├─ ESLint规范        ├─ Caddy HTTPS 入口               │
+│  ├─ 资源压缩          ├─ 路径别名          └─ 健康检查与 smoke gate          │
 │  └─ Tree Shaking     └─ 开发服务器                                        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -182,101 +183,74 @@ export const Colors = {
 }
 ```
 
-## 🌐 Cloudflare Pages 部署指南
+## 🌐 生产部署：Docker + 宿主机 Caddy
 
-### 准备工作
-1. 确保您的项目已推送到 Git 仓库（GitHub、GitLab等）
-2. 注册 [Cloudflare](https://cloudflare.com) 账号
-3. 进入 Cloudflare Dashboard
+Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
-### 部署步骤
+```text
+用户浏览器
+  ├─ https://lutaai.com/*
+  │    → 宿主机 Caddy :443
+  │    → 127.0.0.1:8000
+  │    → Docker 容器 applanding / Nginx :80
+  └─ https://api.lutaai.com/api/*
+       → 浏览器直连 Luta API
+```
 
-#### 1. 创建 Pages 项目
+网页不依赖官网同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
+
+### 发布前提
+
+- 使用已评审、已提交的 release commit，不从 dirty worktree 发布。
+- 宿主机已安装 Docker Compose v2 和 `curl`。
+- 宿主机 Caddy 正在管理 `lutaai.com` / `lutaai.co` 的 DNS、TLS 和 80/443。
+- Caddy 将官网流量转发到 `127.0.0.1:8000`；Docker 端口不对公网直接暴露。
+- `https://api.lutaai.com` 允许官网 origin 的 CORS 请求，且 Smart Link 后端已先于网页发布。
+
+### 发布命令
+
 ```bash
-# 在 Cloudflare Dashboard 中
-Pages → Create a project → Connect to Git
+# 默认在更新容器后检查 https://lutaai.com
+./deploy.sh
+
+# 隔离的 staging 主机可显式跳过公网 Caddy 检查；生产不应使用
+PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 ```
 
-#### 2. 配置构建设置
-```yaml
-# 构建配置
-Build command: npm run build
-Build output directory: dist
-Root directory: (留空)
-Environment variables:
-  NODE_VERSION: 18
-```
+`deploy.sh` 会：
 
-#### 3. 高级配置
-在项目根目录创建 `wrangler.toml` 文件：
+1. 检查 Compose 和 curl，并验证 Compose 配置。
+2. 执行 `docker compose up -d --build app`，不先 `down` 整个服务。
+3. 等待容器 `/healthz` 进入 `healthy`。
+4. 验证本机 `/healthz` 和 `/install` SPA 入口。
+5. 验证 Caddy 公网 `/healthz` 和 `/install`。
+6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
 
-```toml
-# wrangler.toml
-name = "applanding-open"
-compatibility_date = "2024-01-01"
+脚本不会管理或 reload 宿主机 Caddy。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
 
-[site]
-bucket = "./dist"
-
-[[redirects]]
-from = "/*"
-to = "/index.html"
-status = 200
-```
-
-#### 4. 自定义域名配置
 ```bash
-# 在 Cloudflare Pages 项目中
-Custom domains → Add custom domain
-# 输入您的域名，如：app.yourdomain.com
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
 ```
 
-#### 5. 环境变量设置
+### 构建参数
+
+| 变量 | 默认值 | 作用 |
+|---|---|---|
+| `VITE_LUTA_API_BASE` | `https://api.lutaai.com` | 编译进静态资源的 Luta API origin；只允许 HTTPS，localhost 开发例外 |
+| `PUBLIC_SMOKE_BASE_URL` | `https://lutaai.com` | 发布后公网 smoke 域名；生产保持默认 |
+| `LUTA_API_BASE_URL` | `https://api.lutaai.com` | 发布脚本验证的 API origin |
+| `CORS_SMOKE_ORIGIN` | `PUBLIC_SMOKE_BASE_URL` | API 必须明确允许的官网 origin |
+
+### 手动验收
+
 ```bash
-# 在 Pages 项目设置中
-Settings → Environment variables
-# 添加生产环境变量
+curl --fail https://lutaai.com/healthz
+curl --fail https://lutaai.com/install
+curl --fail 'https://api.lutaai.com/api/v1/public/attribution/install-context?state=invalid-smoke-state'
 ```
 
-### 部署优化
-
-#### 性能优化
-```javascript
-// vite.config.js 生产优化
-export default defineConfig({
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['framer-motion', 'gsap'],
-          three: ['three', '@react-three/fiber']
-        }
-      }
-    },
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    }
-  }
-})
-```
-
-#### 缓存配置
-```javascript
-// public/_headers 文件
-/*
-  Cache-Control: public, max-age=31536000, immutable
-
-/*.html
-  Cache-Control: public, max-age=0, must-revalidate
-
-/sw.js
-  Cache-Control: public, max-age=0, must-revalidate
-```
+最后一个请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。
 
 ## 🎯 开发指南
 

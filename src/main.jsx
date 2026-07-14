@@ -1,23 +1,28 @@
-import { StrictMode } from 'react'
+import { StrictMode, Suspense, lazy } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
-import App from './App.jsx'
-import Privacy from './pages/Privacy.jsx'
-import Terms from './pages/Terms.jsx'
-import Contact from './pages/Contact.jsx'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
+
+const App = lazy(() => import('./App.jsx'))
+const Privacy = lazy(() => import('./pages/Privacy.jsx'))
+const Terms = lazy(() => import('./pages/Terms.jsx'))
+const Contact = lazy(() => import('./pages/Contact.jsx'))
+const Install = lazy(() => import('./pages/Install.jsx'))
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <LanguageProvider>
       <Router>
-        <Routes>
-          <Route path="/" element={<App />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/contact" element={<Contact />} />
-        </Routes>
+        <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-slate-700" role="status">正在准备页面…</div>}>
+          <Routes>
+            <Route path="/" element={<App />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/install" element={<Install />} />
+          </Routes>
+        </Suspense>
       </Router>
     </LanguageProvider>
   </StrictMode>,

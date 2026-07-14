@@ -52,7 +52,7 @@ const MainContent = memo(() => {
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 style={{ maxWidth: "100%", width: "100%" }}
             >
-                {/* 标题 + 副标题 + 版本号（移动端隐藏副标题和版本号） */}
+                {/* 标题 + 副标题（移动端隐藏副标题） */}
                 <motion.div {...fadeInUp} className={isMobile ? "mb-2" : "mb-4 md:mb-6"}>
                     <div className={isMobile ? "mb-2" : "mb-3 md:mb-4"}>
                         <SplitText
@@ -81,9 +81,6 @@ const MainContent = memo(() => {
                         >
                             <p className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl font-bold text-white/90 drop-shadow-lg">
                                 {t("subtitle")}
-                            </p>
-                            <p className="text-xs sm:text-sm md:text-base text-white/50 font-medium">
-                                {t("glitchText")}
                             </p>
                         </motion.div>
                     )}

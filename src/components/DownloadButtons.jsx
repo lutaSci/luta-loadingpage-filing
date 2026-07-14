@@ -483,10 +483,11 @@ const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' 
             <StepCard
                 title={t('androidStep1Title')}
                 description={t('androidStep1Desc')}
-                ctaText={t('androidStep1Cta')}
+                ctaText={apkUrl ? t('androidStep1Cta') : t('androidUnavailableCta')}
                 ctaIcon={Download}
                 onClick={handleClick}
                 delay={0.1}
+                disabled={!apkUrl}
             />
         </div>
     )
@@ -573,7 +574,7 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const isMainlandChina = routeContext.market === 'cn'
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
-    const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android)
+    const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android || '')
     const needWeChatMask = isWeChat && !device.isIOS
     const [showWeChatMask, setShowWeChatMask] = useState(needWeChatMask)
 

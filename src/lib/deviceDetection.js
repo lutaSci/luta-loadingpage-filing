@@ -4,7 +4,7 @@
 
 /**
  * 检测用户设备类型
- * @returns {{ isIOS: boolean, isAndroid: boolean, isHarmonyOS: boolean, isMobile: boolean, isDesktop: boolean }}
+ * @returns {{ isIOS: boolean, isAndroid: boolean, isHarmonyOS: boolean, isHarmonyOSNext: boolean, isMobile: boolean, isDesktop: boolean }}
  */
 export const detectDevice = () => {
     const ua = navigator.userAgent || '';
@@ -12,11 +12,15 @@ export const detectDevice = () => {
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     const isAndroid = /Android/i.test(ua);
     const isHarmonyOS = /HarmonyOS/i.test(ua);
+    // Android-based Huawei devices can still use Android-compatible channels.
+    // Pure HarmonyOS NEXT must stay on the unverified/recovery path until its
+    // catalog entry is explicitly verified.
+    const isHarmonyOSNext = isHarmonyOS && !isAndroid;
 
     const isMobile = isIOS || isAndroid || isHarmonyOS;
     const isDesktop = !isMobile;
 
-    return { isIOS, isAndroid, isHarmonyOS, isMobile, isDesktop };
+    return { isIOS, isAndroid, isHarmonyOS, isHarmonyOSNext, isMobile, isDesktop };
 };
 
 /**

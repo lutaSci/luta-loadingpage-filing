@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
     <meta name="description" content="汝塔APP - 您的读经伴侣！" />
     <meta name="keywords" content="汝塔APP" />
     <meta name="author" content="汝塔APP" />
@@ -35,12 +36,23 @@
     <title>汝塔APP - 您的读经伴侣！</title>
 
     <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-5QE6T3L0LD"></script>
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-5QE6T3L0LD');
+      // Install journeys are measured by the strict PostHog event allowlist.
+      // Do not load GA on /install because enhanced measurement can observe
+      // History API changes and reconstruct a URL containing signed state.
+      if (window.location.pathname !== '/install') {
+        const gaScript = document.createElement('script');
+        gaScript.async = true;
+        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-5QE6T3L0LD';
+        document.head.appendChild(gaScript);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function(){window.dataLayer.push(arguments);};
+        window.gtag('js', new Date());
+        window.gtag('config', 'G-5QE6T3L0LD', {
+          page_location: window.location.origin + window.location.pathname,
+          page_path: window.location.pathname
+        });
+      }
     </script>
   </head>
   <body>
