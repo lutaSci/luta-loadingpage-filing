@@ -62,6 +62,14 @@ export const initializeAnalytics = () => {
                 autocapture: false,
                 capture_pageview: false,
                 capture_pageleave: false,
+                // This surface only emits explicit capture calls. Keep optional
+                // PostHog features from loading remote config or dependencies so
+                // analytics outages never leak browser-console errors into the
+                // installation journey.
+                disable_external_dependency_loading: true,
+                advanced_disable_flags: true,
+                disable_surveys: true,
+                disable_web_experiments: true,
                 disable_session_recording: true,
                 person_profiles: 'identified_only',
                 persistence: 'localStorage+cookie',
