@@ -549,7 +549,7 @@ export default function Install() {
     }, [replaceInstallUrl])
 
     return (
-        <div className="relative min-h-[100svh] overflow-hidden bg-emerald-950 text-white">
+        <div className="relative flex min-h-[100svh] flex-col overflow-x-hidden bg-emerald-950 text-white">
             <div className="absolute inset-0 z-0">
                 <Silk
                     speed={Colors.background.silkParams.speed}
@@ -562,7 +562,7 @@ export default function Install() {
             <div className="absolute inset-0 z-[1] bg-gradient-to-b from-black/10 via-emerald-950/15 to-black/45" aria-hidden="true" />
             <div aria-live="polite" className="sr-only">{announcement}</div>
 
-            <header className="relative z-20 mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-4 sm:px-6">
+            <header className="relative z-20 mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 pb-2 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 sm:pb-4 sm:pt-6">
                 <a href="/" className="flex min-h-11 items-center gap-2 rounded-xl pr-2 font-black tracking-tight focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50">
                     <img src={logo} alt="" className="h-10 w-10 rounded-xl" />
                     <span>{copy.brand}</span>
@@ -570,8 +570,8 @@ export default function Install() {
                 <LanguageSwitch />
             </header>
 
-            <main className="relative z-10 mx-auto flex w-full max-w-xl flex-1 flex-col px-4 pb-8 pt-3 sm:px-6 sm:pt-8">
-                <section className="rounded-[28px] border border-white/20 bg-black/20 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
+            <main className="relative z-10 mx-auto flex w-full max-w-xl flex-1 flex-col px-4 pb-4 pt-[clamp(2.25rem,6svh,3.75rem)] sm:px-6 sm:pb-8 sm:pt-10">
+                <section className="w-full rounded-[28px] border border-white/20 bg-black/20 p-5 shadow-2xl shadow-black/20 backdrop-blur-xl sm:p-7">
                     <div className="text-center">
                         <h1 className="text-3xl font-black tracking-tight sm:text-4xl">{copy.pageTitle}</h1>
                         <p className="mt-2 text-base text-white/70 sm:text-lg">{copy.pageDescription}</p>
@@ -606,7 +606,7 @@ export default function Install() {
                     )}
 
                     {loadStatus === 'ready' && (
-                        <div ref={choicesRef} tabIndex={-1} className="mt-6 space-y-3 focus-visible:outline-none">
+                        <div ref={choicesRef} tabIndex={-1} className="mt-5 space-y-3 focus-visible:outline-none sm:mt-6">
                             {directChoices.map((choice, index) => (
                                 <InstallChoice
                                     key={`${displayOs}-${choice.option.optionId}`}
@@ -666,7 +666,7 @@ export default function Install() {
                 </section>
             </main>
 
-            <footer className="relative z-10 px-4 pb-6 text-center text-sm text-white/55">
+            <footer className="relative z-10 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 text-center text-sm text-white/55 sm:pb-6">
                 <nav className="flex min-h-11 items-center justify-center gap-5" aria-label="Footer">
                     <a className="rounded-lg px-2 py-2 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50" href="/">{copy.officialWebsite}</a>
                     <span aria-hidden="true">·</span>
