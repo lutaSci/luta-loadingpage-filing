@@ -15,6 +15,7 @@ import {
     normalizeInstallContext,
     parseLegacyInstallEntry,
     resolveMarketChoiceRelation,
+    selectDirectInstallChoices,
     sortInstallOptions,
 } from '../src/lib/installFlow.js'
 import {
@@ -36,15 +37,13 @@ test('Google Analytics pageview strips signed state and every query parameter', 
     assert.equal(html.includes('page_location: window.location.href'), false)
 })
 
-test('iPhone region help uses user language rather than Apple account terminology', () => {
+test('iPhone choices use user-facing edition language rather than account terminology', () => {
     const copy = getInstallCopy('zh')
-    assert.equal(copy.openInstalledApp, '已经安装汝塔？打开 App')
-    assert.equal(copy.choiceHelpTitle, '不确定怎么选？')
-    assert.equal(
-        copy.choiceHelpDescription,
-        '在 App Store 搜索“汝塔”。能找到时选择“中国大陆”；找不到时选择“其他国家或地区”。',
-    )
-    assert.equal(copy.choiceHelpDescription.includes('Apple ID'), false)
+    assert.equal(copy.pageDescription, '选择你要安装的版本')
+    assert.equal(copy.cnEdition, '大陆版')
+    assert.equal(copy.globalEdition, '海外版')
+    assert.equal(copy.globalWaitlist, '当前暂未开放 · 开放后通知我')
+    assert.equal(JSON.stringify(copy).includes('Apple ID'), false)
 })
 
 test('uses the approved public install-context and controlled out bases', () => {
@@ -175,6 +174,72 @@ test('campaign and selected region reorder options without dropping any channel'
     assert.equal(sorted.length, 3)
     assert.equal(sorted[0].optionId, 'apple-global')
     assert.deepEqual(new Set(sorted.map(option => option.optionId)), new Set(['apple-cn', 'apple-global', 'waitlist']))
+})
+
+test('iPhone direct choices are one-tap mainland store and overseas waitlist', () => {
+    const options = normalizeInstallContext({
+        options: [
+            { option_id: 'apple-cn', channel: 'apple', platform: 'ios', region: 'cn', status: 'available' },
+            { option_id: 'waitlist-global', channel: 'waitlist', platform: 'any', region: 'global', status: 'available' },
+            { option_id: 'play-global', channel: 'google_play', platform: 'android', region: 'global', status: 'available' },
+        ],
+    }).options
+
+    const choices = selectDirectInstallChoices(options, {
+        deviceOs: 'ios',
+        campaignTargetMarket: 'cn',
+    })
+
+    assert.deepEqual(choices.map(choice => ({
+        key: choice.key,
+        region: choice.region,
+        optionId: choice.option.optionId,
+    })), [
+        { key: 'cn', region: 'cn', optionId: 'apple-cn' },
+        { key: 'global', region: 'global', optionId: 'waitlist-global' },
+    ])
+})
+
+test('a verified overseas App Store automatically replaces the waitlist choice', () => {
+    const options = normalizeInstallContext({
+        options: [
+            { option_id: 'apple-cn', channel: 'apple', platform: 'ios', region: 'cn', status: 'available' },
+            { option_id: 'apple-global', channel: 'apple', platform: 'ios', region: 'global', status: 'available' },
+            { option_id: 'waitlist-global', channel: 'waitlist', platform: 'any', region: 'global', status: 'available' },
+        ],
+    }).options
+
+    const choices = selectDirectInstallChoices(options, {
+        deviceOs: 'ios',
+        campaignTargetMarket: 'global',
+    })
+
+    assert.equal(choices[0].key, 'global')
+    assert.equal(choices[0].option.optionId, 'apple-global')
+    assert.equal(choices.length, 2)
+})
+
+test('Android direct choices keep APK and Google Play while campaign only changes priority', () => {
+    const options = normalizeInstallContext({
+        options: [
+            {
+                option_id: 'apk-cn',
+                channel: 'apk',
+                platform: 'android',
+                region: 'cn',
+                status: 'available',
+                apk: { version: '1.8.9', size_bytes: 120000000, sha256: SHA256 },
+            },
+            { option_id: 'play-global', channel: 'google_play', platform: 'android', region: 'global', status: 'available' },
+        ],
+    }).options
+
+    const choices = selectDirectInstallChoices(options, {
+        deviceOs: 'android',
+        campaignTargetMarket: 'global',
+    })
+
+    assert.deepEqual(choices.map(choice => choice.key), ['google_play', 'apk'])
 })
 
 test('APK cannot be treated as verified when any integrity field is missing', () => {

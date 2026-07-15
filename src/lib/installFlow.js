@@ -193,6 +193,86 @@ export function isApkMetadataComplete(option) {
 }
 
 /**
+ * A direct choice must be safe to hand off immediately. APK integrity data is
+ * part of that decision even though the checksum is progressively disclosed
+ * in the UI rather than shown on the primary screen.
+ */
+export function isInstallOptionActionable(option, deviceOs = 'desktop') {
+    if (!isOptionAvailable(option) || !isOptionCompatibleWithDevice(option, deviceOs)) {
+        return false
+    }
+    if (option.channel === 'apk' && !isApkMetadataComplete(option)) return false
+    if (
+        deviceOs === 'harmonyos_next'
+        && ['apple_app_store', 'testflight', 'google_play', 'apk'].includes(option.channel)
+    ) return false
+    return true
+}
+
+function firstMatchingOption(options, predicate) {
+    return options.find(option => predicate(option)) || null
+}
+
+/**
+ * Returns at most two one-tap choices for the selected platform. Campaign
+ * market controls visual priority only; it never removes the other safe path.
+ */
+export function selectDirectInstallChoices(options, {
+    deviceOs = 'desktop',
+    campaignTargetMarket = null,
+} = {}) {
+    const campaignMarket = normalizeMarket(campaignTargetMarket)
+    const sorted = sortInstallOptions(options, {
+        deviceOs,
+        campaignTargetMarket: campaignMarket,
+    }).filter(option => isInstallOptionActionable(option, deviceOs))
+
+    let choices = []
+    if (deviceOs === 'ios') {
+        const cnOption = firstMatchingOption(sorted, option => (
+            option.region === 'cn'
+            && ['apple_app_store', 'testflight'].includes(option.channel)
+        ))
+        const globalStoreOption = firstMatchingOption(sorted, option => (
+            option.region === 'global'
+            && ['apple_app_store', 'testflight'].includes(option.channel)
+        ))
+        const globalFallback = firstMatchingOption(sorted, option => (
+            option.region === 'global'
+            && ['waitlist', 'web'].includes(option.channel)
+        ))
+        choices = [
+            cnOption && { key: 'cn', region: 'cn', option: cnOption },
+            (globalStoreOption || globalFallback) && {
+                key: 'global',
+                region: 'global',
+                option: globalStoreOption || globalFallback,
+            },
+        ].filter(Boolean)
+    } else if (deviceOs === 'android') {
+        const apkOption = firstMatchingOption(sorted, option => option.channel === 'apk')
+        const playOption = firstMatchingOption(sorted, option => option.channel === 'google_play')
+        choices = [
+            apkOption && { key: 'apk', region: apkOption.region || 'cn', option: apkOption },
+            playOption && { key: 'google_play', region: playOption.region || 'global', option: playOption },
+        ].filter(Boolean)
+    } else {
+        choices = sorted.slice(0, 2).map(option => ({
+            key: option.channel,
+            region: option.region || 'not_observed',
+            option,
+        }))
+    }
+
+    return choices.sort((left, right) => {
+        if (!campaignMarket) return 0
+        const leftMatches = left.region === campaignMarket ? 1 : 0
+        const rightMatches = right.region === campaignMarket ? 1 : 0
+        return rightMatches - leftMatches
+    })
+}
+
+/**
  * The catalog may contain choices for more than one operating system. Keep
  * them in the response for auditability, but never present a store or package
  * for another device as an actionable choice.

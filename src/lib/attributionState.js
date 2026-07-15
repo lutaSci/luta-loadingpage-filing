@@ -17,7 +17,7 @@ const ATTRIBUTION_FIELDS = [
     'route_market',
     'traffic_purpose',
 ]
-const WAITLIST_HIDDEN_FIELDS = [
+export const WAITLIST_SYSTEM_FIELDS = [
     // These fields are system-owned attribution context. The Feishu form must
     // never ask a visitor to understand or enter them, including when the
     // landing page has no Smart Link context and uses the direct fallback URL.
@@ -29,9 +29,11 @@ const WAITLIST_HIDDEN_FIELDS = [
     'utm_medium',
     'utm_campaign',
     'utm_content',
+    'utm_term',
     'content_id',
     'operator',
     'platform',
+    'invite_code',
     'route_market',
     'traffic_purpose',
     'placement',
@@ -147,7 +149,7 @@ export function buildWaitlistFallbackUrl(waitlistUrl) {
     if (!waitlistUrl) return waitlistUrl
     try {
         const url = new URL(waitlistUrl)
-        for (const field of WAITLIST_HIDDEN_FIELDS) {
+        for (const field of WAITLIST_SYSTEM_FIELDS) {
             url.searchParams.set(`hide_${field}`, '1')
         }
         return url.toString()

@@ -117,7 +117,7 @@ test('waitlist fallback hides every system attribution field', async () => {
         mod.buildWaitlistFallbackUrl('https://example.feishu.cn/share/base/form-id'),
     )
 
-    for (const field of [
+    assert.deepEqual(mod.WAITLIST_SYSTEM_FIELDS, [
         'link_id',
         'click_id',
         'contract_version',
@@ -126,13 +126,16 @@ test('waitlist fallback hides every system attribution field', async () => {
         'utm_medium',
         'utm_campaign',
         'utm_content',
+        'utm_term',
         'content_id',
         'operator',
         'platform',
+        'invite_code',
         'route_market',
         'traffic_purpose',
         'placement',
-    ]) {
+    ])
+    for (const field of mod.WAITLIST_SYSTEM_FIELDS) {
         assert.equal(waitlistUrl.searchParams.get(`hide_${field}`), '1')
     }
 })

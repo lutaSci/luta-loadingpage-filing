@@ -4,7 +4,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { Globe } from 'lucide-react';
 
 const LanguageSwitch = () => {
-    const { currentLanguage, changeLanguage, t } = useLanguage();
+    const { currentLanguage, changeLanguage } = useLanguage();
     const [isOpen, setIsOpen] = useState(false);
 
     const languages = [
@@ -20,8 +20,11 @@ const LanguageSwitch = () => {
     return (
         <div className="relative">
             <motion.button
+                type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300"
+                className="flex min-h-11 items-center space-x-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300"
+                aria-expanded={isOpen}
+                aria-haspopup="menu"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
@@ -50,11 +53,12 @@ const LanguageSwitch = () => {
                         {languages.map((language) => (
                             <motion.button
                                 key={language.code}
+                                type="button"
                                 onClick={() => {
                                     changeLanguage(language.code);
                                     setIsOpen(false);
                                 }}
-                                className={`w-full px-4 py-2 text-left flex items-center space-x-2 hover:bg-white/20 transition-colors duration-200 ${currentLanguage === language.code
+                                className={`flex min-h-11 w-full items-center space-x-2 px-4 py-2 text-left hover:bg-white/20 transition-colors duration-200 ${currentLanguage === language.code
                                     ? 'bg-white/25 text-white'
                                     : 'text-white/80'
                                     }`}
@@ -86,4 +90,4 @@ const LanguageSwitch = () => {
     );
 };
 
-export default LanguageSwitch; 
+export default LanguageSwitch;
