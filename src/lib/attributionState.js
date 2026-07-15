@@ -18,7 +18,12 @@ const ATTRIBUTION_FIELDS = [
     'traffic_purpose',
 ]
 const WAITLIST_HIDDEN_FIELDS = [
+    // These fields are system-owned attribution context. The Feishu form must
+    // never ask a visitor to understand or enter them, including when the
+    // landing page has no Smart Link context and uses the direct fallback URL.
+    'link_id',
     'click_id',
+    'contract_version',
     'slug',
     'utm_source',
     'utm_medium',

@@ -118,7 +118,9 @@ test('waitlist fallback hides every system attribution field', async () => {
     )
 
     for (const field of [
+        'link_id',
         'click_id',
+        'contract_version',
         'slug',
         'utm_source',
         'utm_medium',
