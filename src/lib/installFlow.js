@@ -88,13 +88,27 @@ function normalizeOption(option, index) {
     if (!optionId || optionId.length > 64) return null
 
     const channel = normalizeChannel(option.channel ?? option.type ?? option.destination)
+    const status = normalizeStatus(option)
+    const routeAvailable = typeof option.route_available === 'boolean'
+        ? option.route_available
+        : typeof option.routeAvailable === 'boolean'
+            ? option.routeAvailable
+            : AVAILABLE_STATUSES.has(status)
     return {
         optionId,
         artifactId: cleanString(option.artifact_id ?? option.artifactId, 128),
         platform: cleanString(option.platform ?? option.os, 32)?.toLowerCase() || 'unknown',
         region: normalizeMarket(option.region ?? option.market ?? option.store_region),
         channel,
-        status: normalizeStatus(option),
+        status,
+        routeAvailable,
+        routeStatus: cleanString(option.route_status ?? option.routeStatus, 40)?.toLowerCase()
+            || (routeAvailable ? 'available' : 'degraded'),
+        degradationReason: cleanString(
+            option.degradation_reason ?? option.degradationReason,
+            80,
+        ),
+        fallbackAction: cleanString(option.fallback_action ?? option.fallbackAction, 64),
         label: cleanString(option.label ?? option.display_name ?? option.title, 100),
         description: cleanString(option.description ?? option.subtitle, 240),
         recommended: option.recommended === true || option.is_recommended === true,
@@ -198,7 +212,7 @@ export function isApkMetadataComplete(option) {
  * in the UI rather than shown on the primary screen.
  */
 export function isInstallOptionActionable(option, deviceOs = 'desktop') {
-    if (!isOptionAvailable(option) || !isOptionCompatibleWithDevice(option, deviceOs)) {
+    if (option?.routeAvailable === false || !isOptionCompatibleWithDevice(option, deviceOs)) {
         return false
     }
     if (option.channel === 'apk' && !isApkMetadataComplete(option)) return false
@@ -225,7 +239,7 @@ export function selectDirectInstallChoices(options, {
     const sorted = sortInstallOptions(options, {
         deviceOs,
         campaignTargetMarket: campaignMarket,
-    }).filter(option => isInstallOptionActionable(option, deviceOs))
+    }).filter(option => isOptionCompatibleWithDevice(option, deviceOs))
 
     let choices = []
     if (deviceOs === 'ios') {
@@ -265,6 +279,9 @@ export function selectDirectInstallChoices(options, {
     }
 
     return choices.sort((left, right) => {
+        const leftActionable = isInstallOptionActionable(left.option, deviceOs) ? 1 : 0
+        const rightActionable = isInstallOptionActionable(right.option, deviceOs) ? 1 : 0
+        if (leftActionable !== rightActionable) return rightActionable - leftActionable
         if (!campaignMarket) return 0
         const leftMatches = left.region === campaignMarket ? 1 : 0
         const rightMatches = right.region === campaignMarket ? 1 : 0

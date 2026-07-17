@@ -98,6 +98,8 @@ function getChoicePresentation(copy, choice, locale) {
 function InstallChoice({ choice, copy, locale, primary, busy, onSelect }) {
     const { Icon, title, subtitle } = getChoicePresentation(copy, choice, locale)
     const isApk = choice.option.channel === 'apk'
+    const degraded = choice.option.routeAvailable === false
+    const visibleSubtitle = degraded ? copy.channelTemporarilyUnavailable : subtitle
 
     return (
         <div>
@@ -105,7 +107,7 @@ function InstallChoice({ choice, copy, locale, primary, busy, onSelect }) {
                 type="button"
                 className={`group flex min-h-20 w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50 disabled:cursor-wait disabled:opacity-70 ${primary
                     ? 'border-white bg-white text-emerald-950 shadow-xl shadow-black/20 hover:bg-emerald-50'
-                    : 'border-white/25 bg-white/10 text-white backdrop-blur-md hover:bg-white/20'}`}
+                    : 'border-white/25 bg-white/10 text-white backdrop-blur-md hover:bg-white/20'} ${degraded ? 'border-dashed opacity-85' : ''}`}
                 disabled={busy}
                 onClick={() => onSelect(choice)}
             >
@@ -115,14 +117,14 @@ function InstallChoice({ choice, copy, locale, primary, busy, onSelect }) {
                 <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-2">
                         <span className="text-lg font-black tracking-tight">{title}</span>
-                        {primary && (
+                        {primary && !degraded && (
                             <span className="rounded-full bg-emerald-700 px-2.5 py-1 text-xs font-bold text-white">
                                 {copy.recommended}
                             </span>
                         )}
                     </span>
                     <span className={`mt-1 block text-sm leading-5 ${primary ? 'text-emerald-900/70' : 'text-white/70'}`}>
-                        {busy ? copy.opening : subtitle}
+                        {busy ? copy.opening : visibleSubtitle}
                     </span>
                 </span>
                 <ChevronRight className="h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
@@ -430,6 +432,7 @@ export default function Install() {
             distribution_channel: option.channel,
             option_region: option.region || 'unknown',
             availability_status: option.status,
+            route_status: option.routeStatus,
             market_choice_relation: relation,
             artifact_id: option.artifactId || 'unknown',
             decision_reason: 'distribution_option_selected',

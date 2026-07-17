@@ -242,6 +242,42 @@ test('Android direct choices keep APK and Google Play while campaign only change
     assert.deepEqual(choices.map(choice => choice.key), ['google_play', 'apk'])
 })
 
+test('a degraded published channel stays visible while an available alternative is prioritized', () => {
+    const options = normalizeInstallContext({
+        options: [
+            {
+                option_id: 'apk-cn',
+                channel: 'apk',
+                platform: 'android',
+                region: 'cn',
+                status: 'stale',
+                route_available: false,
+                route_status: 'degraded',
+                degradation_reason: 'distribution_verification_stale',
+                apk: { version: '1.8.9', size_bytes: 120000000, sha256: SHA256 },
+            },
+            {
+                option_id: 'play-global',
+                channel: 'google_play',
+                platform: 'android',
+                region: 'global',
+                status: 'available',
+                route_available: true,
+            },
+        ],
+    }).options
+
+    const choices = selectDirectInstallChoices(options, {
+        deviceOs: 'android',
+        campaignTargetMarket: 'cn',
+    })
+
+    assert.deepEqual(choices.map(choice => choice.option.optionId), ['play-global', 'apk-cn'])
+    assert.equal(choices[1].option.routeAvailable, false)
+    assert.equal(choices[1].option.routeStatus, 'degraded')
+    assert.equal(choices[1].option.degradationReason, 'distribution_verification_stale')
+})
+
 test('APK cannot be treated as verified when any integrity field is missing', () => {
     const [option] = normalizeInstallContext({
         options: [{
