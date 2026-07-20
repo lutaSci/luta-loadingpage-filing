@@ -237,9 +237,11 @@ docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfi
 docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-`download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀回源 `luta-public`，历史路径继续回源 `luta-app`。
+`download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀通过 HTTPS 直连 `luta-public` OSS endpoint，同时保留已绑定的 `Host: static.lutaai.co`。不要把该回源改成 `https://static.lutaai.co`：它会再次经过 Cloudflare，并可能把上传前的 OSS `NoSuchKey` 缓存为长期 404。历史路径继续回源 `luta-app`。
 
 生产 `/home/caddy/Caddyfile` 是 Docker 单文件 bind mount。若通过原子替换改变宿主机 inode，运行中的容器仍可能读取旧 inode；此时不能只执行 reload。应先验证候选配置，再重建 `caddy` 单个容器使挂载持久生效，并立即 smoke 官网、旧 APK URL 和新的不可变 APK URL。
+
+APK 路由验收除真实对象 200 外，还要用同一个不存在路径连续请求两次：两次响应都应来自 `AliyunOSS`、OSS Request ID 应不同、响应不得出现 `CF-Cache-Status: HIT`。这项测试用于证明 404 没有重新进入 CDN 负缓存。
 
 ### 构建参数
 

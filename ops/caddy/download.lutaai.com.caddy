@@ -21,10 +21,19 @@ download.lutaai.com {
 
   @immutable_china_android path /releases/android/china/*
   handle @immutable_china_android {
-    reverse_proxy https://static.lutaai.co {
+    # Reach the OSS endpoint directly while keeping the bound custom Host.
+    # Going through static.lutaai.co here would cross its Cloudflare cache,
+    # where a pre-upload NoSuchKey response can otherwise outlive the upload.
+    reverse_proxy https://luta-public.oss-cn-beijing.aliyuncs.com {
       header_up Host static.lutaai.co
+      # download.lutaai.com is the user-facing handoff. Do not let browsers
+      # retain an upstream error. The release script still stages the catalog
+      # only after exact size + SHA public-readiness checks succeed.
+      header_down Cache-Control "no-store, max-age=0"
+      header_down -Age
+      header_down -Expires
       transport http {
-        tls_server_name static.lutaai.co
+        tls_server_name luta-public.oss-cn-beijing.aliyuncs.com
       }
     }
   }
