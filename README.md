@@ -199,7 +199,7 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
 官网自身不依赖同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
 
-`/api/*` 当前仅作为旧版 `admin.lutaai.com` 静态包的临时兼容链路，回源规范 API 域名。新版 Admin 改为直接请求 `https://api.lutaai.com` 并验证发布后，应删除该兼容代理。不要让官网业务重新依赖它。
+官网不提供同源 `/api/*` 网关。Admin 从 `v1.0.4` 起直接请求 `https://api.lutaai.com/api`，其生产构建会拒绝不安全地址，并在发布前检查产物中不存在官网 API 地址和旧裸 IP。官网业务与后台业务都不得重新依赖 `lutaai.com/api`。
 
 ### 发布前提
 
@@ -228,7 +228,7 @@ PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 4. 验证本机 `/healthz` 和 `/install` SPA 入口。
 5. 验证 Caddy 公网 `/healthz` 和 `/install`。
 6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
-7. 验证 Admin origin 对规范 API 的预检，以及旧 Admin 经官网 `/api` 获得 JSON `401` 而不是 SPA HTML。
+7. 验证 Admin origin 对规范 API 的预检；官网不再承担 Admin API 兼容代理。
 
 脚本不会修改或 reload 共享 Caddy 容器。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
 
@@ -260,10 +260,14 @@ APK 路由验收除真实对象 200 外，还要用同一个不存在路径连�
 curl --fail https://lutaai.com/healthz
 curl --fail https://lutaai.com/install
 curl --fail 'https://api.lutaai.com/api/v1/public/attribution/install-context?state=invalid-smoke-state'
-curl --include https://lutaai.com/api/v1/admin/auth/me
+curl --include --request OPTIONS \
+  --header 'Origin: https://admin.lutaai.com' \
+  --header 'Access-Control-Request-Method: POST' \
+  --header 'Access-Control-Request-Headers: content-type' \
+  https://api.lutaai.com/api/v1/admin/auth/login
 ```
 
-最后一个请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。
+install-context 请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。最后一个预检请求必须返回 `Access-Control-Allow-Origin: https://admin.lutaai.com`。
 
 ## 🎯 开发指南
 

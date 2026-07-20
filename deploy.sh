@@ -147,22 +147,5 @@ if [[ "$admin_cors_allow_origin" != "$ADMIN_CORS_SMOKE_ORIGIN" ]]; then
   exit 1
 fi
 
-if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
-  echo "[step] 验证旧 Admin 的官网 /api 临时兼容链路..."
-  admin_compatibility_url="${PUBLIC_SMOKE_BASE_URL}/api/v1/admin/auth/me"
-  admin_compatibility_result="$(curl --silent --show-error --max-time 15 \
-    --header "Origin: ${ADMIN_CORS_SMOKE_ORIGIN}" \
-    --output /dev/null \
-    --write-out '%{http_code}|%{content_type}' \
-    "$admin_compatibility_url")"
-  admin_compatibility_status="${admin_compatibility_result%%|*}"
-  admin_compatibility_content_type="${admin_compatibility_result#*|}"
-  if [[ "$admin_compatibility_status" != "401" \
-    || "$admin_compatibility_content_type" != application/json* ]]; then
-    echo "[error] 官网 /api 未返回预期的 Admin JSON 401：${admin_compatibility_result}"
-    exit 1
-  fi
-fi
-
 echo "[ok] luta-web 已更新，容器健康且 smoke check 通过"
 echo "[info] TLS 和域名路由宿主机 Caddy 管理；本脚本不会修改或 reload Caddy"
