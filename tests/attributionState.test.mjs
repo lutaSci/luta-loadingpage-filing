@@ -66,11 +66,19 @@ test('direct UTM landing generates website-direct click id and reuses it for sam
     )
     const firstState = first.getAttributionState()
     const firstUrl = new URL(first.buildContinueUrl('google', 'footer_google'))
+    const apkEntryUrl = new URL(first.buildVerifiedApkEntryUrl('mobile_android_china'))
 
     assert.equal(firstUrl.pathname, '/r/website-direct/continue')
     assert.match(firstState.click_id, /^clk_web_uuid-/)
     assert.equal(firstUrl.searchParams.get('slug'), 'website-direct')
     assert.equal(firstUrl.searchParams.get('click_id'), firstState.click_id)
+    assert.equal(apkEntryUrl.origin, 'https://go.lutaai.com')
+    assert.equal(apkEntryUrl.pathname, '/r/website-direct')
+    assert.equal(apkEntryUrl.searchParams.get('utm_source'), 'direct_qc')
+    assert.equal(apkEntryUrl.searchParams.get('utm_campaign'), 'direct_campaign')
+    assert.equal(apkEntryUrl.searchParams.get('utm_content'), 'mobile_android_china')
+    assert.equal(apkEntryUrl.searchParams.get('platform'), 'website')
+    assert.equal(apkEntryUrl.searchParams.has('click_id'), false)
     assert.deepEqual(first.resolveRouteContext(true), {
         market: 'cn',
         source: 'heuristic',
@@ -108,6 +116,30 @@ test('unattributed landing returns null so buttons use original store URL', asyn
 
     assert.equal(mod.getAttributionState(), null)
     assert.equal(mod.buildContinueUrl('google', 'homepage_primary_google'), null)
+
+    const apkEntryUrl = new URL(mod.buildVerifiedApkEntryUrl('mobile_android_china'))
+    assert.equal(apkEntryUrl.origin, 'https://go.lutaai.com')
+    assert.equal(apkEntryUrl.pathname, '/r/website-direct')
+    assert.equal(apkEntryUrl.searchParams.get('utm_source'), 'official_website')
+    assert.equal(apkEntryUrl.searchParams.get('utm_medium'), 'owned')
+    assert.equal(apkEntryUrl.searchParams.get('utm_campaign'), 'android_download')
+    assert.equal(apkEntryUrl.searchParams.get('utm_content'), 'mobile_android_china')
+    assert.equal(apkEntryUrl.searchParams.get('platform'), 'website')
+})
+
+test('canonical legacy APK entry continues the existing server-owned click', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const clickId = `lclk_${'a'.repeat(32)}`
+    const mod = await loadAttributionModule(
+        `https://lutaai.com/?slug=cn-store&click_id=${clickId}&utm_source=owned`,
+        'canonical-apk',
+    )
+
+    const apkEntryUrl = new URL(mod.buildVerifiedApkEntryUrl('desktop_android_tab'))
+    assert.equal(apkEntryUrl.pathname, '/r/cn-store/continue')
+    assert.equal(apkEntryUrl.searchParams.get('store'), 'apk')
+    assert.equal(apkEntryUrl.searchParams.get('click_id'), clickId)
+    assert.equal(apkEntryUrl.searchParams.get('placement'), 'desktop_android_tab')
 })
 
 test('waitlist fallback hides every system attribution field', async () => {

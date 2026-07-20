@@ -17,6 +17,20 @@ const ATTRIBUTION_FIELDS = [
     'route_market',
     'traffic_purpose',
 ]
+
+const WEBSITE_ENTRY_FIELDS = [
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+    'content_id',
+    'operator',
+    'platform',
+    'invite_code',
+]
+
+const LEGACY_CLICK_ID_RE = /^lclk_[0-9a-f]{32}$/
 export const WAITLIST_SYSTEM_FIELDS = [
     // These fields are system-owned attribution context. The Feishu form must
     // never ask a visitor to understand or enter them, including when the
@@ -185,4 +199,30 @@ export function buildContinueUrl(store, placement) {
     if (!qs.has('traffic_purpose')) qs.set('traffic_purpose', getTrafficPurpose())
 
     return `${config.attribution.continueBase}/r/${encodeURIComponent(slug)}/continue?${qs.toString()}`
+}
+
+/**
+ * Route the public homepage's APK action through a server-owned install root.
+ * The install page then reads the verified runtime catalog and exposes the
+ * current APK metadata; the homepage never owns a mutable package URL.
+ */
+export function buildVerifiedApkEntryUrl(placement) {
+    const state = getAttributionState()
+
+    // A canonical legacy root can continue without creating a second click.
+    if (state?.slug && LEGACY_CLICK_ID_RE.test(state.click_id || '')) {
+        return buildContinueUrl('apk', placement)
+    }
+
+    const qs = new URLSearchParams()
+    for (const key of WEBSITE_ENTRY_FIELDS) {
+        if (state?.[key]) qs.set(key, state[key])
+    }
+    if (!qs.has('utm_source')) qs.set('utm_source', 'official_website')
+    if (!qs.has('utm_medium')) qs.set('utm_medium', 'owned')
+    if (!qs.has('utm_campaign')) qs.set('utm_campaign', 'android_download')
+    if (placement && !qs.has('utm_content')) qs.set('utm_content', placement)
+    if (!qs.has('platform')) qs.set('platform', 'website')
+
+    return `${config.attribution.continueBase}/r/${encodeURIComponent(config.attribution.defaultSlug)}?${qs.toString()}`
 }

@@ -7,7 +7,7 @@ import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
 import { trackEvent, trackWebsiteEvent } from '../lib/analytics'
-import { buildContinueUrl, buildWaitlistFallbackUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
+import { buildContinueUrl, buildVerifiedApkEntryUrl, buildWaitlistFallbackUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
 import WeChatMask from './WeChatMask'
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -196,7 +196,7 @@ PcTabSwitcher.displayName = 'PcTabSwitcher'
 // ============================================
 // PC 端标签内容切换（固定高度容器，防止布局抖动）
 // ============================================
-const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidApkUrl }) => {
+const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina }) => {
     const containerRef = useRef(null)
     const [containerHeight, setContainerHeight] = useState(0)
 
@@ -247,7 +247,7 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina, androidAp
                             transition={{ duration: 0.15 }}
                         >
                             {isMainlandChina
-                                ? <AndroidGuideChina t={t} apkUrl={androidApkUrl} placement="desktop_android_tab" />
+                                ? <AndroidGuideChina t={t} placement="desktop_android_tab" />
                                 : <AndroidGuideOverseas t={t} placement="desktop_android_tab" />
                             }
                         </motion.div>
@@ -454,7 +454,12 @@ IOSGuide.displayName = 'IOSGuide'
 // ============================================
 // Android 引导内容（国内，非微信）
 // ============================================
-const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' }) => {
+const AndroidGuideChina = memo(({ t, placement = 'mobile_android_china' }) => {
+    const installEntryUrl = useMemo(
+        () => buildVerifiedApkEntryUrl(placement),
+        [placement],
+    )
+
     useEffect(() => {
         trackWebsiteEvent('website_download_option_viewed', {
             cta_target: 'apk',
@@ -474,20 +479,20 @@ const AndroidGuideChina = memo(({ t, apkUrl, placement = 'mobile_android_china' 
             cta_target: 'apk',
             placement,
         })
-        const url = buildContinueUrl('apk', placement) || apkUrl
-        window.open(url, '_blank')
-    }, [apkUrl, placement])
+        if (!installEntryUrl) return
+        window.open(installEntryUrl, '_blank', 'noopener,noreferrer')
+    }, [installEntryUrl, placement])
 
     return (
         <div className="space-y-3">
             <StepCard
                 title={t('androidStep1Title')}
                 description={t('androidStep1Desc')}
-                ctaText={apkUrl ? t('androidStep1Cta') : t('androidUnavailableCta')}
+                ctaText={installEntryUrl ? t('androidStep1Cta') : t('androidUnavailableCta')}
                 ctaIcon={Download}
                 onClick={handleClick}
                 delay={0.1}
-                disabled={!apkUrl}
+                disabled={!installEntryUrl}
             />
         </div>
     )
@@ -574,20 +579,8 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const isMainlandChina = routeContext.market === 'cn'
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
-    const [androidApkUrl, setAndroidApkUrl] = useState(config.downloads.android || '')
     const needWeChatMask = isWeChat && !device.isIOS
     const [showWeChatMask, setShowWeChatMask] = useState(needWeChatMask)
-
-    useEffect(() => {
-        if (!isMainlandChina || !config.apkApi) return
-        fetch(config.apkApi)
-            .then(res => {
-                if (!res.ok) throw new Error(`HTTP ${res.status}`)
-                return res.json()
-            })
-            .then(data => { if (data.data) setAndroidApkUrl(data.data) })
-            .catch(err => console.error('APK URL fetch failed:', err))
-    }, [isMainlandChina])
 
     const handleInstallDocClick = useCallback(() => {
         trackEvent('install_doc_click')
@@ -616,7 +609,7 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
 
         if (device.isAndroid || device.isHarmonyOS) {
             if (isMainlandChina) {
-                return <AndroidGuideChina t={t} apkUrl={androidApkUrl} placement="mobile_android_china" />
+                return <AndroidGuideChina t={t} placement="mobile_android_china" />
             }
             return <AndroidGuideOverseas t={t} placement="mobile_android_overseas" />
         }
@@ -626,7 +619,6 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
             onPcTabChange={onPcTabChange}
             t={t}
             isMainlandChina={isMainlandChina}
-            androidApkUrl={androidApkUrl}
         />
     }
 

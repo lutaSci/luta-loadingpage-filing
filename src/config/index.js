@@ -53,9 +53,6 @@ export const config = {
         // state. Attributed journeys still prefer the backend-controlled
         // waitlist continuation returned by buildContinueUrl().
         iosOverseasWaitlistFormUrl: 'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
-        // APK must come from a verified runtime catalog. Do not add a static
-        // package URL here because version, size and SHA-256 would drift.
-        android: '',
         googlePlay: 'https://play.google.com/store/apps/details?id=com.luta.reader',
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
     },
@@ -86,7 +83,6 @@ export const config = {
     support: {
         wechatId: 'aiyoooxin',
     },
-    apkApi: '',
     pages: {
         privacy: '/privacy',
         terms: '/terms',
