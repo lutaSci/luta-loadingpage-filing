@@ -11,6 +11,7 @@ PUBLIC_SMOKE_BASE_URL="${PUBLIC_SMOKE_BASE_URL%/}"
 LUTA_API_BASE_URL="${LUTA_API_BASE_URL-https://api.lutaai.com}"
 LUTA_API_BASE_URL="${LUTA_API_BASE_URL%/}"
 CORS_SMOKE_ORIGIN="${CORS_SMOKE_ORIGIN-${PUBLIC_SMOKE_BASE_URL:-https://lutaai.com}}"
+ADMIN_CORS_SMOKE_ORIGIN="${ADMIN_CORS_SMOKE_ORIGIN:-https://admin.lutaai.com}"
 CADDY_NETWORK_NAME="${CADDY_NETWORK_NAME:-caddy_default}"
 
 if ! docker compose version >/dev/null 2>&1; then
@@ -33,8 +34,10 @@ if [[ -n "$PUBLIC_SMOKE_BASE_URL" && ! "$PUBLIC_SMOKE_BASE_URL" =~ ^https:// ]];
   exit 1
 fi
 
-if [[ ! "$LUTA_API_BASE_URL" =~ ^https:// || ! "$CORS_SMOKE_ORIGIN" =~ ^https:// ]]; then
-  echo "[error] LUTA_API_BASE_URL 和 CORS_SMOKE_ORIGIN 必须是 HTTPS URL"
+if [[ ! "$LUTA_API_BASE_URL" =~ ^https:// \
+  || ! "$CORS_SMOKE_ORIGIN" =~ ^https:// \
+  || ! "$ADMIN_CORS_SMOKE_ORIGIN" =~ ^https:// ]]; then
+  echo "[error] LUTA_API_BASE_URL、CORS_SMOKE_ORIGIN 和 ADMIN_CORS_SMOKE_ORIGIN 必须是 HTTPS URL"
   exit 1
 fi
 
@@ -120,6 +123,45 @@ if ! grep -Eq '"options"[[:space:]]*:[[:space:]]*\[\]' <<<"$api_body" \
   || ! grep -Eq '"decision_reason"[[:space:]]*:' <<<"$api_body"; then
   echo "[error] Smart Link install-context 未返回受控的安全恢复结果"
   exit 1
+fi
+
+echo "[step] 验证 Admin 对规范 API 的 CORS 预检..."
+admin_preflight_url="${LUTA_API_BASE_URL}/api/v1/admin/auth/login"
+admin_preflight_headers="$(curl --fail --silent --show-error --max-time 15 \
+  --request OPTIONS \
+  --header "Origin: ${ADMIN_CORS_SMOKE_ORIGIN}" \
+  --header 'Access-Control-Request-Method: POST' \
+  --header 'Access-Control-Request-Headers: content-type' \
+  --dump-header - --output /dev/null \
+  "$admin_preflight_url")"
+admin_cors_allow_origin="$(awk '
+  tolower($0) ~ /^access-control-allow-origin:/ {
+    sub(/^[^:]*:[[:space:]]*/, "")
+    sub(/\r$/, "")
+    print
+    exit
+  }
+' <<<"$admin_preflight_headers")"
+if [[ "$admin_cors_allow_origin" != "$ADMIN_CORS_SMOKE_ORIGIN" ]]; then
+  echo "[error] Luta API 未返回允许 ${ADMIN_CORS_SMOKE_ORIGIN} 的 CORS header"
+  exit 1
+fi
+
+if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
+  echo "[step] 验证旧 Admin 的官网 /api 临时兼容链路..."
+  admin_compatibility_url="${PUBLIC_SMOKE_BASE_URL}/api/v1/admin/auth/me"
+  admin_compatibility_result="$(curl --silent --show-error --max-time 15 \
+    --header "Origin: ${ADMIN_CORS_SMOKE_ORIGIN}" \
+    --output /dev/null \
+    --write-out '%{http_code}|%{content_type}' \
+    "$admin_compatibility_url")"
+  admin_compatibility_status="${admin_compatibility_result%%|*}"
+  admin_compatibility_content_type="${admin_compatibility_result#*|}"
+  if [[ "$admin_compatibility_status" != "401" \
+    || "$admin_compatibility_content_type" != application/json* ]]; then
+    echo "[error] 官网 /api 未返回预期的 Admin JSON 401：${admin_compatibility_result}"
+    exit 1
+  fi
 fi
 
 echo "[ok] luta-web 已更新，容器健康且 smoke check 通过"

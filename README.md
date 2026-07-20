@@ -197,7 +197,9 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
        → 浏览器直连 Luta API
 ```
 
-网页不依赖官网同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
+官网自身不依赖同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
+
+`/api/*` 当前仅作为旧版 `admin.lutaai.com` 静态包的临时兼容链路，回源规范 API 域名。新版 Admin 改为直接请求 `https://api.lutaai.com` 并验证发布后，应删除该兼容代理。不要让官网业务重新依赖它。
 
 ### 发布前提
 
@@ -206,7 +208,7 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 - Caddy 容器正在管理 `lutaai.com` / `lutaai.co` 的 DNS、TLS 和 80/443。
 - 外部网络 `caddy_default` 已存在；Caddy 通过容器名 `applanding:80` 转发官网流量。
 - `127.0.0.1:8000` 只用于宿主机 smoke check，不对公网直接暴露。
-- `https://api.lutaai.com` 允许官网 origin 的 CORS 请求，且 Smart Link 后端已先于网页发布。
+- `https://api.lutaai.com` 允许官网和 `https://admin.lutaai.com` 的 CORS 请求，且后端已先于网页发布。
 
 ### 发布命令
 
@@ -226,6 +228,7 @@ PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 4. 验证本机 `/healthz` 和 `/install` SPA 入口。
 5. 验证 Caddy 公网 `/healthz` 和 `/install`。
 6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
+7. 验证 Admin origin 对规范 API 的预检，以及旧 Admin 经官网 `/api` 获得 JSON `401` 而不是 SPA HTML。
 
 脚本不会修改或 reload 共享 Caddy 容器。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
 
@@ -246,6 +249,7 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 | `PUBLIC_SMOKE_BASE_URL` | `https://lutaai.com` | 发布后公网 smoke 域名；生产保持默认 |
 | `LUTA_API_BASE_URL` | `https://api.lutaai.com` | 发布脚本验证的 API origin |
 | `CORS_SMOKE_ORIGIN` | `PUBLIC_SMOKE_BASE_URL` | API 必须明确允许的官网 origin |
+| `ADMIN_CORS_SMOKE_ORIGIN` | `https://admin.lutaai.com` | API 必须明确允许的 Admin origin |
 | `CADDY_NETWORK_NAME` | `caddy_default` | 官网容器与 Caddy 共享的外部 Docker 网络 |
 
 ### 手动验收
@@ -254,6 +258,7 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 curl --fail https://lutaai.com/healthz
 curl --fail https://lutaai.com/install
 curl --fail 'https://api.lutaai.com/api/v1/public/attribution/install-context?state=invalid-smoke-state'
+curl --include https://lutaai.com/api/v1/admin/auth/me
 ```
 
 最后一个请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。
