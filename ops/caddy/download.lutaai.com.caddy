@@ -1,0 +1,42 @@
+# Desired production site block for the shared Caddy gateway.
+#
+# Immutable Android release paths are content-addressed in luta-public. Legacy
+# and unrelated paths stay on luta-app so this route does not silently migrate
+# the rest of the historical download namespace.
+download.lutaai.com {
+  encode gzip zstd
+
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+  }
+
+  @private_android_rollback path /releases/android/china/_rollback/*
+  handle @private_android_rollback {
+    respond 404
+  }
+
+  @immutable_china_android path /releases/android/china/*
+  handle @immutable_china_android {
+    reverse_proxy https://static.lutaai.co {
+      header_up Host static.lutaai.co
+      transport http {
+        tls_server_name static.lutaai.co
+      }
+    }
+  }
+
+  handle {
+    reverse_proxy https://luta-app.oss-cn-beijing.aliyuncs.com {
+      header_up Host download.lutaai.com
+      transport http {
+        tls_server_name luta-app.oss-cn-beijing.aliyuncs.com
+      }
+    }
+  }
+
+  tls {$ACME_EMAIL}
+}
