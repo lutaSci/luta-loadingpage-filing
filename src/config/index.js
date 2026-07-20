@@ -38,7 +38,6 @@ const lutaApiBase = resolveLutaApiBase(
 export const config = {
     api: {
         base: lutaApiBase,
-        appInfo: `${lutaApiBase}/api/v1/app/info`,
     },
     app: {
         name: '汝塔APP',

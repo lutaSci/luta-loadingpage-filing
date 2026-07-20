@@ -48,7 +48,6 @@ test('iPhone choices use user-facing edition language rather than account termin
 
 test('uses the approved public install-context and controlled out bases', () => {
     assert.equal(config.api.base, 'https://api.lutaai.com')
-    assert.equal(config.api.appInfo, 'https://api.lutaai.com/api/v1/app/info')
     assert.equal(config.smartLink.installContextBase, 'https://api.lutaai.com/api/v1/public/attribution/install-context')
     assert.equal(config.smartLink.legacyInstallContextBase, 'https://api.lutaai.com/api/v1/public/attribution/legacy-install-context')
     assert.equal(config.smartLink.installEventBase, 'https://api.lutaai.com/api/v1/public/attribution/install-event')

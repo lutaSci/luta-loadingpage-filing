@@ -1,13 +1,10 @@
-import { createContext, useCallback, useContext, useState, useEffect } from 'react';
-
-import { config } from '../config/index.js';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
     zh: {
         title: "汝塔APP",
         subtitle: "您的读经伴侣",
-        glitchTextPrefix: "版本",
         appStore: "苹果手机安装",
         googlePlay: "安卓 华为鸿蒙手机安装",
         downloadApk: "下载安装包",
@@ -116,7 +113,6 @@ const translations = {
     zhTW: {
         title: "汝塔APP",
         subtitle: "您的讀經夥伴",
-        glitchTextPrefix: "版本",   
         appStore: "蘋果手機",
         googlePlay: "安卓 華為鴻蒙手機",
         downloadApk: "下載安裝包",
@@ -225,7 +221,6 @@ const translations = {
     en: {
         title: "LUTA",
         subtitle: "Your scripture companion",
-        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         downloadApk: "Download APK",
@@ -334,7 +329,6 @@ const translations = {
     ja: {
         title: "LUTA",
         subtitle: "経典学習のパートナー",
-        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         downloadApk: "APKダウンロード",
@@ -443,7 +437,6 @@ const translations = {
     ko: {
         title: "LUTA",
         subtitle: "경전 학습 동반자",
-        glitchTextPrefix: "Version",
         appStore: "Apple Store",
         googlePlay: "Google Play",
         downloadApk: "APK 다운로드",
@@ -598,40 +591,6 @@ export const useLanguage = () => {
 
 export const LanguageProvider = ({ children }) => {
     const [currentLanguage, setCurrentLanguage] = useState(detectLanguage);
-    const [appVersion, setAppVersion] = useState(null);
-
-    // 从公开 HTTPS API 获取版本号；不要依赖某一种静态站点的同源代理。
-    useEffect(() => {
-        if (window.location.pathname === '/install') return;
-
-        const fetchAppVersion = async () => {
-            try {
-                const response = await fetch(config.api.appInfo, {
-                    headers: { Accept: 'application/json' },
-                    credentials: 'omit',
-                    cache: 'no-store',
-                });
-                if (!response.ok) throw new Error('app info unavailable');
-                const result = await response.json();
-                if (result.code === 0 && result.data?.appVersion) {
-                    // 提取版本号（格式如 "1.6.5 4500"，只取前面的版本号部分）
-                    const version = result.data.appVersion;
-                    setAppVersion(version);
-                }
-            } catch (error) {
-                console.error('Failed to fetch app version:', error);
-            }
-        };
-
-        fetchAppVersion();
-    }, []);
-
-    // 生成带版本号的 glitchText
-    const getGlitchText = useCallback(() => {
-        if (!appVersion) return '';
-        const prefix = translations[currentLanguage]?.glitchTextPrefix || 'Version';
-        return `${prefix} ${appVersion}`;
-    }, [appVersion, currentLanguage]);
 
     useEffect(() => {
         // 保存语言设置到localStorage
@@ -648,10 +607,8 @@ export const LanguageProvider = ({ children }) => {
         const trans = translations[currentLanguage];
         const isInstallGate = window.location.pathname === '/install';
         if (!isInstallGate) {
-            const glitchText = getGlitchText();
-            document.title = glitchText
-                ? `${trans.title} - ${glitchText} | ${trans.subtitle}`
-                : `${trans.title} | ${trans.subtitle}`;
+            // 首页同时承载多个平台，标题只表达品牌；版本信息由安装页按渠道展示。
+            document.title = `${trans.title} | ${trans.subtitle}`;
         }
 
         // 更新meta描述
@@ -665,7 +622,7 @@ export const LanguageProvider = ({ children }) => {
         if (metaKeywords && !isInstallGate) {
             metaKeywords.setAttribute('content', trans.metaKeywords);
         }
-    }, [currentLanguage, getGlitchText]);
+    }, [currentLanguage]);
 
     const changeLanguage = (language) => {
         if (translations[language]) {
@@ -674,11 +631,6 @@ export const LanguageProvider = ({ children }) => {
     };
 
     const t = (key) => {
-        // 特殊处理 glitchText，返回动态版本号
-        if (key === 'glitchText') {
-            return getGlitchText();
-        }
-
         const keys = key.split('.');
         let value = translations[currentLanguage];
 
@@ -693,12 +645,8 @@ export const LanguageProvider = ({ children }) => {
         currentLanguage,
         changeLanguage,
         t,
-        translations: {
-            ...translations[currentLanguage],
-            glitchText: getGlitchText() // 添加动态 glitchText
-        },
-        availableLanguages: Object.keys(translations),
-        appVersion
+        translations: translations[currentLanguage],
+        availableLanguages: Object.keys(translations)
     };
 
     return (
