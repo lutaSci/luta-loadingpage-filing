@@ -98,16 +98,27 @@ if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
 
   echo "[step] 验证限时 Admin 旧缓存兼容路由..."
   legacy_admin_body="$(mktemp)"
-  trap 'rm -f "$legacy_admin_body"' EXIT
+  legacy_admin_headers="$(mktemp)"
+  trap 'rm -f "$legacy_admin_body" "$legacy_admin_headers"' EXIT
   legacy_admin_status="$(curl --silent --show-error --max-time 15 \
+    --dump-header "$legacy_admin_headers" \
     --output "$legacy_admin_body" --write-out '%{http_code}' \
     "${PUBLIC_SMOKE_BASE_URL}/api/v1/admin/auth/me")"
+  legacy_admin_content_type="$(awk '
+    tolower($0) ~ /^content-type:/ {
+      sub(/^[^:]*:[[:space:]]*/, "")
+      sub(/\r$/, "")
+      print
+      exit
+    }
+  ' "$legacy_admin_headers")"
   if [[ "$legacy_admin_status" != "401" ]] \
-    || ! grep -Eq '"(detail|message)"[[:space:]]*:' "$legacy_admin_body"; then
-    echo "[error] 限时 Admin 兼容路由未返回预期的 API JSON 401：${legacy_admin_status}"
+    || "$legacy_admin_content_type" != application/json* \
+    || grep -Fq '<div id="root"></div>' "$legacy_admin_body"; then
+    echo "[error] 限时 Admin 兼容路由未返回预期的 API JSON 401：${legacy_admin_status}|${legacy_admin_content_type}"
     exit 1
   fi
-  rm -f "$legacy_admin_body"
+  rm -f "$legacy_admin_body" "$legacy_admin_headers"
   trap - EXIT
 fi
 
