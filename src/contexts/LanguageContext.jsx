@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useCallback, useContext, useState, useEffect } from 'react';
+import { resolvePreferredLanguage } from '../lib/languagePreference.js';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
@@ -545,34 +546,10 @@ const translations = {
 
 // 语言检测函数
 const detectLanguage = () => {
-    // 首先检查localStorage中保存的语言设置
-    const savedLanguage = localStorage.getItem('preferred-language');
-    if (savedLanguage && translations[savedLanguage]) {
-        return savedLanguage;
-    }
-
-    // 检测浏览器语言
-    const browserLanguage = navigator.language || navigator.userLanguage;
-    const languageCode = (browserLanguage || '').toLowerCase();
-
-    // 映射常见的语言代码（含繁体）
-    const languageMap = {
-        'zh': 'zh',
-        'zh-cn': 'zh',
-        'zh-hans': 'zh',
-        'zhTW': 'zhTW',
-        'zh-hk': 'zhTW',
-        'zh-hant': 'zhTW',
-        'en': 'en',
-        'en-us': 'en',
-        'ja': 'ja',
-        'ja-jp': 'ja',
-        'ko': 'ko',
-        'ko-kr': 'ko'
-    };
-
-    // 尝试全匹配，否则退回到主语言
-    return languageMap[languageCode] || languageMap[languageCode.split('-')[0]] || 'zh';
+    return resolvePreferredLanguage({
+        savedLanguage: localStorage.getItem('preferred-language'),
+        browserLanguage: navigator.language || navigator.userLanguage,
+    });
 };
 
 // 创建语言上下文
@@ -596,39 +573,42 @@ export const LanguageProvider = ({ children }) => {
         // 保存语言设置到localStorage
         localStorage.setItem('preferred-language', currentLanguage);
 
-        // 更新HTML lang属性
-        document.documentElement.lang =
-            currentLanguage === 'zh' ? 'zh-CN' :
-            currentLanguage === 'zhTW' ? 'zhTW' :
-            currentLanguage === 'en' ? 'en-US' :
-            currentLanguage === 'ja' ? 'ja-JP' : 'ko-KR';
-
         // 更新页面标题和meta信息
         const trans = translations[currentLanguage];
         const isInstallGate = window.location.pathname === '/install';
-        if (!isInstallGate) {
+        const isMarketingLanding = window.location.pathname.startsWith('/global/zh-')
+            || (window.location.pathname === '/' && ['zh', 'zhTW'].includes(currentLanguage));
+        if (!isMarketingLanding) {
+            document.documentElement.lang =
+                currentLanguage === 'zh' ? 'zh-CN' :
+                currentLanguage === 'zhTW' ? 'zh-TW' :
+                currentLanguage === 'en' ? 'en-US' :
+                currentLanguage === 'ja' ? 'ja-JP' : 'ko-KR';
+        }
+        if (!isInstallGate && !isMarketingLanding) {
             // 首页同时承载多个平台，标题只表达品牌；版本信息由安装页按渠道展示。
             document.title = `${trans.title} | ${trans.subtitle}`;
         }
 
         // 更新meta描述
         const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription && !isInstallGate) {
+        if (metaDescription && !isInstallGate && !isMarketingLanding) {
             metaDescription.setAttribute('content', trans.metaDescription);
         }
 
         // 更新meta关键词
         const metaKeywords = document.querySelector('meta[name="keywords"]');
-        if (metaKeywords && !isInstallGate) {
+        if (metaKeywords && !isInstallGate && !isMarketingLanding) {
             metaKeywords.setAttribute('content', trans.metaKeywords);
         }
     }, [currentLanguage]);
 
-    const changeLanguage = (language) => {
+    const changeLanguage = useCallback((language) => {
         if (translations[language]) {
+            localStorage.setItem('preferred-language', language);
             setCurrentLanguage(language);
         }
-    };
+    }, []);
 
     const t = (key) => {
         const keys = key.split('.');

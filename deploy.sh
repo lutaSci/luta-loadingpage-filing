@@ -14,6 +14,13 @@ CORS_SMOKE_ORIGIN="${CORS_SMOKE_ORIGIN-${PUBLIC_SMOKE_BASE_URL:-https://lutaai.c
 ADMIN_CORS_SMOKE_ORIGIN="${ADMIN_CORS_SMOKE_ORIGIN:-https://admin.lutaai.com}"
 CADDY_NETWORK_NAME="${CADDY_NETWORK_NAME:-caddy_default}"
 
+if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
+  echo "[error] 发布目录存在未提交或未跟踪文件；请从干净的 release commit 发布"
+  exit 1
+fi
+
+echo "[info] release commit：$(git rev-parse HEAD)"
+
 if ! docker compose version >/dev/null 2>&1; then
   echo "[error] docker compose 不可用，请安装 Docker Desktop 或 Compose v2"
   exit 1
@@ -81,6 +88,11 @@ fi
 
 echo "[step] 执行本机 Nginx smoke check..."
 curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/healthz >/dev/null
+if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/ \
+  | grep 'name="luta-homepage-experience" content="marketing-v1"' >/dev/null; then
+  echo "[error] / 未返回新版官网构建标记"
+  exit 1
+fi
 if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/install \
   | grep 'id="root"' >/dev/null; then
   echo "[error] /install 未返回预期的 SPA 入口"
@@ -90,6 +102,11 @@ fi
 if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
   echo "[step] 执行公网 Caddy smoke check：${PUBLIC_SMOKE_BASE_URL}"
   curl --fail --silent --show-error --max-time 15 "${PUBLIC_SMOKE_BASE_URL}/healthz" >/dev/null
+  if ! curl --fail --silent --show-error --max-time 15 "${PUBLIC_SMOKE_BASE_URL}/" \
+    | grep 'name="luta-homepage-experience" content="marketing-v1"' >/dev/null; then
+    echo "[error] 公网 / 未返回新版官网构建标记"
+    exit 1
+  fi
   if ! curl --fail --silent --show-error --max-time 15 "${PUBLIC_SMOKE_BASE_URL}/install" \
     | grep 'id="root"' >/dev/null; then
     echo "[error] 公网 /install 未返回预期的 SPA 入口"
@@ -172,5 +189,6 @@ if [[ "$admin_cors_allow_origin" != "$ADMIN_CORS_SMOKE_ORIGIN" ]]; then
   exit 1
 fi
 
-echo "[ok] luta-web 已更新，容器健康、限时 Admin 兼容路由与 smoke check 均通过"
+echo "[ok] luta-web 已更新，官网构建标记、容器健康、限时 Admin 兼容路由与 smoke check 均通过"
+echo "[next] 必须再用真实浏览器验证 / 的新版 DOM、语言分流、CTA 与 console"
 echo "[info] TLS 和域名路由宿主机 Caddy 管理；本脚本不会修改或 reload Caddy"

@@ -80,6 +80,14 @@ export const initializeAnalytics = () => {
     return posthogClientPromise
 }
 
+export function resolveWebsiteDeviceOs(device) {
+    if (device?.isHarmonyOSNext) return 'harmonyos_next'
+    if (device?.isIOS) return 'ios'
+    if (device?.isAndroid) return 'android'
+    if (device?.isHarmonyOS) return 'harmonyos'
+    return 'desktop'
+}
+
 function websiteContext() {
     const attribution = getAttributionState()
     const route = resolveRouteContext(detectIsMainlandChina())
@@ -92,7 +100,7 @@ function websiteContext() {
         route_market: route.market,
         route_market_source: route.source,
         traffic_purpose: getTrafficPurpose(),
-        device_os: device.isIOS ? 'ios' : device.isAndroid ? 'android' : device.isHarmonyOS ? 'harmonyos' : 'desktop',
+        device_os: resolveWebsiteDeviceOs(device),
         locale: navigator.language || 'unknown',
         slug: attribution?.slug,
         click_id: attribution?.click_id,
@@ -125,8 +133,8 @@ export const trackWebsiteEvent = (eventName, params = {}) => {
         .catch(() => {})
 }
 
-export const trackWebsitePageView = () => {
-    trackWebsiteEvent('website_page_viewed')
+export const trackWebsitePageView = (params = {}) => {
+    trackWebsiteEvent('website_page_viewed', params)
 }
 
 export function sanitizeInstallProperties(params) {

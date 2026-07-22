@@ -15,7 +15,7 @@ const Contact = () => {
     useEffect(() => {
         const titles = {
             zh: '联系我们 - 汝塔APP',
-            'zh-TW': '聯繫我們 - 汝塔APP',
+            zhTW: '聯繫我們 - 汝塔APP',
             en: 'Contact Us - Luta App',
             ja: 'お問い合わせ - 汝塔APP',
             ko: '문의하기 - 汝塔APP'
@@ -74,9 +74,6 @@ const Contact = () => {
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800">
                                 {t('contactTitle')}
                             </h1>
-                            <div className="mt-2 text-xs text-slate-500">
-                                Document ID: CONTACT-{Date.now().toString(36).toUpperCase()}
-                            </div>
                         </motion.div>
 
                         <motion.div
@@ -102,6 +99,7 @@ const Contact = () => {
                                         </code>
                                         <button
                                             onClick={copyEmail}
+                                            aria-label={t('contactEmail')}
                                             className="ml-3 p-2 rounded hover:bg-white/50 transition-colors"
                                         >
                                             {copySuccess ? (
@@ -117,7 +115,7 @@ const Contact = () => {
                                     href={`mailto:${config.social.email}`}
                                     className="inline-flex items-center gap-2 text-slate-800 underline decoration-white/40 underline-offset-4 hover:opacity-80 transition"
                                 >
-                                    → 发送邮件
+                                    → {t('contactEmail')}
                                 </a>
                             </div>
 
@@ -177,4 +175,4 @@ const Contact = () => {
     );
 };
 
-export default Contact; 
+export default Contact;

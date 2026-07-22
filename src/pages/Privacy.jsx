@@ -3,7 +3,7 @@ import PaperDocument from '../components/PaperDocument';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Privacy = () => {
-    const { language } = useLanguage();
+    const { currentLanguage } = useLanguage();
     const [content, setContent] = useState('');
 
     useEffect(() => {
@@ -27,17 +27,18 @@ const Privacy = () => {
             ja: 'プライバシーポリシー - LUTA APP',
             ko: '개인정보 보호정책 - LUTA APP'
         };
-        document.title = titles[language];
-    }, [language]);
+        document.title = titles[currentLanguage] || titles.zh;
+    }, [currentLanguage]);
 
     const getTitle = () => {
         const titles = {
             zh: '隐私政策',
+            zhTW: '隱私政策',
             en: 'Privacy Policy',
             ja: 'プライバシーポリシー',
             ko: '개인정보 보호정책'
         };
-        return titles[language];
+        return titles[currentLanguage] || titles.zh;
     };
 
     return (
@@ -48,4 +49,4 @@ const Privacy = () => {
     );
 };
 
-export default Privacy; 
+export default Privacy;

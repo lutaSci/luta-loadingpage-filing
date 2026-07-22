@@ -199,6 +199,8 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
 官网自身不依赖同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
 
+根首页按已有语言偏好兼容切换：简体中文与繁体中文使用新版 Marketing Landing，英文、日文和韩文继续使用原五语言首页，直到对应 Marketing 文案与设计完成独立审批。`/global/zh-cn` 与 `/global/zh-tw` 仍保留为可直接访问的明确内容路由；路径只表达语言，不覆盖市场判定。
+
 官网不提供宽泛的同源 `/api/*` 网关。Admin 新版本直接请求 `https://api.lutaai.com/api`；为覆盖此前已缓存的旧 bundle，官网临时保留且只保留 `/api/v1/admin/*` 兼容代理。该路由响应带 `X-Luta-Compatibility: admin-api-legacy` 与 `Cache-Control: no-store`，计划在 2026-08-05 后且连续 7 天零命中时移除。新业务与后台新版本不得依赖该兼容通道。
 
 ### 发布前提
@@ -225,8 +227,8 @@ PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 1. 检查 Compose、curl 和 `caddy_default` 共享网络，并验证 Compose 配置。
 2. 执行 `docker compose up -d --build app`，不先 `down` 整个服务。
 3. 等待容器 `/healthz` 进入 `healthy`。
-4. 验证本机 `/healthz` 和 `/install` SPA 入口。
-5. 验证 Caddy 公网 `/healthz` 和 `/install`。
+4. 验证本机 `/healthz`、根首页 `marketing-v1` 标记和 `/install` SPA 入口。
+5. 验证 Caddy 公网 `/healthz`、根首页 `marketing-v1` 标记和 `/install`。
 6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
 7. 验证 Admin origin 对规范 API 的预检，并验证限时 `/api/v1/admin/*` 兼容路由返回 API JSON 401，而不是 SPA HTML。
 

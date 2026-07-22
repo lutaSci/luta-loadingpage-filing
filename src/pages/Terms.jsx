@@ -3,7 +3,7 @@ import PaperDocument from '../components/PaperDocument';
 import { useLanguage } from '../contexts/LanguageContext';
 
 const Terms = () => {
-    const { language } = useLanguage();
+    const { currentLanguage } = useLanguage();
     const [content, setContent] = useState('');
 
     useEffect(() => {
@@ -22,21 +22,23 @@ const Terms = () => {
     useEffect(() => {
         const titles = {
             zh: '用户协议 - 汝塔APP',
+            zhTW: '使用協議 - 汝塔APP',
             en: 'Terms of Service - LUTA APP',
             ja: '利用規約 - LUTA APP',
             ko: '이용약관 - LUTA APP'
         };
-        document.title = titles[language];
-    }, [language]);
+        document.title = titles[currentLanguage] || titles.zh;
+    }, [currentLanguage]);
 
     const getTitle = () => {
         const titles = {
             zh: '用户服务协议',
+            zhTW: '使用協議',
             en: 'Terms of Service',
             ja: '利用規約',
             ko: '이용약관'
         };
-        return titles[language];
+        return titles[currentLanguage] || titles.zh;
     };
 
     return (
@@ -47,4 +49,4 @@ const Terms = () => {
     );
 };
 
-export default Terms; 
+export default Terms;
