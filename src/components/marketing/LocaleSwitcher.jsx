@@ -46,9 +46,11 @@ export default function LocaleSwitcher({ content }) {
         }
     }, [isOpen])
 
-    const openMenu = (focusIndex = selectedIndex) => {
+    const openMenu = (focusIndex) => {
         setIsOpen(true)
-        requestAnimationFrame(() => itemRefs.current[focusIndex]?.focus())
+        if (Number.isInteger(focusIndex)) {
+            requestAnimationFrame(() => itemRefs.current[focusIndex]?.focus())
+        }
     }
 
     const selectLocale = (option) => {
