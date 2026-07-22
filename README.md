@@ -199,7 +199,7 @@ Cloudflare Pages 不是当前生产发布链路。生产拓扑固定为：
 
 官网自身不依赖同源 `/api` 代理。`VITE_LUTA_API_BASE` 默认且生产应为 `https://api.lutaai.com`；非 localhost 的 HTTP API 配置会被拒绝并回退到该默认值。因此同一份构建在 Docker 和静态 preview 中都能请求 Smart Link install-context。
 
-官网不提供同源 `/api/*` 网关。Admin 从 `v1.0.4` 起直接请求 `https://api.lutaai.com/api`，其生产构建会拒绝不安全地址，并在发布前检查产物中不存在官网 API 地址和旧裸 IP。官网业务与后台业务都不得重新依赖 `lutaai.com/api`。
+官网不提供宽泛的同源 `/api/*` 网关。Admin 新版本直接请求 `https://api.lutaai.com/api`；为覆盖此前已缓存的旧 bundle，官网临时保留且只保留 `/api/v1/admin/*` 兼容代理。该路由响应带 `X-Luta-Compatibility: admin-api-legacy` 与 `Cache-Control: no-store`，计划在 2026-08-05 后且连续 7 天零命中时移除。新业务与后台新版本不得依赖该兼容通道。
 
 ### 发布前提
 
@@ -228,7 +228,7 @@ PUBLIC_SMOKE_BASE_URL='' ./deploy.sh
 4. 验证本机 `/healthz` 和 `/install` SPA 入口。
 5. 验证 Caddy 公网 `/healthz` 和 `/install`。
 6. 直连 Smart Link install-context，验证安全恢复 JSON 和官网 CORS header。
-7. 验证 Admin origin 对规范 API 的预检；官网不再承担 Admin API 兼容代理。
+7. 验证 Admin origin 对规范 API 的预检，并验证限时 `/api/v1/admin/*` 兼容路由返回 API JSON 401，而不是 SPA HTML。
 
 脚本不会修改或 reload 共享 Caddy 容器。如果 `Caddyfile` 有变更，应按服务器配置管理流程同步后，先验证再 reload：
 
@@ -238,6 +238,8 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
 `download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀通过 HTTPS 直连 `luta-public` OSS endpoint，同时保留已绑定的 `Host: static.lutaai.co`。不要把该回源改成 `https://static.lutaai.co`：它会再次经过 Cloudflare，并可能把上传前的 OSS `NoSuchKey` 缓存为长期 404。历史路径继续回源 `luta-app`。
+
+`admin.lutaai.com` 的期望生产站点块记录在 [`ops/caddy/admin.lutaai.com.caddy`](ops/caddy/admin.lutaai.com.caddy)：HTML 与 SPA fallback 必须 `no-store`，带 hash 的静态资源保持一年 immutable。这样浏览器每次导航都会取得当前入口文件，同时历史 bundle 在兼容窗口内仍可完成迁移。
 
 生产 `/home/caddy/Caddyfile` 是 Docker 单文件 bind mount。若通过原子替换改变宿主机 inode，运行中的容器仍可能读取旧 inode；此时不能只执行 reload。应先验证候选配置，再重建 `caddy` 单个容器使挂载持久生效，并立即 smoke 官网、旧 APK URL 和新的不可变 APK URL。
 
@@ -259,6 +261,7 @@ APK 路由验收除真实对象 200 外，还要用同一个不存在路径连�
 ```bash
 curl --fail https://lutaai.com/healthz
 curl --fail https://lutaai.com/install
+curl --include https://lutaai.com/api/v1/admin/auth/me
 curl --fail 'https://api.lutaai.com/api/v1/public/attribution/install-context?state=invalid-smoke-state'
 curl --include --request OPTIONS \
   --header 'Origin: https://admin.lutaai.com' \
@@ -267,7 +270,7 @@ curl --include --request OPTIONS \
   https://api.lutaai.com/api/v1/admin/auth/login
 ```
 
-install-context 请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。最后一个预检请求必须返回 `Access-Control-Allow-Origin: https://admin.lutaai.com`。
+Admin 兼容请求必须返回带 `X-Luta-Compatibility: admin-api-legacy` 的 JSON 401，不得返回官网 SPA HTML。install-context 请求可以返回受控的 invalid-state 业务结果，但不得出现 DNS、TLS、CORS、Nginx HTML 或原始服务器错误页。最后一个预检请求必须返回 `Access-Control-Allow-Origin: https://admin.lutaai.com`。
 
 ## 🎯 开发指南
 

@@ -95,6 +95,20 @@ if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
     echo "[error] 公网 /install 未返回预期的 SPA 入口"
     exit 1
   fi
+
+  echo "[step] 验证限时 Admin 旧缓存兼容路由..."
+  legacy_admin_body="$(mktemp)"
+  trap 'rm -f "$legacy_admin_body"' EXIT
+  legacy_admin_status="$(curl --silent --show-error --max-time 15 \
+    --output "$legacy_admin_body" --write-out '%{http_code}' \
+    "${PUBLIC_SMOKE_BASE_URL}/api/v1/admin/auth/me")"
+  if [[ "$legacy_admin_status" != "401" ]] \
+    || ! grep -Eq '"(detail|message)"[[:space:]]*:' "$legacy_admin_body"; then
+    echo "[error] 限时 Admin 兼容路由未返回预期的 API JSON 401：${legacy_admin_status}"
+    exit 1
+  fi
+  rm -f "$legacy_admin_body"
+  trap - EXIT
 fi
 
 echo "[step] 验证 Luta API 与官网 CORS..."
@@ -147,5 +161,5 @@ if [[ "$admin_cors_allow_origin" != "$ADMIN_CORS_SMOKE_ORIGIN" ]]; then
   exit 1
 fi
 
-echo "[ok] luta-web 已更新，容器健康且 smoke check 通过"
+echo "[ok] luta-web 已更新，容器健康、限时 Admin 兼容路由与 smoke check 均通过"
 echo "[info] TLS 和域名路由宿主机 Caddy 管理；本脚本不会修改或 reload Caddy"
