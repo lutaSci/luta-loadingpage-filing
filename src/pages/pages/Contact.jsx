@@ -74,9 +74,6 @@ const Contact = () => {
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800">
                                 {t('contactTitle')}
                             </h1>
-                            <div className="mt-2 text-xs text-slate-500">
-                                Document ID: CONTACT-{Date.now().toString(36).toUpperCase()}
-                            </div>
                         </motion.div>
 
                         <motion.div
@@ -177,4 +174,4 @@ const Contact = () => {
     );
 };
 
-export default Contact; 
+export default Contact;

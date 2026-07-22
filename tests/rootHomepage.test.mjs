@@ -113,3 +113,14 @@ test('legal routes consume currentLanguage and include Traditional Chinese keys'
         assert.match(source, /zhTW:/)
     }
 })
+
+test('public document shells expose no generated internal document identifiers', async () => {
+    for (const path of ['../src/components/PaperDocument.jsx', '../src/pages/pages/Contact.jsx']) {
+        const source = await readFile(new URL(path, import.meta.url), 'utf8')
+        assert.doesNotMatch(source, /Document ID/)
+        assert.doesNotMatch(source, /Date\.now\(\)\.toString/)
+    }
+
+    const paperDocument = await readFile(new URL('../src/components/PaperDocument.jsx', import.meta.url), 'utf8')
+    assert.match(paperDocument, /t\('backToHome'\)/)
+})

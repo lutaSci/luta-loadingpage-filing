@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext.jsx';
 
 const PaperDocument = ({ title, content }) => {
+    const { t } = useLanguage();
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-rose-50 to-pink-50/70 flex items-start justify-center p-6">
             <div className="w-full max-w-4xl">
@@ -13,7 +16,7 @@ const PaperDocument = ({ title, content }) => {
                         className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors duration-300 text-slate-700"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        <span>返回首页</span>
+                        <span>{t('backToHome')}</span>
                     </Link>
                 </div>
 
@@ -27,9 +30,6 @@ const PaperDocument = ({ title, content }) => {
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800">
                                 {title}
                             </h1>
-                            <div className="mt-2 text-xs text-slate-500">
-                                Document ID: {Date.now().toString(36).toUpperCase()}
-                            </div>
                         </div>
 
                         <div className="prose max-w-none">
@@ -121,4 +121,4 @@ const PaperDocument = ({ title, content }) => {
     );
 };
 
-export default PaperDocument; 
+export default PaperDocument;
