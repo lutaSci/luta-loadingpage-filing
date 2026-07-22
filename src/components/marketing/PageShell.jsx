@@ -48,7 +48,7 @@ export default function PageShell({ content, headerInstallHref, onSupport, child
     return (
         <div className="luta-marketing" id="marketing-top" ref={pageRef}>
             <a className="luta-marketing-skip-link" href="#marketing-main">
-                {content.localeKey === 'zh-cn' ? '跳到主要内容' : '跳到主要內容'}
+                {content.navigation.skipToMain}
             </a>
             <SmartLinkRecoveryNotice copy={content.recovery} />
             <MarketingHeader content={content} installHref={headerInstallHref} />

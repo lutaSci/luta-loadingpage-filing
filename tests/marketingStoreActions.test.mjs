@@ -79,6 +79,26 @@ test('desktop tabs change platform presentation without rewriting market', () =>
     assert.deepEqual(keys(android), [MARKETING_ACTION_KEYS.GOOGLE_PLAY])
 })
 
+test('marketing locale changes copy identity without changing market or channel routing', () => {
+    const locales = ['zh-CN', 'zh-TW', 'en', 'ja', 'ko']
+    const variants = locales.map(locale => getMarketingStoreActionStates({
+        ...base,
+        locale,
+        market: 'global',
+        device: 'desktop',
+        desktopTab: 'android',
+    }))
+    const contract = states => states.map(({ actionKey, channel, market, status }) => ({
+        actionKey,
+        channel,
+        market,
+        status,
+    }))
+
+    for (const states of variants) assert.deepEqual(contract(states), contract(variants[0]))
+    assert.deepEqual(variants.map(states => states[0].locale), locales)
+})
+
 test('WeChat compatible Android hands off to browser before a store', () => {
     const actions = getMarketingStoreActionStates({
         ...base,

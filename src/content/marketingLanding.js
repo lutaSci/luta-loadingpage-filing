@@ -1,4 +1,9 @@
-export const MARKETING_LOCALES = Object.freeze(['zh-cn', 'zh-tw'])
+import englishContent from './marketing/en.js'
+import japaneseContent from './marketing/ja.js'
+import koreanContent from './marketing/ko.js'
+import { MARKETING_LOCALE_KEYS } from '../lib/marketingLocales.js'
+
+export const MARKETING_LOCALES = MARKETING_LOCALE_KEYS
 
 const sharedPaths = Object.freeze({
     'zh-cn': '/global/zh-cn',
@@ -9,8 +14,8 @@ const content = {
     'zh-cn': {
         locale: 'zh-CN',
         localeKey: 'zh-cn',
+        languageKey: 'zh',
         path: sharedPaths['zh-cn'],
-        alternatePath: sharedPaths['zh-tw'],
         metadata: {
             title: '汝塔 LUTA｜经典阅读与个人修学工具',
             description: '从佛教经典原文出发，借助 AI 辅助理解，建立并记录属于自己的长期修学路径。',
@@ -19,6 +24,7 @@ const content = {
         brand: { name: '汝塔', latin: 'LUTA' },
         navigation: {
             label: '页面导航',
+            skipToMain: '跳到主要内容',
             why: '为什么是汝塔',
             capabilities: '产品能力',
             principles: '我们的原则',
@@ -37,22 +43,29 @@ const content = {
             lead: '从经典原文出发，AI 辅助理解。把每一次阅读、思考与实践，沉淀为可以长期继续的个人修学历程。',
             mobileLead: '从经典原文出发，AI 辅助理解。记录每一次长期探索。',
             caption: '经典阅读 · 今日慧语 · 塔宝陪伴',
+            carouselLabel: '汝塔产品界面',
+            carouselInstructions: '左右滑动、拖动，或使用左右方向键切换中间展示的界面。',
+            carouselRoleDescription: '轮播图',
+            slideRoleDescription: '界面',
             visuals: [
                 {
                     image: 'wisdom',
                     slot: 'start',
+                    label: '今日慧语',
                     alt: '汝塔今日慧语界面，展示每日观照与修学记录',
                     priority: false,
                 },
                 {
                     image: 'reading',
                     slot: 'center',
+                    label: '经典阅读',
                     alt: '汝塔经典阅读界面，展示经文原文、辅助理解工具和听读入口',
                     priority: true,
                 },
                 {
                     image: 'tabao',
                     slot: 'end',
+                    label: '塔宝陪伴',
                     alt: '汝塔塔宝界面，展示围绕经典内容的辅助理解与问答',
                     priority: false,
                 },
@@ -184,8 +197,8 @@ const content = {
     'zh-tw': {
         locale: 'zh-TW',
         localeKey: 'zh-tw',
+        languageKey: 'zhTW',
         path: sharedPaths['zh-tw'],
-        alternatePath: sharedPaths['zh-cn'],
         metadata: {
             title: '汝塔 LUTA｜經典閱讀與個人修學工具',
             description: '從佛教經典原文出發，借助 AI 輔助理解，建立並記錄屬於自己的長期修學路徑。',
@@ -194,6 +207,7 @@ const content = {
         brand: { name: '汝塔', latin: 'LUTA' },
         navigation: {
             label: '頁面導覽',
+            skipToMain: '跳到主要內容',
             why: '為什麼是汝塔',
             capabilities: '產品能力',
             principles: '我們的原則',
@@ -212,22 +226,29 @@ const content = {
             lead: '從經典原文出發，AI 輔助理解。把每一次閱讀、思考與實踐，沉澱為可以長期繼續的個人修學歷程。',
             mobileLead: '從經典原文出發，AI 輔助理解。記錄每一次長期探索。',
             caption: '經典閱讀 · 今日慧語 · 塔寶陪伴',
+            carouselLabel: '汝塔產品介面',
+            carouselInstructions: '左右滑動、拖動，或使用左右方向鍵切換中央顯示的介面。',
+            carouselRoleDescription: '輪播圖',
+            slideRoleDescription: '介面',
             visuals: [
                 {
                     image: 'wisdom',
                     slot: 'start',
+                    label: '今日慧語',
                     alt: '汝塔今日慧語介面，展示每日觀照與修學記錄',
                     priority: false,
                 },
                 {
                     image: 'reading',
                     slot: 'center',
+                    label: '經典閱讀',
                     alt: '汝塔經典閱讀介面，展示經文原文、輔助理解工具和聽讀入口',
                     priority: true,
                 },
                 {
                     image: 'tabao',
                     slot: 'end',
+                    label: '塔寶陪伴',
                     alt: '汝塔塔寶介面，展示圍繞經典內容的輔助理解與問答',
                     priority: false,
                 },
@@ -356,6 +377,9 @@ const content = {
             icp: '粤ICP备2025461997号-1',
         },
     },
+    en: englishContent,
+    ja: japaneseContent,
+    ko: koreanContent,
 }
 
 export const MARKETING_CONTENT = Object.freeze(content)

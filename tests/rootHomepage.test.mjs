@@ -5,21 +5,19 @@ import { test } from 'node:test'
 import { resolveRootHomepage } from '../src/lib/rootHomepage.js'
 import { resolvePreferredLanguage } from '../src/lib/languagePreference.js'
 
-test('root homepage promotes the approved Chinese marketing experience only', () => {
-    assert.deepEqual(resolveRootHomepage('zh'), {
-        experience: 'marketing',
-        locale: 'zh-cn',
-    })
-    assert.deepEqual(resolveRootHomepage('zhTW'), {
-        experience: 'marketing',
-        locale: 'zh-tw',
-    })
-})
-
-test('root homepage preserves the existing English, Japanese and Korean experience', () => {
-    for (const language of ['en', 'ja', 'ko']) {
-        assert.deepEqual(resolveRootHomepage(language), { experience: 'legacy' })
+test('root homepage uses the shared marketing experience for all five languages', () => {
+    const expected = {
+        zh: 'zh-cn',
+        zhTW: 'zh-tw',
+        en: 'en',
+        ja: 'ja',
+        ko: 'ko',
     }
+
+    for (const [language, locale] of Object.entries(expected)) {
+        assert.deepEqual(resolveRootHomepage(language), { experience: 'marketing', locale })
+    }
+    assert.deepEqual(resolveRootHomepage('unknown'), { experience: 'legacy' })
 })
 
 test('root route uses the compatibility dispatcher and keeps explicit marketing paths', async () => {
@@ -29,6 +27,9 @@ test('root route uses the compatibility dispatcher and keeps explicit marketing 
     assert.match(source, /path="\/" element=\{<RootHomepage \/>\}/)
     assert.match(source, /path="\/global\/zh-cn" element=\{<MarketingLanding locale="zh-cn" \/>\}/)
     assert.match(source, /path="\/global\/zh-tw" element=\{<MarketingLanding locale="zh-tw" \/>\}/)
+    assert.match(source, /path="\/global\/en" element=\{<MarketingLanding locale="en" \/>\}/)
+    assert.match(source, /path="\/global\/ja" element=\{<MarketingLanding locale="ja" \/>\}/)
+    assert.match(source, /path="\/global\/ko" element=\{<MarketingLanding locale="ko" \/>\}/)
     assert.match(source, /path="\/install" element=\{<Install \/>\}/)
     assert.match(source, /path="\/privacy" element=\{<Privacy \/>\}/)
     assert.match(source, /path="\/terms" element=\{<Terms \/>\}/)
@@ -56,15 +57,24 @@ test('marketing routes persist their explicit locale and own page metadata', asy
     const landing = await readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8')
     const provider = await readFile(new URL('../src/contexts/LanguageContext.jsx', import.meta.url), 'utf8')
 
-    assert.match(landing, /content\.localeKey === 'zh-tw' \? 'zhTW' : 'zh'/)
-    assert.match(landing, /changeLanguage\(language\)/)
+    assert.match(landing, /changeLanguage\(content\.languageKey\)/)
     assert.doesNotMatch(landing, /currentLanguage !== language/)
-    assert.match(provider, /window\.location\.pathname\.startsWith\('\/global\/zh-'\)/)
+    assert.match(provider, /isMarketingPath\(window\.location\.pathname\)/)
     assert.match(provider, /if \(!isMarketingLanding\)/)
     assert.match(provider, /localStorage\.setItem\('preferred-language', language\)/)
     assert.match(provider, /const changeLanguage = useCallback/)
     assert.doesNotMatch(landing, /document\.title = previous/)
     assert.doesNotMatch(landing, /document\.documentElement\.lang = previous/)
+})
+
+test('marketing path detection accepts canonical locale routes with a trailing slash', async () => {
+    const { isMarketingPath } = await import('../src/lib/marketingLocales.js')
+
+    for (const path of ['/', '/global/zh-cn/', '/global/zh-tw/', '/global/en/', '/global/ja/', '/global/ko/']) {
+        assert.equal(isMarketingPath(path), true, path)
+    }
+
+    assert.equal(isMarketingPath('/contact/'), false)
 })
 
 test('static share metadata matches the released root positioning', async () => {
@@ -88,10 +98,18 @@ test('production deploy smoke verifies the root marketing shell', async () => {
 
 test('marketing header preserves access to all five existing languages', async () => {
     const source = await readFile(new URL('../src/components/marketing/LocaleSwitcher.jsx', import.meta.url), 'utf8')
+    const registry = await import('../src/lib/marketingLocales.js')
 
-    for (const language of ['zh', 'zhTW', 'en', 'ja', 'ko']) {
-        assert.match(source, new RegExp(`value: '${language}'`))
-    }
+    assert.deepEqual(
+        registry.MARKETING_LOCALE_REGISTRY.map(locale => locale.languageKey),
+        ['zh', 'zhTW', 'en', 'ja', 'ko'],
+    )
+    assert.deepEqual(
+        registry.MARKETING_LOCALE_REGISTRY.map(locale => locale.path),
+        ['/global/zh-cn', '/global/zh-tw', '/global/en', '/global/ja', '/global/ko'],
+    )
+    assert.match(source, /MARKETING_LOCALE_REGISTRY/)
+    assert.match(source, /const currentValue = content\.languageKey/)
     assert.match(source, /changeLanguage\(option\.value\)/)
     assert.match(source, /location\.search/)
     assert.match(source, /location\.hash/)

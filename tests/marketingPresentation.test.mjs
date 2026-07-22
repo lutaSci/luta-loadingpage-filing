@@ -4,7 +4,7 @@ import { test } from 'node:test'
 
 const readSource = relativePath => readFile(new URL(relativePath, import.meta.url), 'utf8')
 
-test('hero consumes the three-screen content contract without prioritizing every image', async () => {
+test('hero turns the three-screen contract into an accessible draggable carousel', async () => {
     const [hero, visual] = await Promise.all([
         readSource('../src/components/marketing/MarketingHero.jsx'),
         readSource('../src/components/marketing/ProductVisual.jsx'),
@@ -12,9 +12,28 @@ test('hero consumes the three-screen content contract without prioritizing every
 
     assert.match(hero, /<HeroVisualFan\s+visuals=\{content\.hero\.visuals\}/s)
     assert.match(visual, /visuals\.map\(visual\s*=>/)
-    assert.match(visual, /loading=\{visual\.priority \? 'eager' : 'lazy'\}/)
-    assert.match(visual, /fetchPriority=\{visual\.priority \? 'high' : 'auto'\}/)
+    assert.match(visual, /drag="x"/)
+    assert.match(visual, /dragMomentum=\{false\}/)
+    assert.match(visual, /useReducedMotion/)
+    assert.match(visual, /loading="eager"/)
+    assert.match(visual, /fetchPriority=\{isActive \? 'high' : 'low'\}/)
+    assert.match(visual, /aria-live="polite"/)
+    assert.match(visual, /ArrowLeft/)
+    assert.match(visual, /ArrowRight/)
+    assert.match(visual, /aria-current=/)
     assert.match(visual, /practice:\s*practiceImage/)
+})
+
+test('hero viewport fills the first visual viewport without clipping short or zoomed content', async () => {
+    const css = await readSource('../src/components/marketing/marketing.css')
+
+    assert.match(css, /--luta-marketing-size-first-view:\s*100vh/)
+    assert.match(css, /--luta-marketing-size-first-view:\s*100svh/)
+    assert.match(css, /--luta-marketing-size-first-view:\s*100dvh/)
+    assert.match(css, /min-block-size:\s*max\(0px,\s*calc\(var\(--luta-marketing-size-first-view\) - var\(--luta-marketing-size-header-current\)\)\)/)
+    assert.match(css, /touch-action:\s*pan-y pinch-zoom/)
+    assert.match(css, /\.luta-marketing-hero-pagination button\s*\{[^}]*width:\s*2\.75rem;[^}]*height:\s*2\.75rem/s)
+    assert.doesNotMatch(css, /\.luta-marketing-hero-layout\s*\{[^}]*min-height:\s*(?:48\.75rem|51rem)/s)
 })
 
 test('store action presentation contains no internal market or device narration', async () => {

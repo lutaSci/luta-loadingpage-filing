@@ -7,6 +7,7 @@ import {
     MARKETING_CONTENT,
     MARKETING_LOCALES,
 } from '../src/content/marketingLanding.js'
+import { MARKETING_LOCALE_REGISTRY } from '../src/lib/marketingLocales.js'
 
 function shape(value) {
     if (Array.isArray(value)) return value.map(shape)
@@ -17,32 +18,53 @@ function shape(value) {
 }
 
 test('marketing locales are explicit and never silently fall back', () => {
-    assert.deepEqual(MARKETING_LOCALES, ['zh-cn', 'zh-tw'])
+    assert.deepEqual(MARKETING_LOCALES, ['zh-cn', 'zh-tw', 'en', 'ja', 'ko'])
     assert.equal(getMarketingContent('zh-cn').locale, 'zh-CN')
     assert.equal(getMarketingContent('zh-tw').locale, 'zh-TW')
-    assert.throws(() => getMarketingContent('en'), /Unsupported marketing locale/)
+    assert.equal(getMarketingContent('en').languageKey, 'en')
+    assert.equal(getMarketingContent('ja').languageKey, 'ja')
+    assert.equal(getMarketingContent('ko').languageKey, 'ko')
+    assert.throws(() => getMarketingContent('fr'), /Unsupported marketing locale/)
 })
 
-test('simplified and traditional resources use one component data contract', () => {
-    const simplified = structuredClone(MARKETING_CONTENT['zh-cn'])
-    const traditional = structuredClone(MARKETING_CONTENT['zh-tw'])
+test('all five marketing resources use one component data contract', () => {
+    const entries = MARKETING_LOCALES.map(locale => structuredClone(MARKETING_CONTENT[locale]))
 
-    for (const entry of [simplified, traditional]) {
+    for (const entry of entries) {
         delete entry.locale
         delete entry.localeKey
+        delete entry.languageKey
         delete entry.path
-        delete entry.alternatePath
     }
 
-    assert.deepEqual(shape(simplified), shape(traditional))
-    assert.deepEqual(
-        MARKETING_CONTENT['zh-cn'].stories.map(story => story.id),
-        ['reading', 'practice', 'history'],
-    )
-    assert.deepEqual(
-        MARKETING_CONTENT['zh-tw'].stories.map(story => story.id),
-        ['reading', 'practice', 'history'],
-    )
+    for (const entry of entries.slice(1)) assert.deepEqual(shape(entries[0]), shape(entry))
+    for (const locale of MARKETING_LOCALES) {
+        assert.deepEqual(
+            MARKETING_CONTENT[locale].stories.map(story => story.id),
+            ['reading', 'practice', 'history'],
+        )
+    }
+})
+
+test('marketing content identity stays aligned with the locale registry', () => {
+    for (const registered of MARKETING_LOCALE_REGISTRY) {
+        const resource = MARKETING_CONTENT[registered.localeKey]
+
+        assert.ok(resource, registered.localeKey)
+        assert.deepEqual(
+            {
+                localeKey: resource.localeKey,
+                languageKey: resource.languageKey,
+                path: resource.path,
+            },
+            {
+                localeKey: registered.localeKey,
+                languageKey: registered.languageKey,
+                path: registered.path,
+            },
+        )
+        assert.equal(resource.locale, registered.htmlLang)
+    }
 })
 
 test('hero visual contract keeps three accessible screens with one prioritized center image', () => {
@@ -55,6 +77,8 @@ test('hero visual contract keeps three accessible screens with one prioritized c
         assert.equal(visuals.filter(visual => visual.priority).length, 1)
         assert.equal(visuals.find(visual => visual.priority)?.slot, 'center')
         assert.equal(visuals.every(visual => typeof visual.alt === 'string' && visual.alt.trim()), true)
+        assert.equal(visuals.every(visual => typeof visual.label === 'string' && visual.label.trim()), true)
+        assert.equal(typeof MARKETING_CONTENT[locale].hero.carouselInstructions, 'string')
     }
 })
 
@@ -69,30 +93,23 @@ test('public store content excludes internal market and device narration', () =>
 })
 
 test('locale paths only switch content versions', () => {
-    const cn = MARKETING_CONTENT['zh-cn']
-    const tw = MARKETING_CONTENT['zh-tw']
+    const expectedPaths = ['/global/zh-cn', '/global/zh-tw', '/global/en', '/global/ja', '/global/ko']
 
-    assert.equal(cn.path, '/global/zh-cn')
-    assert.equal(cn.alternatePath, '/global/zh-tw')
-    assert.equal(tw.path, '/global/zh-tw')
-    assert.equal(tw.alternatePath, '/global/zh-cn')
-    assert.equal('market' in cn, false)
-    assert.equal('market' in tw, false)
+    assert.deepEqual(MARKETING_LOCALES.map(locale => MARKETING_CONTENT[locale].path), expectedPaths)
+    for (const locale of MARKETING_LOCALES) {
+        assert.equal('market' in MARKETING_CONTENT[locale], false)
+        assert.equal('alternatePath' in MARKETING_CONTENT[locale], false)
+    }
 })
 
 test('legal filing identity is never localized', () => {
-    assert.equal(
-        MARKETING_CONTENT['zh-cn'].footer.icp,
-        '粤ICP备2025461997号-1',
-    )
-    assert.equal(
-        MARKETING_CONTENT['zh-tw'].footer.icp,
-        MARKETING_CONTENT['zh-cn'].footer.icp,
-    )
-    assert.equal(
-        MARKETING_CONTENT['zh-tw'].footer.copyrightOwner,
-        MARKETING_CONTENT['zh-cn'].footer.copyrightOwner,
-    )
+    const canonicalFooter = MARKETING_CONTENT['zh-cn'].footer
+
+    assert.equal(canonicalFooter.icp, '粤ICP备2025461997号-1')
+    for (const locale of MARKETING_LOCALES) {
+        assert.equal(MARKETING_CONTENT[locale].footer.icp, canonicalFooter.icp)
+        assert.equal(MARKETING_CONTENT[locale].footer.copyrightOwner, canonicalFooter.copyrightOwner)
+    }
 })
 
 test('copyright formatter accepts an explicit year without hardcoded dated copy', () => {

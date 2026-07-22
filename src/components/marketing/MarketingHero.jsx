@@ -26,7 +26,14 @@ export default function MarketingHero({ content, storeAdapter }) {
                 </div>
 
                 <div className="luta-marketing-hero-visual">
-                    <HeroVisualFan visuals={content.hero.visuals} caption={content.hero.caption} />
+                    <HeroVisualFan
+                        visuals={content.hero.visuals}
+                        caption={content.hero.caption}
+                        carouselLabel={content.hero.carouselLabel}
+                        carouselInstructions={content.hero.carouselInstructions}
+                        carouselRoleDescription={content.hero.carouselRoleDescription}
+                        slideRoleDescription={content.hero.slideRoleDescription}
+                    />
                 </div>
 
                 <div className="luta-marketing-hero-actions">

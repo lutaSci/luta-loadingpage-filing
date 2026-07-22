@@ -83,9 +83,8 @@ export default function MarketingLanding({ locale }) {
     })
 
     useEffect(() => {
-        const language = content.localeKey === 'zh-tw' ? 'zhTW' : 'zh'
-        changeLanguage(language)
-    }, [changeLanguage, content.localeKey])
+        changeLanguage(content.languageKey)
+    }, [changeLanguage, content.languageKey])
 
     useEffect(() => {
         const previousScrollBehavior = document.documentElement.style.scrollBehavior

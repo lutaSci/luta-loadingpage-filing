@@ -24,6 +24,9 @@ createRoot(document.getElementById('root')).render(
             <Route path="/install" element={<Install />} />
             <Route path="/global/zh-cn" element={<MarketingLanding locale="zh-cn" />} />
             <Route path="/global/zh-tw" element={<MarketingLanding locale="zh-tw" />} />
+            <Route path="/global/en" element={<MarketingLanding locale="en" />} />
+            <Route path="/global/ja" element={<MarketingLanding locale="ja" />} />
+            <Route path="/global/ko" element={<MarketingLanding locale="ko" />} />
           </Routes>
         </Suspense>
       </Router>

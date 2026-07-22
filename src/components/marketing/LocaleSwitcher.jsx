@@ -2,14 +2,13 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useLanguage } from '../../contexts/LanguageContext.jsx'
+import { MARKETING_LOCALE_REGISTRY } from '../../lib/marketingLocales.js'
 
-const LANGUAGE_OPTIONS = Object.freeze([
-    { value: 'zh', label: '简体中文', path: '/global/zh-cn' },
-    { value: 'zhTW', label: '繁體中文', path: '/global/zh-tw' },
-    { value: 'en', label: 'English', path: '/' },
-    { value: 'ja', label: '日本語', path: '/' },
-    { value: 'ko', label: '한국어', path: '/' },
-])
+const LANGUAGE_OPTIONS = MARKETING_LOCALE_REGISTRY.map(locale => ({
+    value: locale.languageKey,
+    label: locale.label,
+    path: locale.path,
+}))
 
 export default function LocaleSwitcher({ content }) {
     const location = useLocation()
@@ -20,7 +19,7 @@ export default function LocaleSwitcher({ content }) {
     const triggerRef = useRef(null)
     const itemRefs = useRef([])
     const [isOpen, setIsOpen] = useState(false)
-    const currentValue = content.localeKey === 'zh-tw' ? 'zhTW' : 'zh'
+    const currentValue = content.languageKey
     const currentOption = LANGUAGE_OPTIONS.find(option => option.value === currentValue)
     const selectedIndex = LANGUAGE_OPTIONS.findIndex(option => option.value === currentValue)
 

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import { resolvePreferredLanguage } from '../lib/languagePreference.js';
+import { isMarketingPath } from '../lib/marketingLocales.js';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
@@ -576,8 +577,7 @@ export const LanguageProvider = ({ children }) => {
         // 更新页面标题和meta信息
         const trans = translations[currentLanguage];
         const isInstallGate = window.location.pathname === '/install';
-        const isMarketingLanding = window.location.pathname.startsWith('/global/zh-')
-            || (window.location.pathname === '/' && ['zh', 'zhTW'].includes(currentLanguage));
+        const isMarketingLanding = isMarketingPath(window.location.pathname);
         if (!isMarketingLanding) {
             document.documentElement.lang =
                 currentLanguage === 'zh' ? 'zh-CN' :

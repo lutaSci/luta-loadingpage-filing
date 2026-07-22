@@ -28,6 +28,8 @@
     --luta-marketing-shadow-surface: 0 1.25rem 3.5rem rgba(21, 50, 39, 0.055);
     --luta-marketing-size-header-mobile: 4rem;
     --luta-marketing-size-header-desktop: 5.25rem;
+    --luta-marketing-size-header-current: var(--luta-marketing-size-header-mobile);
+    --luta-marketing-size-first-view: 100vh;
     --luta-marketing-layer-header: 100;
     --luta-marketing-motion-fast: 160ms;
     --luta-marketing-motion-reveal: 520ms;
@@ -35,13 +37,25 @@
     --luta-marketing-motion-stagger: 80ms;
     --luta-marketing-motion-distance: 0.625rem;
     --luta-marketing-motion-ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
-    min-height: 100vh;
+    min-block-size: var(--luta-marketing-size-first-view);
     overflow: clip;
     color: var(--luta-marketing-color-text);
     background: var(--luta-marketing-color-surface-field);
     font-family: var(--luta-marketing-font-sans);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+}
+
+@supports (height: 100svh) {
+    .luta-marketing {
+        --luta-marketing-size-first-view: 100svh;
+    }
+}
+
+@supports (height: 100dvh) {
+    .luta-marketing {
+        --luta-marketing-size-first-view: 100dvh;
+    }
 }
 
 .luta-marketing *,
@@ -52,6 +66,17 @@
 
 .luta-marketing :where(h1, h2, h3, p, figure, figcaption, dl, dd, ol) {
     margin: 0;
+}
+
+.luta-marketing-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
 
 .luta-marketing :where(button, a) {
@@ -158,7 +183,7 @@
     position: sticky;
     inset-block-start: 0;
     z-index: var(--luta-marketing-layer-header);
-    min-height: var(--luta-marketing-size-header-mobile);
+    min-height: var(--luta-marketing-size-header-current);
     padding-inline: 1.5rem 1.25rem;
     display: flex;
     align-items: center;
@@ -176,7 +201,7 @@
     #principles,
     #download-options
 ) {
-    scroll-margin-block-start: calc(var(--luta-marketing-size-header-mobile) + 1rem);
+    scroll-margin-block-start: calc(var(--luta-marketing-size-header-current) + 1rem);
 }
 
 .luta-marketing-header-nav,
@@ -289,8 +314,8 @@
 }
 
 .luta-marketing-hero-layout {
-    min-height: 48.75rem;
-    padding: 2.375rem var(--luta-marketing-space-page-mobile) 1.375rem;
+    min-block-size: max(0px, calc(var(--luta-marketing-size-first-view) - var(--luta-marketing-size-header-current)));
+    padding: 2.3125rem var(--luta-marketing-space-page-mobile) 1.375rem;
     display: grid;
     grid-template-rows: auto 1fr auto;
 }
@@ -350,7 +375,7 @@
     align-self: center;
     justify-self: center;
     width: 100%;
-    padding-block: 0.75rem;
+    padding-block: 0;
 }
 
 .luta-marketing-product-visual {
@@ -375,22 +400,39 @@
 }
 
 .luta-marketing-hero-product-visual {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
+    border-radius: var(--luta-marketing-radius-surface-small);
+}
+
+.luta-marketing-hero-product-visual:focus-visible {
+    outline: 0.1875rem solid var(--luta-marketing-color-focus-on-dark);
+    outline-offset: 0.375rem;
 }
 
 .luta-marketing-hero-device-fan {
     position: relative;
-    width: min(100%, 19rem);
+    width: min(100%, 19rem, max(14rem, calc(92vh - 29.0625rem)));
     aspect-ratio: 0.92;
     isolation: isolate;
+    touch-action: pan-y pinch-zoom;
+    user-select: none;
+    cursor: grab;
+}
+
+@supports (height: 100dvh) {
+    .luta-marketing-hero-device-fan {
+        width: min(100%, 19rem, max(14rem, calc(92dvh - 29.0625rem)));
+    }
 }
 
 .luta-marketing-hero-device {
     position: absolute;
     inset-block-end: 0;
-    width: 43%;
+    inset-inline-start: 50%;
+    width: 48%;
     overflow: hidden;
     background: #ffffff;
     border: 1px solid rgba(255, 255, 255, 0.16);
@@ -399,36 +441,77 @@
     transform-origin: center bottom;
 }
 
-.luta-marketing-hero-device--start {
-    inset-inline-start: 2%;
+.luta-marketing-hero-device[data-position="start"] {
     z-index: 1;
-    transform: translateY(1.5rem) rotate(-6deg);
 }
 
-.luta-marketing-hero-device--center {
-    inset-inline-start: 50%;
+.luta-marketing-hero-device[data-position="center"] {
     z-index: 3;
-    width: 48%;
-    transform: translateX(-50%);
 }
 
-.luta-marketing-hero-device--end {
-    inset-inline-end: 2%;
+.luta-marketing-hero-device[data-position="end"] {
     z-index: 2;
-    transform: translateY(1.5rem) rotate(6deg);
 }
 
 .luta-marketing-hero-device img {
     display: block;
     width: 100%;
     height: auto;
+    pointer-events: none;
 }
 
-.luta-marketing-hero-product-visual figcaption {
-    margin-block-start: 0.875rem;
+.luta-marketing-hero-visual-controls {
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.luta-marketing-hero-product-visual > figcaption {
+    position: absolute;
+    inset-block-end: 1.05rem;
+    inset-inline-end: calc(50% + 2.25rem);
+    display: none;
     color: rgba(255, 255, 255, 0.54);
     font-size: 0.5625rem;
     letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.luta-marketing-hero-pagination {
+    display: flex;
+    align-items: center;
+}
+
+.luta-marketing-hero-pagination button {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 999px;
+}
+
+.luta-marketing-hero-pagination button > span {
+    width: 0.3125rem;
+    height: 0.3125rem;
+    background: rgba(255, 255, 255, 0.34);
+    border-radius: 999px;
+    transition:
+        width var(--luta-marketing-motion-fast),
+        background-color var(--luta-marketing-motion-fast);
+}
+
+.luta-marketing-hero-pagination button[aria-current="true"] > span {
+    width: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+}
+
+.luta-marketing-hero-pagination button:hover > span {
+    background: #ffffff;
 }
 
 .luta-marketing-phone img {
@@ -1125,6 +1208,10 @@
 }
 
 @media (min-width: 64rem) {
+    .luta-marketing {
+        --luta-marketing-size-header-current: var(--luta-marketing-size-header-desktop);
+    }
+
     .luta-marketing-desktop-title,
     .luta-marketing-desktop-copy {
         display: initial;
@@ -1136,7 +1223,6 @@
     }
 
     .luta-marketing-header {
-        min-height: var(--luta-marketing-size-header-desktop);
         padding-inline: max(3rem, calc((100vw - var(--luta-marketing-container-content)) / 2));
         display: grid;
         grid-template-columns: 1fr auto 1fr;
@@ -1151,7 +1237,7 @@
         #principles,
         #download-options
     ) {
-        scroll-margin-block-start: calc(var(--luta-marketing-size-header-desktop) + 1rem);
+        scroll-margin-block-start: calc(var(--luta-marketing-size-header-current) + 1rem);
     }
 
     .luta-marketing-wordmark-mark {
@@ -1205,7 +1291,7 @@
     }
 
     .luta-marketing-hero-layout {
-        min-height: 51rem;
+        min-block-size: max(0px, calc(var(--luta-marketing-size-first-view) - var(--luta-marketing-size-header-current)));
         padding: 5.125rem 0 4.75rem;
         display: grid;
         grid-template-columns: 5fr 7fr;
@@ -1248,6 +1334,10 @@
 
     .luta-marketing-hero-device-fan {
         width: min(100%, 35rem);
+    }
+
+    .luta-marketing-hero-product-visual > figcaption {
+        display: block;
     }
 
     .luta-marketing-hero-device {
@@ -1568,6 +1658,39 @@
 
     .luta-marketing-footer-layout > small {
         margin: 0;
+    }
+}
+
+@media (min-width: 64rem) and (max-height: 56rem) {
+    .luta-marketing-hero-layout {
+        padding-block: 1.5rem;
+        column-gap: clamp(3rem, 6vw, 5.5rem);
+    }
+
+    .luta-marketing-hero h1 {
+        margin-block-start: 1.25rem;
+        font-size: clamp(2.75rem, 4vw, 3.375rem);
+    }
+
+    .luta-marketing-hero-lead {
+        margin-block-start: 1.25rem;
+        line-height: 1.65;
+    }
+
+    .luta-marketing-hero-actions {
+        margin-block-start: 1.25rem;
+    }
+
+    .luta-marketing-hero-device-fan {
+        width: min(100%, 35rem, calc(92vh - 10.25rem));
+    }
+}
+
+@supports (height: 100dvh) {
+    @media (min-width: 64rem) and (max-height: 56rem) {
+        .luta-marketing-hero-device-fan {
+            width: min(100%, 35rem, calc(92dvh - 10.25rem));
+        }
     }
 }
 
