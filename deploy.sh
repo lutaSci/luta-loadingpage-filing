@@ -112,8 +112,8 @@ if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
       exit
     }
   ' "$legacy_admin_headers")"
-  if [[ "$legacy_admin_status" != "401" ]] \
-    || "$legacy_admin_content_type" != application/json* \
+  if [[ "$legacy_admin_status" != "401" \
+    || "$legacy_admin_content_type" != application/json* ]] \
     || grep -Fq '<div id="root"></div>' "$legacy_admin_body"; then
     echo "[error] 限时 Admin 兼容路由未返回预期的 API JSON 401：${legacy_admin_status}|${legacy_admin_content_type}"
     exit 1
