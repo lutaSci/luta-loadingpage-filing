@@ -9,6 +9,7 @@ import { useStoreActionAdapter } from '../components/marketing/useStoreActionAda
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { trackWebsitePageView } from '../lib/analytics.js'
+import { buildInstallEntryUrl } from '../lib/attributionState.js'
 import '../components/marketing/marketing.css'
 
 function LineTitle({ lines }) {
@@ -65,6 +66,7 @@ function FinalCallToAction({ content, adapter }) {
 
 export default function MarketingLanding({ locale }) {
     const content = getMarketingContent(locale)
+    const headerInstallHref = buildInstallEntryUrl('marketing_header')
     const { changeLanguage } = useLanguage()
     const [desktopTab, setDesktopTab] = useState('ios')
     const heroStore = useStoreActionAdapter({
@@ -105,7 +107,11 @@ export default function MarketingLanding({ locale }) {
     }, [content])
 
     return (
-        <PageShell content={content} onSupport={finalStore.openSupport}>
+        <PageShell
+            content={content}
+            headerInstallHref={headerInstallHref}
+            onSupport={finalStore.openSupport}
+        >
             <MarketingHero content={content} storeAdapter={heroStore} />
             <WhyLuta content={content.why} />
             {content.stories.map(story => <ProductStory key={story.id} story={story} />)}

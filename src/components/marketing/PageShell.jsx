@@ -4,7 +4,7 @@ import SmartLinkRecoveryNotice from '../SmartLinkRecoveryNotice.jsx'
 import MarketingFooter from './MarketingFooter.jsx'
 import MarketingHeader from './MarketingHeader.jsx'
 
-export default function PageShell({ content, onSupport, children }) {
+export default function PageShell({ content, headerInstallHref, onSupport, children }) {
     const pageRef = useRef(null)
 
     useLayoutEffect(() => {
@@ -51,7 +51,7 @@ export default function PageShell({ content, onSupport, children }) {
                 {content.localeKey === 'zh-cn' ? '跳到主要内容' : '跳到主要內容'}
             </a>
             <SmartLinkRecoveryNotice copy={content.recovery} />
-            <MarketingHeader content={content} />
+            <MarketingHeader content={content} installHref={headerInstallHref} />
             <main id="marketing-main" tabIndex="-1">{children}</main>
             <MarketingFooter content={content} onSupport={onSupport} />
         </div>

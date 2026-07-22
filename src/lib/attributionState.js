@@ -30,7 +30,23 @@ const WEBSITE_ENTRY_FIELDS = [
     'invite_code',
 ]
 
+// Mirrors the public `/r/{slug}` query contract. Invalid oversized campaign
+// data is dropped instead of truncated so user-controlled URLs cannot turn a
+// generic install action into a validation failure or change field identity.
+const WEBSITE_ENTRY_FIELD_LIMITS = {
+    utm_source: 128,
+    utm_medium: 128,
+    utm_campaign: 128,
+    utm_content: 128,
+    utm_term: 128,
+    content_id: 128,
+    operator: 128,
+    platform: 64,
+    invite_code: 20,
+}
+
 const LEGACY_CLICK_ID_RE = /^lclk_[0-9a-f]{32}$/
+const ATTRIBUTION_SLUG_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$/
 export const WAITLIST_SYSTEM_FIELDS = [
     // These fields are system-owned attribution context. The Feishu form must
     // never ask a visitor to understand or enter them, including when the
@@ -88,6 +104,15 @@ function getOrCreateDirectClickId(state) {
         return clickId
     } catch {
         return createDirectClickId()
+    }
+}
+
+function appendValidWebsiteEntryFields(searchParams, state) {
+    for (const key of WEBSITE_ENTRY_FIELDS) {
+        const value = state?.[key]
+        if (value && value.length <= WEBSITE_ENTRY_FIELD_LIMITS[key]) {
+            searchParams.set(key, value)
+        }
     }
 }
 
@@ -215,9 +240,7 @@ export function buildVerifiedApkEntryUrl(placement) {
     }
 
     const qs = new URLSearchParams()
-    for (const key of WEBSITE_ENTRY_FIELDS) {
-        if (state?.[key]) qs.set(key, state[key])
-    }
+    appendValidWebsiteEntryFields(qs, state)
     if (!qs.has('utm_source')) qs.set('utm_source', 'official_website')
     if (!qs.has('utm_medium')) qs.set('utm_medium', 'owned')
     if (!qs.has('utm_campaign')) qs.set('utm_campaign', 'android_download')
@@ -225,4 +248,38 @@ export function buildVerifiedApkEntryUrl(placement) {
     if (!qs.has('platform')) qs.set('platform', 'website')
 
     return `${config.attribution.continueBase}/r/${encodeURIComponent(config.attribution.defaultSlug)}?${qs.toString()}`
+}
+
+/**
+ * Build the generic website install entry used by navigation-level CTAs.
+ *
+ * Unlike a platform CTA, this route does not assume iOS, Android, a market,
+ * or an individual store. The server creates or reuses the canonical legacy
+ * click root and then hands the visitor to the authoritative /install flow.
+ * A bare /install URL is intentionally not used because it has no signed or
+ * legacy attribution context and must fall back to missing-state recovery.
+ */
+export function buildInstallEntryUrl(placement) {
+    const state = getAttributionState()
+    const stateSlug = state?.slug || ''
+    const slug = ATTRIBUTION_SLUG_RE.test(stateSlug)
+        ? stateSlug
+        : config.attribution.defaultSlug
+
+    const qs = new URLSearchParams()
+    appendValidWebsiteEntryFields(qs, state)
+
+    // Reuse only a server-issued legacy root. Browser-generated click ids do
+    // not prove a canonical root and must not be forwarded as if they did.
+    if (state?.slug && LEGACY_CLICK_ID_RE.test(state.click_id || '')) {
+        qs.set('click_id', state.click_id)
+    }
+
+    if (!qs.has('utm_source')) qs.set('utm_source', 'official_website')
+    if (!qs.has('utm_medium')) qs.set('utm_medium', 'owned')
+    if (!qs.has('utm_campaign')) qs.set('utm_campaign', 'app_download')
+    if (placement && !qs.has('utm_content')) qs.set('utm_content', placement)
+    if (!qs.has('platform')) qs.set('platform', 'website')
+
+    return `${config.attribution.continueBase}/r/${encodeURIComponent(slug)}?${qs.toString()}`
 }

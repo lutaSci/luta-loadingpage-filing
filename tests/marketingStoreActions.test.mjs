@@ -187,6 +187,20 @@ test('StoreActionGroup presentation source owns no destination URL', async () =>
     assert.doesNotMatch(source, /apps\.apple|play\.google|feishu|\.apk(?:\W|$)|testflight\.apple/i)
 })
 
+test('header get-app action uses the generic install builder instead of a page anchor', async () => {
+    const [header, pageShell, landing] = await Promise.all([
+        readFile(new URL('../src/components/marketing/MarketingHeader.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/marketing/PageShell.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(header, /href=\{installHref\}/)
+    assert.doesNotMatch(header, /href="#download-options"/)
+    assert.doesNotMatch(header, /go\.lutaai\.com|\/install(?:\W|$)/)
+    assert.match(pageShell, /installHref=\{headerInstallHref\}/)
+    assert.match(landing, /buildInstallEntryUrl\('marketing_header'\)/)
+})
+
 test('StoreActionGroup exposes a non-interactive accessible loading state', async () => {
     const source = await readFile(
         new URL('../src/components/marketing/StoreActionGroup.jsx', import.meta.url),

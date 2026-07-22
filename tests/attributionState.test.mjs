@@ -125,6 +125,90 @@ test('unattributed landing returns null so buttons use original store URL', asyn
     assert.equal(apkEntryUrl.searchParams.get('utm_campaign'), 'android_download')
     assert.equal(apkEntryUrl.searchParams.get('utm_content'), 'mobile_android_china')
     assert.equal(apkEntryUrl.searchParams.get('platform'), 'website')
+
+    const installEntryUrl = new URL(mod.buildInstallEntryUrl('marketing_header'))
+    assert.equal(installEntryUrl.origin, 'https://go.lutaai.com')
+    assert.equal(installEntryUrl.pathname, '/r/website-direct')
+    assert.equal(installEntryUrl.searchParams.get('utm_source'), 'official_website')
+    assert.equal(installEntryUrl.searchParams.get('utm_medium'), 'owned')
+    assert.equal(installEntryUrl.searchParams.get('utm_campaign'), 'app_download')
+    assert.equal(installEntryUrl.searchParams.get('utm_content'), 'marketing_header')
+    assert.equal(installEntryUrl.searchParams.get('platform'), 'website')
+    assert.equal(installEntryUrl.searchParams.has('click_id'), false)
+})
+
+test('generic install entry preserves approved acquisition fields without leaking routing state', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const mod = await loadAttributionModule(
+        'https://lutaai.com/?slug=global-store&click_id=clk_browser&utm_source=xhs&utm_medium=social&utm_campaign=summer&utm_content=hero&content_id=content001&operator=qa_ops&platform=xhs&invite_code=invite001&route_market=global&traffic_purpose=qa&email=private%40example.com',
+        'install-entry-attributed',
+    )
+
+    const installEntryUrl = new URL(mod.buildInstallEntryUrl('marketing_header'))
+    assert.equal(installEntryUrl.pathname, '/r/global-store')
+    assert.equal(installEntryUrl.searchParams.get('utm_source'), 'xhs')
+    assert.equal(installEntryUrl.searchParams.get('utm_medium'), 'social')
+    assert.equal(installEntryUrl.searchParams.get('utm_campaign'), 'summer')
+    assert.equal(installEntryUrl.searchParams.get('utm_content'), 'hero')
+    assert.equal(installEntryUrl.searchParams.get('content_id'), 'content001')
+    assert.equal(installEntryUrl.searchParams.get('operator'), 'qa_ops')
+    assert.equal(installEntryUrl.searchParams.get('platform'), 'xhs')
+    assert.equal(installEntryUrl.searchParams.get('invite_code'), 'invite001')
+    assert.equal(installEntryUrl.searchParams.has('click_id'), false)
+    assert.equal(installEntryUrl.searchParams.has('route_market'), false)
+    assert.equal(installEntryUrl.searchParams.has('traffic_purpose'), false)
+    assert.equal(installEntryUrl.searchParams.has('email'), false)
+})
+
+test('generic install entry reuses only canonical legacy click roots', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const clickId = `lclk_${'b'.repeat(32)}`
+    const mod = await loadAttributionModule(
+        `https://lutaai.com/?slug=cn-store&click_id=${clickId}&utm_source=owned`,
+        'install-entry-canonical',
+    )
+
+    const installEntryUrl = new URL(mod.buildInstallEntryUrl('marketing_header'))
+    assert.equal(installEntryUrl.pathname, '/r/cn-store')
+    assert.equal(installEntryUrl.searchParams.get('click_id'), clickId)
+})
+
+test('generic install entry rejects an invalid inbound slug', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const mod = await loadAttributionModule(
+        'https://lutaai.com/?slug=..%2Fadmin&utm_source=owned',
+        'install-entry-invalid-slug',
+    )
+
+    const installEntryUrl = new URL(mod.buildInstallEntryUrl('marketing_header'))
+    assert.equal(installEntryUrl.pathname, '/r/website-direct')
+})
+
+test('website install entries drop oversized campaign fields before the backend contract', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const over128 = 'x'.repeat(129)
+    const over64 = 'p'.repeat(65)
+    const over20 = 'i'.repeat(21)
+    const mod = await loadAttributionModule(
+        `https://lutaai.com/?utm_source=${over128}&utm_medium=${over128}&utm_campaign=${over128}&utm_content=${over128}&utm_term=${over128}&content_id=${over128}&operator=${over128}&platform=${over64}&invite_code=${over20}`,
+        'install-entry-oversized',
+    )
+
+    const installEntryUrl = new URL(mod.buildInstallEntryUrl('marketing_header'))
+    assert.equal(installEntryUrl.searchParams.get('utm_source'), 'official_website')
+    assert.equal(installEntryUrl.searchParams.get('utm_medium'), 'owned')
+    assert.equal(installEntryUrl.searchParams.get('utm_campaign'), 'app_download')
+    assert.equal(installEntryUrl.searchParams.get('utm_content'), 'marketing_header')
+    assert.equal(installEntryUrl.searchParams.get('platform'), 'website')
+    assert.equal(installEntryUrl.searchParams.has('utm_term'), false)
+    assert.equal(installEntryUrl.searchParams.has('content_id'), false)
+    assert.equal(installEntryUrl.searchParams.has('operator'), false)
+    assert.equal(installEntryUrl.searchParams.has('invite_code'), false)
+
+    const apkEntryUrl = new URL(mod.buildVerifiedApkEntryUrl('mobile_android_china'))
+    assert.equal(apkEntryUrl.searchParams.get('utm_source'), 'official_website')
+    assert.equal(apkEntryUrl.searchParams.get('utm_campaign'), 'android_download')
+    assert.equal(apkEntryUrl.searchParams.get('platform'), 'website')
 })
 
 test('canonical legacy APK entry continues the existing server-owned click', async () => {
