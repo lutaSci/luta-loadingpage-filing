@@ -3,10 +3,10 @@
 qa_date: 2026-07-22 Asia/Shanghai
 scope: `/`, `/global/zh-cn`, `/global/zh-tw`, `/global/en`, `/global/ja`, `/global/ko`
 visual_direction: `Quiet Field / 留白成境 v3`
-release_scope: production baseline `260eda9`; five-locale dynamic-first-view interactive-Hero candidate approved for release on 2026-07-22
-qa_status: Pass 7 passed engineering, responsive, interaction and same-viewport visual QA; user approved production release with native-copy review recorded as an explicit exception
+release_scope: five-locale dynamic-first-view interactive-Hero production release `eac5e6bcbddbb60759134b0ba23953a7b6edfff1`
+qa_status: Pass 7 released and verified in production; native-copy review remains an explicit accepted exception
 
-> Current-status note: Pass 1–6 below are retained as historical implementation and production evidence. Pass 7 is the approved release candidate: five Marketing locales, a dynamic first viewport, and an accessible user-controlled Hero carousel. Production remains commit `260eda9a0a7ffe32a3dea7ad52c43d3765e9b95c` until the current release completes. On 2026-07-22 the user explicitly approved publication without first completing native English/Japanese/Korean copy review; that review remains an accepted production exception, not a completed check. Route-level social metadata, the five-person test and system-wide Token adoption also remain open; the broader UI-system `design_status` stays `candidate`.
+> Current-status note: Pass 1–6 below are retained as historical implementation and production evidence. Pass 7 is the current production release: five Marketing locales, a dynamic first viewport, and an accessible user-controlled Hero carousel at commit `eac5e6bcbddbb60759134b0ba23953a7b6edfff1`. On 2026-07-22 the user explicitly approved publication without first completing native English/Japanese/Korean copy review; that review remains an accepted production exception, not a completed check. Route-level social metadata, the five-person test and system-wide Token adoption also remain open; the broader UI-system `design_status` stays `candidate`.
 
 ## 1. Visual source of truth
 
@@ -133,12 +133,12 @@ The user explicitly authorized root replacement and production release after rev
 
 final result: release candidate passed — user authorized root replacement and production release; live verification is still required, while five-person testing, real p75 performance and asset upgrades remain explicitly deferred
 
-## 8. Pass 7 — five-locale dynamic first view and interactive Hero (current local candidate)
+## 8. Pass 7 — five-locale dynamic first view and interactive Hero (production release)
 
 ### Source and acquisition
 
 - Source: the user’s 2026-07-22 browser annotations requiring Header + Hero to fill the first viewport, PC/Mobile horizontal switching of the three product screens, and English/Japanese/Korean to retain the same Marketing UI as Simplified/Traditional Chinese.
-- Acquisition: Codex in-app browser against `http://127.0.0.1:5173`, local Vite runtime on 2026-07-22 Asia/Shanghai; code and contract checks use the uncommitted working tree based on production commit `260eda9a0a7ffe32a3dea7ad52c43d3765e9b95c`.
+- Acquisition: Codex in-app browser first checked `http://127.0.0.1:5173`, then verified `https://lutaai.com/` after deployment on 2026-07-22 Asia/Shanghai. Release source is commit `eac5e6bcbddbb60759134b0ba23953a7b6edfff1`; production image is `sha256:1ce7d15e392438fc227dda461e62f238fdd37174ef29c770ce5d63c01de56031`.
 - Same-viewport evidence: production-baseline source and final local implementation at 1280×720 are combined in `/Users/drinkle/.codex/visualizations/2026/07/22/019f8851-130f-7f60-ba81-c9bfbaf2ba96/hero-first-view-side-by-side-final-1280x720.png`; the final implementation frame is `/Users/drinkle/.codex/visualizations/2026/07/22/019f8851-130f-7f60-ba81-c9bfbaf2ba96/hero-first-view-implementation-final-1280x720.png`.
 
 ### Analysis and theory
@@ -160,9 +160,11 @@ final result: release candidate passed — user authorized root replacement and 
 
 ### Risk and release boundary
 
-- At release approval time, this Pass 7 candidate had not yet been committed, pushed or deployed, and production still served commit `260eda9a0a7ffe32a3dea7ad52c43d3765e9b95c`; the final production identity must be appended only after deployment and live smoke succeed.
+- Production release completed on `luta-web` at commit `eac5e6bcbddbb60759134b0ba23953a7b6edfff1`; container image `sha256:1ce7d15e392438fc227dda461e62f238fdd37174ef29c770ce5d63c01de56031` is healthy. The direct rollback tag `luta-loadingpage-filing-app:rollback-five-locale-hero-20260722-260eda9` resolves to the previous image `sha256:18ba8184c87e99f84a2bc774a93f9c92e9b694cb646f417efb51c3bf3837a3fb`.
+- Production HTTP checks returned `200` for `/`, `/healthz`, `/install`, all five explicit locale routes and the three legal/contact routes. Admin compatibility remained JSON `401` with `X-Luta-Compatibility: admin-api-legacy`; Smart Link invalid-state recovery and Admin CORS passed.
+- Real production Browser checks confirmed the five Marketing routes at 390×844 with zero horizontal overflow; 1280×720 rendered an 84 px sticky Header plus a 636 px Hero ending exactly at the viewport bottom. Arrow-key interaction changed the central slide from reading to Tabao and back. Header “获取 App” generated a canonical `lclk_*` and reached the authoritative `/install` choice surface. Privacy, terms and contact headings rendered, and the tested tab reported zero console warnings/errors.
 - English, Japanese and Korean content structure and product positioning are implemented. Native review of Buddhist terminology and product tone has not been completed; the user explicitly accepted that risk as a recorded production exception on 2026-07-22 and authorized publication.
 - The Vite SPA still serves one static Simplified-Chinese OpenGraph/Twitter shell and has no route-level canonical/hreflang. Runtime page metadata is correct for users, but social crawlers may not execute it; route-level prerendering or server metadata is a separate SEO release decision and was not silently expanded into this UI change.
 - The five-person unprompted test, real-user CWV p75, AVIF/WebP/srcset and final combined Logo remain open design-system gates.
 
-final result: release approved — the five-locale, dynamic-first-view, user-controlled Hero candidate meets the approved UI and interaction scope; commit, deployment and production smoke remain required before it can be recorded as released
+final result: production released — the five-locale, dynamic-first-view, user-controlled Hero implementation is live at `lutaai.com`, with service, route, interaction, install-gate, legal-page and console smoke passed; native-copy review and the broader design-system gates remain explicitly open
