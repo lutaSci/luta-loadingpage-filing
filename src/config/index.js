@@ -70,6 +70,9 @@ export const config = {
         appLinkBase: 'https://link.lutaai.com/l',
         outBase: 'https://go.lutaai.com/out',
         legacyOutBase: 'https://go.lutaai.com/r',
+        // Opt-in until QA proves state privacy, routing continuity and rollback.
+        // Existing links continue to land on /install when this is disabled.
+        homepageSurfaceEnabled: import.meta.env?.VITE_SMART_LINK_HOMEPAGE_SURFACE === 'true',
     },
     analytics: {
         posthogKey: import.meta.env?.VITE_POSTHOG_KEY || 'phc_AJ9WrJztG6H87z7xD7Xfa97abfCau4EbYXMSDUxo6Rsv',

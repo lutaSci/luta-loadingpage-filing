@@ -6,6 +6,7 @@ services:
       dockerfile: dockerfile
       args:
         VITE_LUTA_API_BASE: ${VITE_LUTA_API_BASE:-https://api.lutaai.com}
+        VITE_SMART_LINK_HOMEPAGE_SURFACE: ${VITE_SMART_LINK_HOMEPAGE_SURFACE:-false}
     environment:
       - NODE_ENV=production
     restart: unless-stopped

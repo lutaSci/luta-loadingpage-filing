@@ -706,6 +706,87 @@
     height: 0.875rem;
 }
 
+.luta-marketing-smartlink-actions {
+    width: 100%;
+    max-width: 30rem;
+}
+
+.luta-marketing-smartlink-actions .luta-marketing-store-group {
+    max-width: none;
+}
+
+.luta-marketing-store-action[data-status="recovery"] {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.58);
+    border-style: dashed;
+}
+
+.luta-marketing-smartlink-open-app,
+.luta-marketing-smartlink-exit {
+    min-height: 2.75rem;
+    margin: 0.375rem auto 0;
+    padding: 0.5rem 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    color: rgba(255, 255, 255, 0.76);
+    background: transparent;
+    border: 0;
+    font-size: 0.6875rem;
+    font-weight: 620;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 255, 255, 0.28);
+    text-underline-offset: 0.25rem;
+}
+
+.luta-marketing-smartlink-open-app:hover,
+.luta-marketing-smartlink-exit:hover {
+    color: #ffffff;
+}
+
+.luta-marketing-smartlink-open-app svg,
+.luta-marketing-smartlink-notice svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.luta-marketing-smartlink-notice {
+    margin-block-start: 0.75rem;
+    padding: 0.875rem 1rem;
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--luta-marketing-color-line-on-dark);
+    border-radius: var(--luta-marketing-radius-action);
+    font-size: 0.6875rem;
+    line-height: 1.6;
+}
+
+.luta-marketing-smartlink-notice strong,
+.luta-marketing-smartlink-notice p {
+    display: block;
+}
+
+.luta-marketing-smartlink-notice p {
+    margin-block-start: 0.25rem;
+}
+
+.luta-marketing-smartlink-notice button {
+    min-height: 2.75rem;
+    margin-block-start: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    color: var(--luta-marketing-color-surface-pine);
+    background: #ffffff;
+    border: 1px solid #ffffff;
+    border-radius: var(--luta-marketing-radius-action);
+    font-size: 0.6875rem;
+    font-weight: 620;
+}
+
 .luta-marketing-why {
     min-height: 35rem;
     padding: 5.875rem var(--luta-marketing-space-page-mobile);

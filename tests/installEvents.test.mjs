@@ -282,9 +282,12 @@ test('event URL rejects insecure non-local transport', () => {
     }), 'http://localhost:8000/api/v1/public/attribution/install-event')
 })
 
-test('Install page prevents legacy mode from calling the v2 interaction ingest', () => {
-    const source = readFileSync(new URL('../src/pages/Install.jsx', import.meta.url), 'utf8')
+test('shared install controller prevents legacy mode from calling the v2 interaction ingest', () => {
+    const source = readFileSync(
+        new URL('../src/hooks/useInstallJourneyController.js', import.meta.url),
+        'utf8',
+    )
     assert.match(source, /if \(isLegacyMode \|\| !stateToken\) return null/)
-    assert.match(source, /if \(isLegacyMode\) return undefined/)
+    assert.match(source, /if \(!hasEntry \|\| isLegacyMode\) return undefined/)
     assert.doesNotMatch(source, /legacySlug[\s\S]{0,100}installEventBase/)
 })

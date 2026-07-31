@@ -29,9 +29,16 @@ import { getInstallCopy } from '../src/lib/installCopy.js'
 const SHA256 = 'a'.repeat(64)
 const LEGACY_CLICK_ID = `lclk_${'c'.repeat(32)}`
 
-test('Google Analytics pageview strips signed state and every query parameter', () => {
+test('Google Analytics excludes install, bearer-query and persisted Smart Link journeys', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
-    assert.match(html, /window\.location\.pathname !== '\/install'/)
+    assert.match(html, /window\.location\.pathname === '\/install'/)
+    assert.match(html, /smartLinkParams\.has\('state'\)/)
+    assert.match(html, /smartLinkParams\.has\('legacy_slug'\)/)
+    assert.match(html, /smartLinkParams\.has\('click_id'\)/)
+    assert.match(html, /sessionStorage\.getItem\('luta-smart-link-homepage-entry-v1'\)/)
+    assert.match(html, /robots\.content = 'noindex,nofollow'/)
+    assert.match(html, /<link rel="canonical" href="https:\/\/lutaai\.com\/" \/>/)
+    assert.match(html, /if \(!isSmartLinkJourney\)/)
     assert.match(html, /page_location:\s*window\.location\.origin \+ window\.location\.pathname/)
     assert.match(html, /page_path:\s*window\.location\.pathname/)
     assert.equal(html.includes('page_location: window.location.href'), false)

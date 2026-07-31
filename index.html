@@ -5,6 +5,7 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="referrer" content="no-referrer" />
+    <link rel="canonical" href="https://lutaai.com/" />
     <meta name="luta-homepage-experience" content="marketing-v1" />
     <meta name="description" content="从佛教经典原文出发，借助 AI 辅助理解，建立并记录属于自己的长期修学路径。" />
     <meta name="keywords" content="汝塔,LUTA,佛教经典,经典阅读,AI辅助理解,修学计划,个人修学" />
@@ -38,10 +39,33 @@
 
     <!-- Google Analytics -->
     <script>
-      // Install journeys are measured by the strict PostHog event allowlist.
-      // Do not load GA on /install because enhanced measurement can observe
-      // History API changes and reconstruct a URL containing signed state.
-      if (window.location.pathname !== '/install') {
+      // Smart Link journeys are measured by strict first-party allowlists.
+      // Do not load GA before React removes bearer state from the visible URL:
+      // enhanced measurement can observe History API changes and reconstruct it.
+      const smartLinkParams = new URLSearchParams(window.location.search);
+      const hasSmartLinkBearer = smartLinkParams.has('state')
+        || smartLinkParams.has('legacy_slug')
+        || smartLinkParams.has('click_id');
+      let hasSmartLinkSession = false;
+      try {
+        hasSmartLinkSession = Boolean(
+          window.sessionStorage.getItem('luta-smart-link-homepage-entry-v1')
+        );
+      } catch {
+        hasSmartLinkSession = false;
+      }
+      const isSmartLinkJourney = window.location.pathname === '/install'
+        || hasSmartLinkBearer
+        || hasSmartLinkSession;
+
+      if (isSmartLinkJourney) {
+        const robots = document.createElement('meta');
+        robots.name = 'robots';
+        robots.content = 'noindex,nofollow';
+        document.head.appendChild(robots);
+      }
+
+      if (!isSmartLinkJourney) {
         const gaScript = document.createElement('script');
         gaScript.async = true;
         gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-5QE6T3L0LD';

@@ -10,7 +10,9 @@ ENV CI=true
 # Vite variables are compiled into the static bundle. Keep the production API
 # explicit so Docker and static previews use the same HTTPS backend contract.
 ARG VITE_LUTA_API_BASE=https://api.lutaai.com
+ARG VITE_SMART_LINK_HOMEPAGE_SURFACE=false
 ENV VITE_LUTA_API_BASE=${VITE_LUTA_API_BASE}
+ENV VITE_SMART_LINK_HOMEPAGE_SURFACE=${VITE_SMART_LINK_HOMEPAGE_SURFACE}
 
 # Install dependencies using lockfile for reproducibility
 COPY package*.json ./
@@ -28,6 +30,7 @@ FROM nginx:1.27-alpine
 
 # Copy custom nginx config (SPA fallback, caching, gzip)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+RUN nginx -t
 
 # Copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
@@ -38,4 +41,3 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=6 \
     CMD wget -q -O /dev/null http://127.0.0.1/healthz || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
-

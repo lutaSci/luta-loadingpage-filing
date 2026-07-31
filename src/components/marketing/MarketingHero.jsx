@@ -5,7 +5,7 @@ function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
 }
 
-export default function MarketingHero({ content, storeAdapter }) {
+export default function MarketingHero({ content, storeAdapter, storeActions }) {
     return (
         <section className="luta-marketing-hero" aria-labelledby="marketing-hero-title">
             <div className="luta-marketing-container luta-marketing-hero-layout">
@@ -37,12 +37,14 @@ export default function MarketingHero({ content, storeAdapter }) {
                 </div>
 
                 <div className="luta-marketing-hero-actions">
-                    <StoreActionGroup
-                        content={content.store}
-                        anchorId="download-options"
-                        adapter={storeAdapter}
-                        showSupport={false}
-                    />
+                    {storeActions || (
+                        <StoreActionGroup
+                            content={content.store}
+                            anchorId="download-options"
+                            adapter={storeAdapter}
+                            showSupport={false}
+                        />
+                    )}
                 </div>
             </div>
         </section>

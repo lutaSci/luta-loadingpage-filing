@@ -207,7 +207,7 @@ test('StoreActionGroup presentation source owns no destination URL', async () =>
     assert.doesNotMatch(source, /apps\.apple|play\.google|feishu|\.apk(?:\W|$)|testflight\.apple/i)
 })
 
-test('header get-app action uses the generic install builder instead of a page anchor', async () => {
+test('header get-app preserves direct journey creation but reuses the stateful homepage actions', async () => {
     const [header, pageShell, landing] = await Promise.all([
         readFile(new URL('../src/components/marketing/MarketingHeader.jsx', import.meta.url), 'utf8'),
         readFile(new URL('../src/components/marketing/PageShell.jsx', import.meta.url), 'utf8'),
@@ -219,6 +219,23 @@ test('header get-app action uses the generic install builder instead of a page a
     assert.doesNotMatch(header, /go\.lutaai\.com|\/install(?:\W|$)/)
     assert.match(pageShell, /installHref=\{headerInstallHref\}/)
     assert.match(landing, /buildInstallEntryUrl\('marketing_header'\)/)
+    assert.match(
+        landing,
+        /const headerInstallHref = usesHomepageSurface[\s\S]{0,120}\? '#download-options'[\s\S]{0,120}: buildInstallEntryUrl\('marketing_header'\)/,
+    )
+})
+
+test('stateful Hero and final CTA consume one shared journey controller', async () => {
+    const [landing, provider] = await Promise.all([
+        readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/contexts/SmartLinkJourneyContext.jsx', import.meta.url), 'utf8'),
+    ])
+
+    assert.equal(landing.match(/<SmartLinkStoreActionGroup/g)?.length, 2)
+    assert.equal(landing.match(/controller=\{controller\}/g)?.length, 2)
+    assert.equal(provider.match(/useInstallJourneyController\(\{/g)?.length, 1)
+    assert.match(provider, /surface: usesHomepageSurface \? 'official_homepage' : 'install_gate'/)
+    assert.match(provider, /pagePath: usesHomepageSurface \? '\/' : '\/install'/)
 })
 
 test('StoreActionGroup exposes a non-interactive accessible loading state', async () => {

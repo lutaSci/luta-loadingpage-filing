@@ -13,6 +13,19 @@ LUTA_API_BASE_URL="${LUTA_API_BASE_URL%/}"
 CORS_SMOKE_ORIGIN="${CORS_SMOKE_ORIGIN-${PUBLIC_SMOKE_BASE_URL:-https://lutaai.com}}"
 ADMIN_CORS_SMOKE_ORIGIN="${ADMIN_CORS_SMOKE_ORIGIN:-https://admin.lutaai.com}"
 CADDY_NETWORK_NAME="${CADDY_NETWORK_NAME:-caddy_default}"
+smart_link_surface_state_file=".smart-link-homepage-surface.local"
+
+if [[ -z "${VITE_SMART_LINK_HOMEPAGE_SURFACE+x}" \
+  && -f "$smart_link_surface_state_file" ]]; then
+  VITE_SMART_LINK_HOMEPAGE_SURFACE="$(tr -d '[:space:]' < "$smart_link_surface_state_file")"
+fi
+VITE_SMART_LINK_HOMEPAGE_SURFACE="${VITE_SMART_LINK_HOMEPAGE_SURFACE:-false}"
+if [[ "$VITE_SMART_LINK_HOMEPAGE_SURFACE" != "true" \
+  && "$VITE_SMART_LINK_HOMEPAGE_SURFACE" != "false" ]]; then
+  echo "[error] VITE_SMART_LINK_HOMEPAGE_SURFACE 只能是 true 或 false"
+  exit 1
+fi
+export VITE_SMART_LINK_HOMEPAGE_SURFACE
 
 if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   echo "[error] 发布目录存在未提交或未跟踪文件；请从干净的 release commit 发布"
@@ -20,6 +33,7 @@ if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
 fi
 
 echo "[info] release commit：$(git rev-parse HEAD)"
+echo "[info] Smart Link 官网承接：${VITE_SMART_LINK_HOMEPAGE_SURFACE}"
 
 if ! docker compose version >/dev/null 2>&1; then
   echo "[error] docker compose 不可用，请安装 Docker Desktop 或 Compose v2"

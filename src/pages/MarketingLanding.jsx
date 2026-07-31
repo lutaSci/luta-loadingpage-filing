@@ -4,10 +4,12 @@ import MarketingHero from '../components/marketing/MarketingHero.jsx'
 import PageShell from '../components/marketing/PageShell.jsx'
 import PrincipleBand from '../components/marketing/PrincipleBand.jsx'
 import ProductStory from '../components/marketing/ProductStory.jsx'
+import SmartLinkStoreActionGroup from '../components/marketing/SmartLinkStoreActionGroup.jsx'
 import StoreActionGroup from '../components/marketing/StoreActionGroup.jsx'
 import { useStoreActionAdapter } from '../components/marketing/useStoreActionAdapter.js'
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
+import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { trackWebsitePageView } from '../lib/analytics.js'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
 import '../components/marketing/marketing.css'
@@ -44,7 +46,7 @@ function WhyLuta({ content }) {
     )
 }
 
-function FinalCallToAction({ content, adapter }) {
+function FinalCallToAction({ content, adapter, storeActions }) {
     return (
         <section className="luta-marketing-final-cta" data-marketing-reveal>
             <div className="luta-marketing-container luta-marketing-final-layout">
@@ -55,10 +57,12 @@ function FinalCallToAction({ content, adapter }) {
                     </h2>
                     <p>{content.finalCta.description}</p>
                 </div>
-                <StoreActionGroup
-                    content={content.store}
-                    adapter={adapter}
-                />
+                {storeActions || (
+                    <StoreActionGroup
+                        content={content.store}
+                        adapter={adapter}
+                    />
+                )}
             </div>
         </section>
     )
@@ -66,7 +70,10 @@ function FinalCallToAction({ content, adapter }) {
 
 export default function MarketingLanding({ locale }) {
     const content = getMarketingContent(locale)
-    const headerInstallHref = buildInstallEntryUrl('marketing_header')
+    const { controller, usesHomepageSurface } = useSmartLinkJourney()
+    const headerInstallHref = usesHomepageSurface
+        ? '#download-options'
+        : buildInstallEntryUrl('marketing_header')
     const { changeLanguage } = useLanguage()
     const [desktopTab, setDesktopTab] = useState('ios')
     const heroStore = useStoreActionAdapter({
@@ -98,12 +105,47 @@ export default function MarketingLanding({ locale }) {
         document.title = content.metadata.title
         description?.setAttribute('content', content.metadata.description)
         keywords?.setAttribute('content', content.metadata.keywords)
-        trackWebsitePageView({ locale: content.locale })
-
         return () => {
             document.documentElement.style.scrollBehavior = previousScrollBehavior
         }
     }, [content])
+
+    useEffect(() => {
+        if (usesHomepageSurface && controller.loadStatus === 'loading') return
+        trackWebsitePageView({
+            locale: content.locale,
+            ...(usesHomepageSurface ? {
+                click_id: controller.installContext?.clickId,
+                entry_type: 'shortlink',
+                link_id: controller.installContext?.linkId,
+                route_market: controller.installContext?.campaignTargetMarket || 'unknown',
+                route_market_source: 'smart_link_context',
+                traffic_purpose: controller.installContext?.trafficPurpose || 'unknown',
+            } : {}),
+        })
+    }, [
+        content.locale,
+        controller.installContext,
+        controller.loadStatus,
+        usesHomepageSurface,
+    ])
+
+    const heroSmartLinkActions = usesHomepageSurface ? (
+        <SmartLinkStoreActionGroup
+            anchorId="download-options"
+            content={content}
+            controller={controller}
+            placement="marketing_hero"
+            showSupport={false}
+        />
+    ) : null
+    const finalSmartLinkActions = usesHomepageSurface ? (
+        <SmartLinkStoreActionGroup
+            content={content}
+            controller={controller}
+            placement="marketing_final"
+        />
+    ) : null
 
     return (
         <PageShell
@@ -111,11 +153,19 @@ export default function MarketingLanding({ locale }) {
             headerInstallHref={headerInstallHref}
             onSupport={finalStore.openSupport}
         >
-            <MarketingHero content={content} storeAdapter={heroStore} />
+            <MarketingHero
+                content={content}
+                storeAdapter={heroStore}
+                storeActions={heroSmartLinkActions}
+            />
             <WhyLuta content={content.why} />
             {content.stories.map(story => <ProductStory key={story.id} story={story} />)}
             <PrincipleBand content={content.principles} />
-            <FinalCallToAction content={content} adapter={finalStore} />
+            <FinalCallToAction
+                content={content}
+                adapter={finalStore}
+                storeActions={finalSmartLinkActions}
+            />
         </PageShell>
     )
 }

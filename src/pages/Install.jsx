@@ -10,99 +10,33 @@ import {
     Smartphone,
     Store,
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect } from 'react'
 
 import logo from '../assets/logo_1.png'
-import LanguageSwitch from '../components/LanguageSwitch'
-import Silk from '../components/Silk'
-import { config } from '../config'
-import { useLanguage } from '../contexts/LanguageContext'
-import { Colors } from '../design/colors'
-import { trackInstallEvent } from '../lib/analytics'
-import { detectDevice, detectIsWeChat } from '../lib/deviceDetection'
-import { getInstallCopy } from '../lib/installCopy'
-import {
-    flushInstallInteractions,
-    normalizeInstallReasonCode,
-    reportInstallInteraction,
-} from '../lib/installEvents'
-import {
-    buildAppOpenUrl,
-    buildControlledOutUrl,
-    buildInstallContextUrl,
-    buildInstallContinuationUrl,
-    buildLegacyControlledOutUrl,
-    buildLegacyInstallContextUrl,
-    formatBytes,
-    normalizeInstallContext,
-    normalizeMarket,
-    parseLegacyInstallEntry,
-    resolveDeviceOs,
-    resolveMarketChoiceRelation,
-    selectDirectInstallChoices,
-} from '../lib/installFlow'
+import LanguageSwitch from '../components/LanguageSwitch.jsx'
+import Silk from '../components/Silk.jsx'
+import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
+import { Colors } from '../design/colors.js'
+import { getInstallChoicePresentation } from '../lib/installPresentation.js'
+import { formatBytes } from '../lib/installFlow.js'
 
-const HANDOFF_SESSION_KEY = 'luta-install-handoff-pending-at'
-const HANDOFF_MAX_AGE_MS = 30 * 60 * 1000
-
-const LOCALE_BY_LANGUAGE = {
-    zh: 'zh-CN',
-    zhTW: 'zh-TW',
-    en: 'en-US',
-    ja: 'ja-JP',
-    ko: 'ko-KR',
-}
-
-function getInitialRegion() {
-    if (typeof window === 'undefined') return null
-    return normalizeMarket(new URLSearchParams(window.location.search).get('choice'))
-}
-
-function getStateToken() {
-    if (typeof window === 'undefined') return null
-    return new URLSearchParams(window.location.search).get('state')?.trim() || null
-}
-
-function getChoicePresentation(copy, choice, locale) {
-    if (choice.key === 'cn') {
-        return { Icon: Apple, title: copy.cnEdition, subtitle: copy.cnStore }
-    }
-    if (choice.key === 'global') {
-        return {
-            Icon: choice.option.channel === 'waitlist' ? Bell : Apple,
-            title: copy.globalEdition,
-            subtitle: choice.option.channel === 'waitlist' ? copy.globalWaitlist : copy.globalStore,
-        }
-    }
-    if (choice.key === 'apk') {
-        const metadata = [
-            choice.option.apk?.version,
-            formatBytes(choice.option.apk?.sizeBytes, locale),
-        ].filter(Boolean).join(' · ')
-        return {
-            Icon: Download,
-            title: copy.officialApk,
-            subtitle: metadata || copy.officialApkFallback,
-        }
-    }
-    if (choice.key === 'google_play') {
-        return { Icon: Store, title: copy.googlePlay, subtitle: copy.googlePlayDescription }
-    }
-    return {
-        Icon: Globe2,
-        title: copy.otherChannel,
-        subtitle: choice.option.label || copy.otherChannel,
-    }
+const choiceIcons = {
+    apple_app_store: Apple,
+    waitlist: Bell,
+    apk: Download,
+    google_play: Store,
+    web: Globe2,
 }
 
 function InstallChoice({ choice, copy, locale, primary, busy, onSelect }) {
-    const { Icon, title, subtitle } = getChoicePresentation(copy, choice, locale)
+    const { iconKey, title, subtitle } = getInstallChoicePresentation(copy, choice, locale)
+    const Icon = choiceIcons[iconKey] || ExternalLink
     const isApk = choice.option.channel === 'apk'
     const degraded = choice.option.routeAvailable === false
     const visibleSubtitle = degraded ? copy.channelTemporarilyUnavailable : subtitle
 
     return (
-        <div>
+        <div data-slot="install-choice" data-state={degraded ? 'degraded' : 'ready'}>
             <button
                 type="button"
                 className={`group flex min-h-20 w-full items-center gap-4 rounded-2xl border px-4 py-4 text-left transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50 disabled:cursor-wait disabled:opacity-70 ${primary
@@ -157,7 +91,12 @@ function InstallChoice({ choice, copy, locale, primary, busy, onSelect }) {
 
 function CompactRecovery({ copy, terminal, canRetry, onChoose, onRetry, onWebsite }) {
     return (
-        <section className="mt-4 rounded-2xl border border-white/20 bg-black/20 p-4 text-left backdrop-blur-md" role="status">
+        <section
+            className="mt-4 rounded-2xl border border-white/20 bg-black/20 p-4 text-left backdrop-blur-md"
+            data-slot="install-recovery"
+            data-state={terminal ? 'terminal' : 'returned'}
+            role="status"
+        >
             <h2 className="text-base font-black text-white">
                 {terminal ? copy.terminalTitle : copy.recoveryTitle}
             </h2>
@@ -193,363 +132,36 @@ function CompactRecovery({ copy, terminal, canRetry, onChoose, onRetry, onWebsit
 }
 
 export default function Install() {
-    const { currentLanguage } = useLanguage()
-    const copy = useMemo(() => getInstallCopy(currentLanguage), [currentLanguage])
-    const locale = LOCALE_BY_LANGUAGE[currentLanguage] || 'zh-CN'
-    const device = useMemo(() => detectDevice(), [])
-    const deviceOs = useMemo(() => resolveDeviceOs(device), [device])
-    const isWeChat = useMemo(() => detectIsWeChat(), [])
-    const legacyEntry = useMemo(() => parseLegacyInstallEntry(window.location.search), [])
-    const isLegacyMode = Boolean(legacyEntry)
-    const stateToken = useMemo(() => (legacyEntry ? null : getStateToken()), [legacyEntry])
-    const [selectedRegion, setSelectedRegion] = useState(getInitialRegion)
-    const [activePlatform, setActivePlatform] = useState(() => (
-        deviceOs === 'android' ? 'android' : 'ios'
-    ))
-    const [loadStatus, setLoadStatus] = useState(
-        stateToken || legacyEntry ? 'loading' : 'missing_state',
-    )
-    const [installContext, setInstallContext] = useState(null)
-    const [reloadNonce, setReloadNonce] = useState(0)
-    const [recoveryOpen, setRecoveryOpen] = useState(false)
-    const [wechatEmphasis, setWechatEmphasis] = useState(false)
-    const [busyOptionId, setBusyOptionId] = useState(null)
-    const [announcement, setAnnouncement] = useState('')
-    const choicesRef = useRef(null)
-    const wechatCardRef = useRef(null)
-    const viewTrackedRef = useRef(false)
-    const recoveryReasonRef = useRef('unknown')
-
-    const displayOs = deviceOs === 'desktop' ? activePlatform : deviceOs
-    const isTerminalState = ['missing_state', 'failed', 'no_options'].includes(loadStatus)
+    const { controller } = useSmartLinkJourney()
+    const {
+        activePlatform,
+        announcement,
+        busyOptionId,
+        choicesRef,
+        chooseAnother,
+        copy,
+        copyInstallLink,
+        deviceOs,
+        directChoices,
+        displayOs,
+        exitToWebsite,
+        hasEntry,
+        isTerminalState,
+        loadStatus,
+        locale,
+        openAppUrl,
+        openInstalledApp,
+        recoveryOpen,
+        reloadOptions,
+        selectChoice,
+        switchPlatform,
+        wechatCardRef,
+        wechatEmphasis,
+    } = controller
 
     useEffect(() => {
         document.title = copy.metaTitle
     }, [copy.metaTitle])
-
-    useEffect(() => {
-        if (!stateToken && !legacyEntry) {
-            setLoadStatus('missing_state')
-            setInstallContext(null)
-            return undefined
-        }
-
-        const contextUrl = legacyEntry
-            ? buildLegacyInstallContextUrl({
-                base: config.smartLink.legacyInstallContextBase,
-                legacySlug: legacyEntry.legacySlug,
-                clickId: legacyEntry.clickId,
-                origin: window.location.origin,
-            })
-            : buildInstallContextUrl({
-                base: config.smartLink.installContextBase,
-                state: stateToken,
-                origin: window.location.origin,
-            })
-        if (!contextUrl) {
-            setLoadStatus('failed')
-            return undefined
-        }
-
-        const controller = new AbortController()
-        setLoadStatus('loading')
-        fetch(contextUrl, {
-            method: 'GET',
-            headers: { Accept: 'application/json' },
-            credentials: 'omit',
-            cache: 'no-store',
-            signal: controller.signal,
-        })
-            .then(response => {
-                if (!response.ok) throw new Error('install-context unavailable')
-                return response.json()
-            })
-            .then(payload => {
-                const normalized = normalizeInstallContext(payload)
-                if (
-                    legacyEntry
-                    && (
-                        normalized.legacySlug !== legacyEntry.legacySlug
-                        || normalized.clickId !== legacyEntry.clickId
-                    )
-                ) throw new Error('legacy install-context identity mismatch')
-                setInstallContext(normalized)
-                setLoadStatus(normalized.options.length ? 'ready' : 'no_options')
-            })
-            .catch(error => {
-                if (error.name === 'AbortError') return
-                setInstallContext(null)
-                setLoadStatus('failed')
-            })
-
-        return () => controller.abort()
-    }, [legacyEntry, reloadNonce, stateToken])
-
-    useEffect(() => {
-        if (isLegacyMode) return undefined
-        const flushPending = () => {
-            if (document.visibilityState === 'hidden') return
-            void flushInstallInteractions({
-                base: config.smartLink.installEventBase,
-                origin: window.location.origin,
-            })
-        }
-        flushPending()
-        window.addEventListener('online', flushPending)
-        window.addEventListener('pageshow', flushPending)
-        document.addEventListener('visibilitychange', flushPending)
-        return () => {
-            window.removeEventListener('online', flushPending)
-            window.removeEventListener('pageshow', flushPending)
-            document.removeEventListener('visibilitychange', flushPending)
-        }
-    }, [isLegacyMode])
-
-    const analyticsContext = useMemo(() => ({
-        wechat_environment: isWeChat,
-        has_state: Boolean(stateToken),
-        load_status: loadStatus,
-        contract_version: installContext?.contractVersion || 'unknown',
-        traffic_purpose: installContext?.trafficPurpose || 'unknown',
-        campaign_target_market: installContext?.campaignTargetMarket || 'unknown',
-        recommended_region: installContext?.recommendedRegion || 'unknown',
-        option_count: installContext?.options.length || 0,
-        link_id: installContext?.linkId || 'unknown',
-        click_id: installContext?.clickId || legacyEntry?.clickId || 'unknown',
-        entry_context: isWeChat ? 'wechat_webview' : 'browser',
-    }), [installContext, isWeChat, legacyEntry?.clickId, loadStatus, stateToken])
-
-    useEffect(() => {
-        if (viewTrackedRef.current || loadStatus === 'loading') return
-        viewTrackedRef.current = true
-        trackInstallEvent('install_gate_viewed', analyticsContext)
-    }, [analyticsContext, loadStatus])
-
-    const showRecovery = useCallback(reason => {
-        recoveryReasonRef.current = reason
-        setRecoveryOpen(true)
-        setBusyOptionId(null)
-    }, [])
-
-    useEffect(() => {
-        if (loadStatus === 'failed' || loadStatus === 'missing_state') showRecovery('terminal_failed')
-        if (loadStatus === 'no_options') showRecovery('terminal_no_options')
-    }, [loadStatus, showRecovery])
-
-    useEffect(() => {
-        const recoverAfterHandoff = () => {
-            if (document.visibilityState === 'hidden') return
-            let attemptedAt = 0
-            try {
-                attemptedAt = Number(sessionStorage.getItem(HANDOFF_SESSION_KEY))
-                if (attemptedAt) sessionStorage.removeItem(HANDOFF_SESSION_KEY)
-            } catch {
-                return
-            }
-            if (attemptedAt && Date.now() - attemptedAt <= HANDOFF_MAX_AGE_MS) {
-                showRecovery('returned_from_handoff')
-            }
-        }
-        window.addEventListener('pageshow', recoverAfterHandoff)
-        document.addEventListener('visibilitychange', recoverAfterHandoff)
-        recoverAfterHandoff()
-        return () => {
-            window.removeEventListener('pageshow', recoverAfterHandoff)
-            document.removeEventListener('visibilitychange', recoverAfterHandoff)
-        }
-    }, [showRecovery])
-
-    const directChoices = useMemo(() => selectDirectInstallChoices(
-        installContext?.options || [],
-        {
-            deviceOs: displayOs,
-            campaignTargetMarket: installContext?.campaignTargetMarket,
-        },
-    ), [displayOs, installContext])
-
-    useEffect(() => {
-        if (
-            loadStatus === 'ready'
-            && deviceOs !== 'desktop'
-            && directChoices.length === 0
-        ) showRecovery('no_compatible_option_for_choice')
-    }, [deviceOs, directChoices.length, loadStatus, showRecovery])
-
-    const openAppUrl = useMemo(() => (
-        isLegacyMode
-            ? null
-            : buildAppOpenUrl({
-                base: config.smartLink.appLinkBase,
-                linkId: installContext?.linkId,
-                clickId: installContext?.clickId,
-            })
-    ), [installContext?.clickId, installContext?.linkId, isLegacyMode])
-
-    const reportServerInteraction = useCallback((eventType, regionChoice, properties = {}) => {
-        if (isLegacyMode || !stateToken) return null
-        return reportInstallInteraction({
-            base: config.smartLink.installEventBase,
-            origin: window.location.origin,
-            state: stateToken,
-            event_type: eventType,
-            distribution_region_choice: regionChoice || 'not_observed',
-            ...properties,
-        })
-    }, [isLegacyMode, stateToken])
-
-    const replaceInstallUrl = useCallback(region => {
-        const continuationUrl = buildInstallContinuationUrl({
-            origin: window.location.origin,
-            state: stateToken,
-            legacySlug: legacyEntry?.legacySlug,
-            clickId: legacyEntry?.clickId,
-            choice: region,
-        })
-        if (!continuationUrl) return
-        const url = new URL(continuationUrl)
-        window.history.replaceState({}, '', `${url.pathname}${url.search}`)
-    }, [legacyEntry?.clickId, legacyEntry?.legacySlug, stateToken])
-
-    const handleChoiceSelect = useCallback(choice => {
-        const option = choice.option
-        const region = choice.region === 'cn' || choice.region === 'global'
-            ? choice.region
-            : 'not_observed'
-        const relation = resolveMarketChoiceRelation(
-            installContext?.campaignTargetMarket,
-            region,
-        )
-
-        setSelectedRegion(region === 'not_observed' ? null : region)
-        setBusyOptionId(option.optionId)
-        replaceInstallUrl(region)
-        reportServerInteraction('install_region_selected', region)
-        reportServerInteraction('install_option_selected', region, { option_id: option.optionId })
-        trackInstallEvent('install_option_selected', {
-            ...analyticsContext,
-            distribution_region_choice: region,
-            option_id: option.optionId,
-            distribution_channel: option.channel,
-            option_region: option.region || 'unknown',
-            availability_status: option.status,
-            route_status: option.routeStatus,
-            market_choice_relation: relation,
-            artifact_id: option.artifactId || 'unknown',
-            decision_reason: 'distribution_option_selected',
-        })
-
-        const needsExternalBrowser = isWeChat
-            && (displayOs === 'android' || displayOs === 'harmonyos_next')
-            && ['apk', 'google_play'].includes(option.channel)
-        if (needsExternalBrowser) {
-            setWechatEmphasis(true)
-            setBusyOptionId(null)
-            recoveryReasonRef.current = 'wechat_external_browser_required'
-            requestAnimationFrame(() => {
-                wechatCardRef.current?.focus()
-                wechatCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            })
-            return
-        }
-
-        const outUrl = isLegacyMode
-            ? buildLegacyControlledOutUrl({
-                base: config.smartLink.legacyOutBase,
-                legacySlug: legacyEntry?.legacySlug,
-                clickId: legacyEntry?.clickId,
-                optionId: option.optionId,
-            })
-            : buildControlledOutUrl({
-                base: config.smartLink.outBase,
-                state: stateToken,
-                optionId: option.optionId,
-                linkId: installContext?.linkId,
-            })
-        if (!outUrl) {
-            showRecovery('controlled_handoff_unavailable')
-            return
-        }
-
-        try {
-            sessionStorage.setItem(HANDOFF_SESSION_KEY, String(Date.now()))
-        } catch {
-            // Navigation remains safe even when private storage is unavailable.
-        }
-        window.location.assign(outUrl)
-    }, [analyticsContext, displayOs, installContext?.campaignTargetMarket, installContext?.linkId, isLegacyMode, isWeChat, legacyEntry?.clickId, legacyEntry?.legacySlug, replaceInstallUrl, reportServerInteraction, showRecovery, stateToken])
-
-    const handleRecoveryAction = useCallback(action => {
-        const region = selectedRegion || 'not_observed'
-        const decisionReason = normalizeInstallReasonCode(recoveryReasonRef.current)
-        reportServerInteraction('install_recovery_action_clicked', region, {
-            recovery_action: action,
-            reason_code: decisionReason,
-        })
-        trackInstallEvent('install_recovery_action_clicked', {
-            ...analyticsContext,
-            distribution_region_choice: region,
-            decision_reason: decisionReason,
-            recovery_action: action,
-            ...(action === 'official_website' ? { terminal_outcome: 'branded_recovery' } : {}),
-        })
-    }, [analyticsContext, reportServerInteraction, selectedRegion])
-
-    const copyInstallLink = useCallback(async () => {
-        const url = buildInstallContinuationUrl({
-            origin: window.location.origin,
-            state: stateToken,
-            legacySlug: legacyEntry?.legacySlug,
-            clickId: legacyEntry?.clickId,
-            choice: selectedRegion,
-        })
-        handleRecoveryAction('copy_for_external_browser')
-        if (!url) {
-            showRecovery('copy_continuation_unavailable')
-            return
-        }
-        try {
-            await navigator.clipboard.writeText(url)
-            setAnnouncement(copy.copied)
-        } catch {
-            const textarea = document.createElement('textarea')
-            textarea.value = url
-            textarea.style.position = 'fixed'
-            textarea.style.opacity = '0'
-            document.body.appendChild(textarea)
-            textarea.select()
-            const copied = document.execCommand('copy')
-            document.body.removeChild(textarea)
-            setAnnouncement(copied ? copy.copied : copy.copyFailed)
-        }
-    }, [copy.copied, copy.copyFailed, handleRecoveryAction, legacyEntry?.clickId, legacyEntry?.legacySlug, selectedRegion, showRecovery, stateToken])
-
-    const chooseAnother = useCallback(() => {
-        handleRecoveryAction('choose_region_again')
-        setRecoveryOpen(false)
-        setWechatEmphasis(false)
-        requestAnimationFrame(() => {
-            choicesRef.current?.focus()
-            choicesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-        })
-    }, [handleRecoveryAction])
-
-    const reloadOptions = useCallback(() => {
-        handleRecoveryAction('reload_options')
-        setRecoveryOpen(false)
-        setReloadNonce(value => value + 1)
-    }, [handleRecoveryAction])
-
-    const handleOpenInstalledApp = useCallback(() => {
-        handleRecoveryAction('open_installed_app')
-    }, [handleRecoveryAction])
-
-    const switchPlatform = useCallback(platform => {
-        setActivePlatform(platform)
-        setSelectedRegion(null)
-        setRecoveryOpen(false)
-        setWechatEmphasis(false)
-        replaceInstallUrl(null)
-    }, [replaceInstallUrl])
 
     return (
         <div className="relative flex min-h-[100svh] flex-col overflow-x-hidden bg-emerald-950 text-white">
@@ -618,7 +230,7 @@ export default function Install() {
                                     locale={locale}
                                     primary={index === 0}
                                     busy={busyOptionId === choice.option.optionId}
-                                    onSelect={handleChoiceSelect}
+                                    onSelect={selectChoice}
                                 />
                             ))}
 
@@ -633,7 +245,7 @@ export default function Install() {
                                 <a
                                     className="mx-auto flex min-h-12 w-fit items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white/85 underline decoration-white/35 underline-offset-4 hover:text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50"
                                     href={openAppUrl}
-                                    onClick={handleOpenInstalledApp}
+                                    onClick={openInstalledApp}
                                 >
                                     <Smartphone className="h-4 w-4" aria-hidden="true" />
                                     {copy.openInstalledApp}
@@ -660,10 +272,10 @@ export default function Install() {
                         <CompactRecovery
                             copy={copy}
                             terminal={isTerminalState}
-                            canRetry={Boolean(stateToken || legacyEntry)}
+                            canRetry={hasEntry}
                             onChoose={chooseAnother}
                             onRetry={reloadOptions}
-                            onWebsite={() => handleRecoveryAction('official_website')}
+                            onWebsite={exitToWebsite}
                         />
                     )}
                 </section>

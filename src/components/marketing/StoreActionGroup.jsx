@@ -26,6 +26,16 @@ const icons = Object.freeze({
     [MARKETING_ACTION_KEYS.INSTALL_DOCUMENTATION]: ShieldCheck,
 })
 
+const channelIcons = Object.freeze({
+    apple_app_store: Apple,
+    apk: Download,
+    google_play: ExternalLink,
+    testflight: Apple,
+    waitlist: Bell,
+    web: ExternalLink,
+    web_recovery: ShieldCheck,
+})
+
 function focusableElements(container) {
     return Array.from(container?.querySelectorAll(
         'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
@@ -116,8 +126,13 @@ function MarketingDialog({
 function StoreActionButton({ state, copy, expanded, onActivate, onVisible }) {
     const actionRef = useRef(null)
     const pending = state.status === 'loading'
-    const Icon = pending ? LoaderCircle : icons[state.actionKey]
-    const actionCopy = copy.actions[state.actionKey]
+    const Icon = pending
+        ? LoaderCircle
+        : icons[state.actionKey] || channelIcons[state.iconKey || state.channel] || ExternalLink
+    const actionCopy = state.copy || copy.actions[state.actionKey] || {
+        label: copy.disabled,
+        description: '',
+    }
     const disabled = state.status === 'disabled'
     const unavailable = disabled || pending
     const isDisclosure = state.actionKey === MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT
@@ -160,6 +175,8 @@ function StoreActionButton({ state, copy, expanded, onActivate, onVisible }) {
         <button
             ref={actionRef}
             className="luta-marketing-store-action"
+            data-slot="store-action"
+            data-state={state.status}
             data-status={state.status}
             data-variant={isDisclosure ? 'disclosure' : isStep ? 'step' : 'primary'}
             type="button"

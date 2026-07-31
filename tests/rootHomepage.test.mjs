@@ -30,7 +30,9 @@ test('root route uses the compatibility dispatcher and keeps explicit marketing 
     assert.match(source, /path="\/global\/en" element=\{<MarketingLanding locale="en" \/>\}/)
     assert.match(source, /path="\/global\/ja" element=\{<MarketingLanding locale="ja" \/>\}/)
     assert.match(source, /path="\/global\/ko" element=\{<MarketingLanding locale="ko" \/>\}/)
-    assert.match(source, /path="\/install" element=\{<Install \/>\}/)
+    assert.match(source, /path="\/install" element=\{<SmartLinkInstallEntry \/>\}/)
+    assert.match(source, /<SmartLinkJourneyProvider>/)
+    assert.match(source, /<\/SmartLinkJourneyProvider>/)
     assert.match(source, /path="\/privacy" element=\{<Privacy \/>\}/)
     assert.match(source, /path="\/terms" element=\{<Terms \/>\}/)
     assert.match(source, /path="\/contact" element=\{<Contact \/>\}/)
@@ -39,6 +41,47 @@ test('root route uses the compatibility dispatcher and keeps explicit marketing 
     assert.match(rootHomepage, /transitionLanguage !== currentLanguage/)
     assert.match(rootHomepage, /replace: true/)
     assert.match(rootHomepage, /state: null/)
+})
+
+test('install compatibility route keeps the legacy page behind an opt-in homepage bridge', async () => {
+    const [route, provider, config] = await Promise.all([
+        readFile(new URL('../src/pages/SmartLinkInstallEntry.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/contexts/SmartLinkJourneyContext.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/config/index.js', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(route, /usesHomepageSurface \? <RootHomepage \/> : <Install \/>/)
+    assert.match(config, /VITE_SMART_LINK_HOMEPAGE_SURFACE === 'true'/)
+    assert.match(provider, /location\.pathname === '\/install'/)
+    assert.match(provider, /navigate\(`\/\$\{location\.hash \|\| ''\}`,\s*\{ replace: true \}\)/)
+    assert.match(provider, /hasSmartLinkBearer\(location\.search\)/)
+})
+
+test('production release forwards, persists and validates the Smart Link homepage flag', async () => {
+    const [dockerfile, compose, deploy, nginx] = await Promise.all([
+        readFile(new URL('../dockerfile', import.meta.url), 'utf8'),
+        readFile(new URL('../docker-compose.yml', import.meta.url), 'utf8'),
+        readFile(new URL('../deploy.sh', import.meta.url), 'utf8'),
+        readFile(new URL('../nginx.conf', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(dockerfile, /ARG VITE_SMART_LINK_HOMEPAGE_SURFACE=false/)
+    assert.match(dockerfile, /COPY nginx\.conf \/etc\/nginx\/conf\.d\/default\.conf\s+RUN nginx -t/)
+    assert.match(
+        dockerfile,
+        /ENV VITE_SMART_LINK_HOMEPAGE_SURFACE=\$\{VITE_SMART_LINK_HOMEPAGE_SURFACE\}/,
+    )
+    assert.match(
+        compose,
+        /VITE_SMART_LINK_HOMEPAGE_SURFACE:\s*\$\{VITE_SMART_LINK_HOMEPAGE_SURFACE:-false\}/,
+    )
+    assert.ok(deploy.includes('.smart-link-homepage-surface.local'))
+    assert.ok(deploy.includes('VITE_SMART_LINK_HOMEPAGE_SURFACE="${VITE_SMART_LINK_HOMEPAGE_SURFACE:-false}"'))
+    assert.ok(deploy.includes('export VITE_SMART_LINK_HOMEPAGE_SURFACE'))
+    assert.ok(nginx.includes('~*(^|&)(state|legacy_slug|click_id)= 0;'))
+    assert.ok(nginx.includes('~*(^|&)(state|legacy_slug|click_id)= "no-store, max-age=0";'))
+    assert.ok(nginx.includes('access_log /var/log/nginx/access.log combined if=$luta_log_request;'))
+    assert.match(nginx, /location = \/install \{[\s\S]*Cache-Control "no-store, max-age=0"/)
 })
 
 test('traditional Chinese browser detection and html language use the standard tag', async () => {
