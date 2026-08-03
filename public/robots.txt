@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /install
+
+Sitemap: https://lutaai.com/sitemap.xml

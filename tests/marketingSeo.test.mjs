@@ -46,5 +46,24 @@ test('production server maps all localized routes to prerendered HTML', async ()
     const source = await readFile(new URL('../nginx.conf', import.meta.url), 'utf8')
 
     assert.match(source, /location ~ \^\/global\/\(zh-cn\|zh-tw\|en\|ja\|ko\)\/\?\$/)
+    assert.match(
+        source,
+        /location ~ \^\/global\/\(zh-cn\|zh-tw\|en\|ja\|ko\)\/\?\$ \{[\s\S]{0,400}add_header Cache-Control \$luta_html_cache_control always;/,
+    )
     assert.match(source, /try_files \/global\/\$1\.html =404;/)
+})
+
+test('crawler discovery files expose the canonical marketing routes and protect install ingress', async () => {
+    const [robots, sitemap] = await Promise.all([
+        readFile(new URL('../public/robots.txt', import.meta.url), 'utf8'),
+        readFile(new URL('../public/sitemap.xml', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(robots, /^User-agent: \*$/m)
+    assert.match(robots, /^Disallow: \/install$/m)
+    assert.match(robots, /^Sitemap: https:\/\/lutaai\.com\/sitemap\.xml$/m)
+
+    for (const href of new Set(MARKETING_HREFLANG_LINKS.map(link => link.href))) {
+        assert.ok(sitemap.includes(`<loc>${href}</loc>`), `missing sitemap URL: ${href}`)
+    }
 })

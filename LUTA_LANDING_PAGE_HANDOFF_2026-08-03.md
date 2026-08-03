@@ -25,7 +25,8 @@
 - `src/lib/marketingStoreActions.js`、`src/components/marketing/useStoreActionAdapter.js`：TestFlight 默认隐藏；仅精确参数 `?testflight=1` 显示测试入口。
 - `src/lib/installFlow.js`：正式 App Store 路径不可用而等待通知可用时，优先展示等待通知。
 - `src/lib/marketingSeo.js`、`src/pages/MarketingLanding.jsx`：客户端导航后同步更新全部 metadata。
-- `scripts/prerender-marketing.mjs`、`package.json`、`nginx.conf`：构建五份本地化 HTML，并由生产服务器直接返回。
+- `scripts/prerender-marketing.mjs`、`package.json`、`nginx.conf`：构建五份本地化 HTML，并由生产服务器直接返回；语言路由继续复用 Smart Link bearer-aware `no-store` 缓存策略。
+- `public/robots.txt`、`public/sitemap.xml`：声明抓取边界并让根页与五个显式语言路由可被稳定发现。
 - `tests/*.test.mjs`：覆盖文案契约、安装逻辑、TestFlight、SEO、canonical、hreflang 与生产路由。
 
 ## 3. 最终简体中文文案
@@ -330,11 +331,13 @@
 - 每页具备六条完整 hreflang。
 - 社交图片使用 HTTPS 绝对地址，HTTP 200，尺寸 1200 × 630。
 - 带尾斜杠与不带尾斜杠的语言路由返回同一预渲染内容；canonical 统一为不带尾斜杠版本。
+- `robots.txt` 指向正式 sitemap，并禁止抓取 `/install`；sitemap 包含根页与五个显式语言路由。
+- 语言路由携带 `state`、`legacy_slug` 或 `click_id` 时必须返回 `no-store, max-age=0`，不得因 SEO 预渲染放宽 bearer 缓存边界。
 
 ### 构建与质量
 
 - `npm ci` 成功。
-- `npm run test:attribution`：120/120 通过。
+- `npm run test:attribution`：121/121 通过（合并前独立 QC 后的最终计数）。
 - 本次涉及的源码、脚本与测试定向 ESLint：0 error、0 warning。
 - `npm run build` 成功并生成五份预渲染 HTML。
 - `git diff --check` 无空白错误。
