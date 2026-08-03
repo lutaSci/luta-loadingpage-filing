@@ -46,10 +46,10 @@ test('Google Analytics excludes install, bearer-query and persisted Smart Link j
 
 test('iPhone choices use user-facing edition language rather than account terminology', () => {
     const copy = getInstallCopy('zh')
-    assert.equal(copy.pageDescription, '选择你要安装的版本')
-    assert.equal(copy.cnEdition, '大陆版')
-    assert.equal(copy.globalEdition, '海外版')
-    assert.equal(copy.globalWaitlist, '当前暂未开放 · 开放后通知我')
+    assert.equal(copy.pageDescription, '选择适合此设备和地区的官方版本')
+    assert.equal(copy.cnEdition, '中国大陆版')
+    assert.equal(copy.globalEdition, '国际版')
+    assert.equal(copy.globalWaitlist, '所在地区暂未开放 · 开放后通知我')
     assert.equal(JSON.stringify(copy).includes('Apple ID'), false)
 })
 
@@ -222,6 +222,37 @@ test('a verified overseas App Store automatically replaces the waitlist choice',
     assert.equal(choices[0].key, 'global')
     assert.equal(choices[0].option.optionId, 'apple-global')
     assert.equal(choices.length, 2)
+})
+
+test('an unavailable overseas App Store falls back to the regional waitlist', () => {
+    const options = normalizeInstallContext({
+        options: [
+            {
+                option_id: 'apple-global',
+                channel: 'apple',
+                platform: 'ios',
+                region: 'global',
+                status: 'unavailable',
+                route_available: false,
+            },
+            {
+                option_id: 'waitlist-global',
+                channel: 'waitlist',
+                platform: 'any',
+                region: 'global',
+                status: 'available',
+            },
+        ],
+    }).options
+
+    const choices = selectDirectInstallChoices(options, {
+        deviceOs: 'ios',
+        campaignTargetMarket: 'global',
+    })
+
+    assert.equal(choices.length, 1)
+    assert.equal(choices[0].key, 'global')
+    assert.equal(choices[0].option.optionId, 'waitlist-global')
 })
 
 test('Android direct choices keep APK and Google Play while campaign only changes priority', () => {

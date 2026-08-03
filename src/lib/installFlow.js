@@ -247,20 +247,27 @@ export function selectDirectInstallChoices(options, {
             option.region === 'cn'
             && ['apple_app_store', 'testflight'].includes(option.channel)
         ))
-        const globalStoreOption = firstMatchingOption(sorted, option => (
+        const globalStoreCandidate = firstMatchingOption(sorted, option => (
             option.region === 'global'
             && ['apple_app_store', 'testflight'].includes(option.channel)
         ))
-        const globalFallback = firstMatchingOption(sorted, option => (
+        const globalFallbackCandidate = firstMatchingOption(sorted, option => (
             option.region === 'global'
             && ['waitlist', 'web'].includes(option.channel)
         ))
+        const globalStoreOption = isInstallOptionActionable(globalStoreCandidate, deviceOs)
+            ? globalStoreCandidate
+            : null
+        const globalFallback = isInstallOptionActionable(globalFallbackCandidate, deviceOs)
+            ? globalFallbackCandidate
+            : null
+        const globalUnavailableOption = globalStoreCandidate || globalFallbackCandidate
         choices = [
             cnOption && { key: 'cn', region: 'cn', option: cnOption },
-            (globalStoreOption || globalFallback) && {
+            (globalStoreOption || globalFallback || globalUnavailableOption) && {
                 key: 'global',
                 region: 'global',
-                option: globalStoreOption || globalFallback,
+                option: globalStoreOption || globalFallback || globalUnavailableOption,
             },
         ].filter(Boolean)
     } else if (deviceOs === 'android') {

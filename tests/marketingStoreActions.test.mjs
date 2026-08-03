@@ -4,6 +4,7 @@ import { test } from 'node:test'
 
 import {
     getMarketingStoreActionStates,
+    hasExplicitTestflightParam,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
     resolveMarketingDevice,
@@ -22,7 +23,6 @@ const keys = states => states.map(state => state.actionKey)
 test('six primary market and device states resolve without URL ownership', () => {
     assert.deepEqual(keys(getMarketingStoreActionStates(base)), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
-        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, market: 'global' })), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
@@ -35,7 +35,6 @@ test('six primary market and device states resolve without URL ownership', () =>
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, device: 'desktop', desktopTab: 'ios' })), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
-        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, market: 'global', device: 'desktop', desktopTab: 'android' })), [
         MARKETING_ACTION_KEYS.GOOGLE_PLAY,
@@ -135,6 +134,7 @@ test('unconfigured APK remains visible but disabled', () => {
 test('expanded China iOS flow exposes the existing two TestFlight steps', () => {
     const actions = getMarketingStoreActionStates({
         ...base,
+        allowTestflight: true,
         testflightExpanded: true,
     })
     assert.deepEqual(keys(actions), [
@@ -142,6 +142,26 @@ test('expanded China iOS flow exposes the existing two TestFlight steps', () => 
         MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
         MARKETING_ACTION_KEYS.TESTFLIGHT_APP,
         MARKETING_ACTION_KEYS.TESTFLIGHT_BETA,
+    ])
+})
+
+test('TestFlight stays hidden unless the exact opt-in parameter is present', () => {
+    assert.equal(hasExplicitTestflightParam(''), false)
+    assert.equal(hasExplicitTestflightParam('?testflight=0'), false)
+    assert.equal(hasExplicitTestflightParam('?testflight=1&testflight=1'), false)
+    assert.equal(hasExplicitTestflightParam('?testflight=1'), true)
+
+    assert.deepEqual(keys(getMarketingStoreActionStates({
+        ...base,
+        testflightExpanded: true,
+    })), [MARKETING_ACTION_KEYS.APPLE_STORE])
+
+    assert.deepEqual(keys(getMarketingStoreActionStates({
+        ...base,
+        allowTestflight: true,
+    })), [
+        MARKETING_ACTION_KEYS.APPLE_STORE,
+        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
 })
 

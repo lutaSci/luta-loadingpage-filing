@@ -15,6 +15,7 @@ import {
 } from '../../lib/deviceDetection.js'
 import {
     getMarketingStoreActionStates,
+    hasExplicitTestflightParam,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
     resolveMarketingDevice,
@@ -38,6 +39,10 @@ export function useStoreActionAdapter({
         [],
     )
     const isWeChat = useMemo(() => detectIsWeChat(), [])
+    const allowTestflight = useMemo(
+        () => hasExplicitTestflightParam(window.location.search),
+        [],
+    )
     const apkEntryUrl = useMemo(
         () => buildVerifiedApkEntryUrl(placement),
         [placement],
@@ -62,11 +67,13 @@ export function useStoreActionAdapter({
             placement,
             isWeChat,
             desktopTab,
+            allowTestflight,
             testflightExpanded,
             apkAvailable: Boolean(apkEntryUrl),
         }),
         [
             apkEntryUrl,
+            allowTestflight,
             desktopTab,
             deviceKey,
             isWeChat,

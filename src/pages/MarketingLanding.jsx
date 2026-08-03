@@ -12,6 +12,7 @@ import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { trackWebsitePageView } from '../lib/analytics.js'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
+import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
 
 function LineTitle({ lines }) {
@@ -95,16 +96,11 @@ export default function MarketingLanding({ locale }) {
 
     useEffect(() => {
         const previousScrollBehavior = document.documentElement.style.scrollBehavior
-        const description = document.querySelector('meta[name="description"]')
-        const keywords = document.querySelector('meta[name="keywords"]')
 
-        document.documentElement.lang = content.locale
+        applyMarketingMetadata(content)
         document.documentElement.style.scrollBehavior = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
             ? 'auto'
             : 'smooth'
-        document.title = content.metadata.title
-        description?.setAttribute('content', content.metadata.description)
-        keywords?.setAttribute('content', content.metadata.keywords)
         return () => {
             document.documentElement.style.scrollBehavior = previousScrollBehavior
         }

@@ -234,6 +234,12 @@ export default function StoreActionGroup({
             tabIndex={anchorId ? -1 : undefined}
             aria-label={content.sectionLabel}
         >
+            {content.appLanguageNotice && (
+                <p className="luta-marketing-store-note" role="note">
+                    {content.appLanguageNotice}
+                </p>
+            )}
+
             {adapter.isDesktop && (
                 <div
                     className="luta-marketing-store-tabs"

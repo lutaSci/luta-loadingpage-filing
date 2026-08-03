@@ -27,6 +27,15 @@ export function resolveMarketingDevice(device) {
     return 'desktop'
 }
 
+export function hasExplicitTestflightParam(search = '') {
+    try {
+        const values = new URLSearchParams(search).getAll('testflight')
+        return values.length === 1 && values[0] === '1'
+    } catch {
+        return false
+    }
+}
+
 function actionState({
     locale,
     market,
@@ -47,7 +56,7 @@ function actionState({
     })
 }
 
-function iosActions(context, { testflightExpanded }) {
+function iosActions(context, { allowTestflight, testflightExpanded }) {
     if (context.market === 'global') {
         return [actionState({
             ...context,
@@ -62,12 +71,15 @@ function iosActions(context, { testflightExpanded }) {
             channel: 'apple_app_store',
             actionKey: MARKETING_ACTION_KEYS.APPLE_STORE,
         }),
-        actionState({
-            ...context,
-            channel: 'testflight',
-            actionKey: MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
-        }),
     ]
+
+    if (!allowTestflight) return actions
+
+    actions.push(actionState({
+        ...context,
+        channel: 'testflight',
+        actionKey: MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
+    }))
 
     if (testflightExpanded) {
         actions.push(
@@ -116,6 +128,7 @@ export function getMarketingStoreActionStates({
     placement,
     isWeChat = false,
     desktopTab = 'ios',
+    allowTestflight = false,
     testflightExpanded = false,
     apkAvailable = true,
 }) {
@@ -140,7 +153,7 @@ export function getMarketingStoreActionStates({
     }
 
     if (device === 'ios') {
-        return iosActions(context, { testflightExpanded })
+        return iosActions(context, { allowTestflight, testflightExpanded })
     }
 
     if (['android', 'harmonyos'].includes(device)) {
@@ -151,5 +164,5 @@ export function getMarketingStoreActionStates({
         return androidActions(context, { apkAvailable })
     }
 
-    return iosActions(context, { testflightExpanded })
+    return iosActions(context, { allowTestflight, testflightExpanded })
 }
