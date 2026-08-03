@@ -25,7 +25,7 @@ test('six primary market and device states resolve without URL ownership', () =>
         MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, market: 'global' })), [
-        MARKETING_ACTION_KEYS.WAITLIST,
+        MARKETING_ACTION_KEYS.APPLE_STORE,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, device: 'android' })), [
         MARKETING_ACTION_KEYS.VERIFIED_APK,
@@ -51,7 +51,7 @@ test('available marketing actions use the standardized ready status', () => {
     assert.equal(variants.flat().every(state => state.status === 'ready'), true)
     assert.equal(
         getMarketingStoreActionStates({ ...base, market: 'global' })[0].status,
-        'notify',
+        'ready',
     )
 })
 
@@ -75,7 +75,7 @@ test('desktop tabs change platform presentation without rewriting market', () =>
     assert.equal(android[0].market, 'global')
     assert.equal(ios[0].locale, 'zh-TW')
     assert.equal(android[0].locale, 'zh-TW')
-    assert.deepEqual(keys(ios), [MARKETING_ACTION_KEYS.WAITLIST])
+    assert.deepEqual(keys(ios), [MARKETING_ACTION_KEYS.APPLE_STORE])
     assert.deepEqual(keys(android), [MARKETING_ACTION_KEYS.GOOGLE_PLAY])
 })
 
@@ -123,18 +123,12 @@ test('HarmonyOS NEXT fails closed for every market', () => {
     }
 })
 
-test('unconfigured waitlist and APK remain visible but disabled', () => {
-    const waitlist = getMarketingStoreActionStates({
-        ...base,
-        market: 'global',
-        waitlistAvailable: false,
-    })
+test('unconfigured APK remains visible but disabled', () => {
     const apk = getMarketingStoreActionStates({
         ...base,
         device: 'android',
         apkAvailable: false,
     })
-    assert.equal(waitlist[0].status, 'disabled')
     assert.equal(apk[0].status, 'disabled')
 })
 
@@ -168,7 +162,6 @@ test('store action states expose only the normalized rendering contract', () => 
 test('existing CTA target names remain unchanged', () => {
     assert.deepEqual(MARKETING_CTA_TARGETS, {
         open_apple_store: 'apple_store',
-        open_waitlist: 'waitlist',
         open_google_play: 'google_play',
         open_verified_apk: 'apk',
         open_testflight_app: 'testflight_app',
@@ -176,6 +169,17 @@ test('existing CTA target names remain unchanged', () => {
         show_wechat_guide: 'wechat_guide',
         open_install_documentation: 'install_documentation',
     })
+})
+
+test('direct overseas iOS uses the global App Store fallback without a waitlist route', async () => {
+    const [configSource, adapterSource] = await Promise.all([
+        readFile(new URL('../src/config/index.js', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/marketing/useStoreActionAdapter.js', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(configSource, /appStoreGlobal:\s*'https:\/\/apps\.apple\.com\/app\/id6778084383'/)
+    assert.match(adapterSource, /state\.market === 'global'[\s\S]{0,120}config\.downloads\.appStoreGlobal/)
+    assert.doesNotMatch(adapterSource, /WAITLIST|iosOverseasWaitlist|buildWaitlistFallbackUrl/)
 })
 
 test('device normalization distinguishes HarmonyOS NEXT before Android compatibility', () => {

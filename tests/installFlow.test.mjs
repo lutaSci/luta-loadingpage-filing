@@ -61,10 +61,9 @@ test('uses the approved public install-context and controlled out bases', () => 
     assert.equal(config.smartLink.appLinkBase, 'https://link.lutaai.com/l')
     assert.equal(config.smartLink.outBase, 'https://go.lutaai.com/out')
     assert.equal(config.smartLink.legacyOutBase, 'https://go.lutaai.com/r')
-    assert.equal(
-        config.downloads.iosOverseasWaitlistFormUrl,
-        'https://gcnrjk2sw7wg.feishu.cn/share/base/shrcn2HYMn0YfFKUUtle6orQqIh',
-    )
+    assert.equal(config.downloads.appStore, 'https://apps.apple.com/cn/app/%E6%B1%9D%E5%A1%94/id6752280249')
+    assert.equal(config.downloads.appStoreGlobal, 'https://apps.apple.com/app/id6778084383')
+    assert.equal('iosOverseasWaitlistFormUrl' in config.downloads, false)
 })
 
 test('API base is HTTPS by default and only permits HTTP for local development', () => {

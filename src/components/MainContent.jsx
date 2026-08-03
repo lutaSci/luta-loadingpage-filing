@@ -5,14 +5,11 @@ import { useLanguage } from '../contexts/LanguageContext'
 import { Colors } from '../design/colors'
 import logo1 from '../assets/logo_1.png'
 import { memo, useMemo, useState, useCallback } from 'react'
-import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
+import { detectDevice, detectIsWeChat } from '../lib/deviceDetection'
 import { Award } from 'lucide-react'
-import { resolveRouteContext } from '../lib/attributionState'
 
 const device = detectDevice()
 const isWeChat = detectIsWeChat()
-const routeContext = resolveRouteContext(detectIsMainlandChina())
-const isMainlandChina = routeContext.market === 'cn'
 const isMobile = device.isMobile
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -24,11 +21,10 @@ const MainContent = memo(() => {
     const [pcTab, setPcTab] = useState('ios')
 
     const showIOSContent = device.isIOS || (device.isDesktop && pcTab === 'ios')
-    const showIOSWaitlistContent = showIOSContent && !isMainlandChina
 
     const stepsText = isWeChat
         ? t('wechatGuideDesc')
-        : showIOSContent ? (showIOSWaitlistContent ? t('iosWaitlistSteps') : t('iosSteps')) : t('androidSteps')
+        : showIOSContent ? t('iosSteps') : t('androidSteps')
 
     const handlePcTabChange = useCallback((tab) => {
         setPcTab(tab)
@@ -133,7 +129,7 @@ const MainContent = memo(() => {
                                 transition={{ delay: 0.8, duration: 0.4 }}
                             >
                                 <Award className="w-3.5 h-3.5" />
-                                <span>{showIOSWaitlistContent ? t('iosWaitlistSteps') : showIOSContent ? 'App Store' : t('editorChoice')}</span>
+                                <span>{showIOSContent ? 'App Store' : t('editorChoice')}</span>
                             </motion.div>
                         )}
                     </div>

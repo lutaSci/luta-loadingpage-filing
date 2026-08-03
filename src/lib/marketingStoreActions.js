@@ -1,6 +1,5 @@
 export const MARKETING_ACTION_KEYS = Object.freeze({
     APPLE_STORE: 'open_apple_store',
-    WAITLIST: 'open_waitlist',
     GOOGLE_PLAY: 'open_google_play',
     VERIFIED_APK: 'open_verified_apk',
     EXPAND_TESTFLIGHT: 'expand_testflight',
@@ -12,7 +11,6 @@ export const MARKETING_ACTION_KEYS = Object.freeze({
 
 export const MARKETING_CTA_TARGETS = Object.freeze({
     [MARKETING_ACTION_KEYS.APPLE_STORE]: 'apple_store',
-    [MARKETING_ACTION_KEYS.WAITLIST]: 'waitlist',
     [MARKETING_ACTION_KEYS.GOOGLE_PLAY]: 'google_play',
     [MARKETING_ACTION_KEYS.VERIFIED_APK]: 'apk',
     [MARKETING_ACTION_KEYS.TESTFLIGHT_APP]: 'testflight_app',
@@ -49,13 +47,12 @@ function actionState({
     })
 }
 
-function iosActions(context, { waitlistAvailable, testflightExpanded }) {
+function iosActions(context, { testflightExpanded }) {
     if (context.market === 'global') {
         return [actionState({
             ...context,
-            channel: 'waitlist',
-            status: waitlistAvailable ? 'notify' : 'disabled',
-            actionKey: MARKETING_ACTION_KEYS.WAITLIST,
+            channel: 'apple_app_store',
+            actionKey: MARKETING_ACTION_KEYS.APPLE_STORE,
         })]
     }
 
@@ -120,7 +117,6 @@ export function getMarketingStoreActionStates({
     isWeChat = false,
     desktopTab = 'ios',
     testflightExpanded = false,
-    waitlistAvailable = true,
     apkAvailable = true,
 }) {
     const context = { locale, market, device, placement }
@@ -144,7 +140,7 @@ export function getMarketingStoreActionStates({
     }
 
     if (device === 'ios') {
-        return iosActions(context, { waitlistAvailable, testflightExpanded })
+        return iosActions(context, { testflightExpanded })
     }
 
     if (['android', 'harmonyos'].includes(device)) {
@@ -155,5 +151,5 @@ export function getMarketingStoreActionStates({
         return androidActions(context, { apkAvailable })
     }
 
-    return iosActions(context, { waitlistAvailable, testflightExpanded })
+    return iosActions(context, { testflightExpanded })
 }

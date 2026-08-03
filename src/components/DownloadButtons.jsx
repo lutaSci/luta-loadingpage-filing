@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone, FlaskConical, ChevronDown, Mail } from 'lucide-react'
+import { Apple, Download, ExternalLink, ExternalLinkIcon, HelpCircle, AlertTriangle, CheckCircle2, XCircle, Smartphone, FlaskConical, ChevronDown } from 'lucide-react'
 import { useLanguage } from '../contexts/LanguageContext'
 import { config } from '../config'
 import { Colors } from '../design/colors'
@@ -7,7 +7,7 @@ import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
 import { trackEvent, trackWebsiteEvent } from '../lib/analytics'
-import { buildContinueUrl, buildVerifiedApkEntryUrl, buildWaitlistFallbackUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
+import { buildContinueUrl, buildVerifiedApkEntryUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
 import WeChatMask from './WeChatMask'
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -233,10 +233,14 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina }) => {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.15 }}
                         >
-                            {isMainlandChina
-                                ? <IOSGuide t={t} placement="desktop_ios_tab" />
-                                : <IOSWaitlistGuide t={t} placement="desktop_ios_tab" />
-                            }
+                            <IOSGuide
+                                t={t}
+                                placement="desktop_ios_tab"
+                                appStoreUrl={isMainlandChina
+                                    ? config.downloads.appStore
+                                    : config.downloads.appStoreGlobal}
+                                showTestFlight={isMainlandChina}
+                            />
                         </motion.div>
                     ) : (
                         <motion.div
@@ -260,58 +264,14 @@ const PcTabContent = memo(({ pcTab, onPcTabChange, t, isMainlandChina }) => {
 PcTabContent.displayName = 'PcTabContent'
 
 // ============================================
-// 海外 iOS 开放通知
-// ============================================
-const IOSWaitlistGuide = memo(({ t, placement }) => {
-    const waitlistUrl = buildWaitlistFallbackUrl(config.downloads.iosOverseasWaitlistFormUrl?.trim())
-    const hasWaitlistUrl = Boolean(waitlistUrl)
-
-    useEffect(() => {
-        trackEvent('ios_waitlist_impression', { placement })
-        trackWebsiteEvent('website_download_option_viewed', {
-            cta_target: 'waitlist',
-            placement,
-        })
-    }, [placement])
-
-    const handleWaitlistClick = useCallback(() => {
-        if (!waitlistUrl) return
-        const attrs = getAttributionState()
-        trackEvent('ios_waitlist_click', {
-            placement,
-            click_id: attrs?.click_id,
-            utm_campaign: attrs?.utm_campaign,
-            content_id: attrs?.content_id,
-        })
-        trackWebsiteEvent('website_download_cta_clicked', {
-            cta_target: 'waitlist',
-            placement,
-        })
-        const url = buildContinueUrl('waitlist', placement) || waitlistUrl
-        window.open(url, '_blank', 'noopener,noreferrer')
-    }, [placement, waitlistUrl])
-
-    return (
-        <div className="space-y-3">
-            <StepCard
-                title={t('iosWaitlistTitle')}
-                description={t('iosWaitlistDesc')}
-                ctaText={hasWaitlistUrl ? t('iosWaitlistCta') : t('iosWaitlistUnavailableCta')}
-                ctaIcon={Mail}
-                onClick={handleWaitlistClick}
-                note={t('iosWaitlistNote')}
-                delay={0.1}
-                disabled={!hasWaitlistUrl}
-            />
-        </div>
-    )
-})
-IOSWaitlistGuide.displayName = 'IOSWaitlistGuide'
-
-// ============================================
 // iOS 引导 — App Store 主按钮 + 可展开的 TestFlight 内测流程
 // ============================================
-const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
+const IOSGuide = memo(({
+    t,
+    placement = 'mobile_ios',
+    appStoreUrl = config.downloads.appStore,
+    showTestFlight = true,
+}) => {
     const [showBeta, setShowBeta] = useState(false)
     const [showConfirm, setShowConfirm] = useState(false)
 
@@ -333,9 +293,9 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
             cta_target: 'apple_store',
             placement,
         })
-        const url = buildContinueUrl('apple', placement) || config.downloads.appStore
+        const url = buildContinueUrl('apple', placement) || appStoreUrl
         window.open(url, '_blank')
-    }, [placement])
+    }, [appStoreUrl, placement])
 
     const handleBetaToggle = useCallback(() => {
         setShowBeta(prev => {
@@ -388,7 +348,7 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
                     delay={0.1}
                 />
 
-                <motion.button
+                {showTestFlight && <motion.button
                     className="flex items-center justify-center gap-2 mx-auto px-3.5 py-2 rounded-full bg-white/6 border border-white/10 text-sm sm:text-base font-semibold text-white/65 hover:bg-white/10 hover:text-white/90 transition-colors duration-200"
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.97 }}
@@ -405,10 +365,10 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
                     >
                         <ChevronDown className="w-4 h-4" />
                     </motion.span>
-                </motion.button>
+                </motion.button>}
 
                 <AnimatePresence>
-                    {showBeta && (
+                    {showTestFlight && showBeta && (
                         <motion.div
                             className="space-y-3"
                             initial={{ opacity: 0, height: 0 }}
@@ -440,12 +400,12 @@ const IOSGuide = memo(({ t, placement = 'mobile_ios' }) => {
                 </AnimatePresence>
             </div>
 
-            <TestFlightConfirmOverlay
+            {showTestFlight && <TestFlightConfirmOverlay
                 visible={showConfirm}
                 t={t}
                 onConfirm={handleBetaStep1Confirm}
                 onClose={() => setShowConfirm(false)}
-            />
+            />}
         </>
     )
 })
@@ -597,10 +557,14 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
 
     const renderContent = () => {
         if (device.isIOS) {
-            if (!isMainlandChina) {
-                return <IOSWaitlistGuide t={t} placement="mobile_ios" />
-            }
-            return <IOSGuide t={t} placement="mobile_ios" />
+            return <IOSGuide
+                t={t}
+                placement="mobile_ios"
+                appStoreUrl={isMainlandChina
+                    ? config.downloads.appStore
+                    : config.downloads.appStoreGlobal}
+                showTestFlight={isMainlandChina}
+            />
         }
 
         if (isWeChat && (device.isAndroid || device.isHarmonyOS)) {

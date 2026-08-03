@@ -1,6 +1,5 @@
 import {
     Apple,
-    Bell,
     ChevronDown,
     Download,
     ExternalLink,
@@ -16,7 +15,6 @@ import SupportEntry from './SupportEntry.jsx'
 
 const icons = Object.freeze({
     [MARKETING_ACTION_KEYS.APPLE_STORE]: Apple,
-    [MARKETING_ACTION_KEYS.WAITLIST]: Bell,
     [MARKETING_ACTION_KEYS.GOOGLE_PLAY]: ExternalLink,
     [MARKETING_ACTION_KEYS.VERIFIED_APK]: Download,
     [MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT]: ChevronDown,
@@ -31,7 +29,6 @@ const channelIcons = Object.freeze({
     apk: Download,
     google_play: ExternalLink,
     testflight: Apple,
-    waitlist: Bell,
     web: ExternalLink,
     web_recovery: ShieldCheck,
 })
@@ -205,9 +202,6 @@ export default function StoreActionGroup({
     const panelId = useId()
     const tabsRef = useRef(null)
     const { recordVisibleOption } = adapter
-    const hasWaitlist = adapter.states.some(
-        state => state.actionKey === MARKETING_ACTION_KEYS.WAITLIST,
-    )
     const hasTestflightSteps = adapter.states.some(
         state => state.actionKey === MARKETING_ACTION_KEYS.TESTFLIGHT_APP,
     )
@@ -295,7 +289,6 @@ export default function StoreActionGroup({
                 ))}
             </div>
 
-            {hasWaitlist && <p className="luta-marketing-store-note">{content.waitlistNote}</p>}
             {hasTestflightSteps && <p className="luta-marketing-store-note">{content.testflightNote}</p>}
             {(showSupport || hasRecovery) && <SupportEntry label={content.help} onActivate={adapter.openSupport} />}
 

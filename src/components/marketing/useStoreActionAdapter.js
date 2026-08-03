@@ -5,7 +5,6 @@ import { trackEvent, trackWebsiteEvent } from '../../lib/analytics.js'
 import {
     buildContinueUrl,
     buildVerifiedApkEntryUrl,
-    buildWaitlistFallbackUrl,
     getAttributionState,
     resolveRouteContext,
 } from '../../lib/attributionState.js'
@@ -39,10 +38,6 @@ export function useStoreActionAdapter({
         [],
     )
     const isWeChat = useMemo(() => detectIsWeChat(), [])
-    const waitlistUrl = useMemo(
-        () => buildWaitlistFallbackUrl(config.downloads.iosOverseasWaitlistFormUrl?.trim()),
-        [],
-    )
     const apkEntryUrl = useMemo(
         () => buildVerifiedApkEntryUrl(placement),
         [placement],
@@ -68,7 +63,6 @@ export function useStoreActionAdapter({
             isWeChat,
             desktopTab,
             testflightExpanded,
-            waitlistAvailable: Boolean(waitlistUrl),
             apkAvailable: Boolean(apkEntryUrl),
         }),
         [
@@ -80,7 +74,6 @@ export function useStoreActionAdapter({
             placement,
             route.market,
             testflightExpanded,
-            waitlistUrl,
         ],
     )
 
@@ -121,18 +114,12 @@ export function useStoreActionAdapter({
                 content_id: attrs?.content_id,
             })
             trackCta(state)
-            openExternal(buildContinueUrl('apple', placement) || config.downloads.appStore)
-            break
-        case MARKETING_ACTION_KEYS.WAITLIST:
-            if (!waitlistUrl) return
-            trackEvent('ios_waitlist_click', {
-                placement,
-                click_id: attrs?.click_id,
-                utm_campaign: attrs?.utm_campaign,
-                content_id: attrs?.content_id,
-            })
-            trackCta(state)
-            openExternal(buildContinueUrl('waitlist', placement) || waitlistUrl)
+            openExternal(
+                buildContinueUrl('apple', placement)
+                || (state.market === 'global'
+                    ? config.downloads.appStoreGlobal
+                    : config.downloads.appStore),
+            )
             break
         case MARKETING_ACTION_KEYS.GOOGLE_PLAY:
             trackEvent('android_download_click', {
@@ -188,7 +175,6 @@ export function useStoreActionAdapter({
         states,
         testflightExpanded,
         trackCta,
-        waitlistUrl,
     ])
 
     const confirmTestflightApp = useCallback(() => {
