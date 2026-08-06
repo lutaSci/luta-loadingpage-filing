@@ -323,8 +323,7 @@ const IOSGuide = memo(({
             placement,
         })
         setShowConfirm(false)
-        const url = buildContinueUrl('testflight_app', placement) || config.downloads.testFlightAppStore
-        window.open(url, '_blank')
+        window.open(config.downloads.testFlightAppStore, '_blank')
     }, [placement])
 
     const handleBetaStep2Click = useCallback(() => {
