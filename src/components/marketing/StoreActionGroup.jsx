@@ -295,7 +295,14 @@ export default function StoreActionGroup({
                 ))}
             </div>
 
-            {hasTestflightSteps && <p className="luta-marketing-store-note">{content.testflightNote}</p>}
+            {hasTestflightSteps && (
+                <p
+                    className="luta-marketing-store-note luta-marketing-testflight-recovery"
+                    role="note"
+                >
+                    {content.testflightNote}
+                </p>
+            )}
             {(showSupport || hasRecovery) && <SupportEntry label={content.help} onActivate={adapter.openSupport} />}
 
             <MarketingDialog

@@ -15,7 +15,6 @@ import {
 } from '../../lib/deviceDetection.js'
 import {
     getMarketingStoreActionStates,
-    hasExplicitTestflightParam,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
     resolveMarketingDevice,
@@ -31,6 +30,8 @@ export function useStoreActionAdapter({
     placement,
     desktopTab: controlledDesktopTab,
     onDesktopTabChange,
+    testflightExpanded: controlledTestflightExpanded,
+    onTestflightExpandedChange,
 }) {
     const device = useMemo(() => detectDevice(), [])
     const deviceKey = useMemo(() => resolveMarketingDevice(device), [device])
@@ -39,10 +40,6 @@ export function useStoreActionAdapter({
         [],
     )
     const isWeChat = useMemo(() => detectIsWeChat(), [])
-    const allowTestflight = useMemo(
-        () => hasExplicitTestflightParam(window.location.search),
-        [],
-    )
     const apkEntryUrl = useMemo(
         () => buildVerifiedApkEntryUrl(placement),
         [placement],
@@ -50,14 +47,24 @@ export function useStoreActionAdapter({
 
     const [internalDesktopTab, setInternalDesktopTab] = useState('ios')
     const desktopTab = controlledDesktopTab ?? internalDesktopTab
-    const [testflightExpanded, setTestflightExpanded] = useState(false)
+    const [internalTestflightExpanded, setInternalTestflightExpanded] = useState(false)
+    const testflightExpanded = controlledTestflightExpanded ?? internalTestflightExpanded
     const [testflightConfirmVisible, setTestflightConfirmVisible] = useState(false)
     const [wechatGuideVisible, setWechatGuideVisible] = useState(false)
     const viewedOptions = useRef(new Set())
 
+    const changeTestflightExpanded = useCallback((nextExpanded) => {
+        if (controlledTestflightExpanded === undefined) {
+            setInternalTestflightExpanded(nextExpanded)
+        }
+        onTestflightExpandedChange?.(nextExpanded)
+    }, [controlledTestflightExpanded, onTestflightExpandedChange])
+
     useEffect(() => {
-        setTestflightExpanded(false)
-    }, [desktopTab])
+        if (!testflightExpanded) return
+        if (desktopTab === 'ios' && route.market === 'cn') return
+        changeTestflightExpanded(false)
+    }, [changeTestflightExpanded, desktopTab, route.market, testflightExpanded])
 
     const states = useMemo(
         () => getMarketingStoreActionStates({
@@ -67,13 +74,11 @@ export function useStoreActionAdapter({
             placement,
             isWeChat,
             desktopTab,
-            allowTestflight,
             testflightExpanded,
             apkAvailable: Boolean(apkEntryUrl),
         }),
         [
             apkEntryUrl,
-            allowTestflight,
             desktopTab,
             deviceKey,
             isWeChat,
@@ -150,8 +155,11 @@ export function useStoreActionAdapter({
             openExternal(apkEntryUrl)
             break
         case MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT:
-            trackEvent('ios_beta_toggle', { expanded: !testflightExpanded })
-            setTestflightExpanded(!testflightExpanded)
+            {
+                const nextExpanded = !testflightExpanded
+                trackEvent('ios_beta_toggle', { expanded: nextExpanded })
+                changeTestflightExpanded(nextExpanded)
+            }
             break
         case MARKETING_ACTION_KEYS.TESTFLIGHT_APP:
             trackEvent('ios_beta_step1_click', { placement })
@@ -178,6 +186,7 @@ export function useStoreActionAdapter({
         }
     }, [
         apkEntryUrl,
+        changeTestflightExpanded,
         placement,
         states,
         testflightExpanded,
@@ -199,7 +208,6 @@ export function useStoreActionAdapter({
     const changeDesktopTab = useCallback((nextTab) => {
         if (!['ios', 'android'].includes(nextTab)) return
         if (nextTab === desktopTab) return
-        setTestflightExpanded(false)
         if (controlledDesktopTab === undefined) setInternalDesktopTab(nextTab)
         onDesktopTabChange?.(nextTab)
         trackEvent('pc_tab_switch', { tab: nextTab })

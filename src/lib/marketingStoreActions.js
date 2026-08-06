@@ -36,6 +36,17 @@ export function hasExplicitTestflightParam(search = '') {
     }
 }
 
+export function buildTestflightExpansionUrl(href, expanded) {
+    try {
+        const url = new URL(href, 'https://lutaai.com')
+        if (expanded) url.searchParams.set('testflight', '1')
+        else url.searchParams.delete('testflight')
+        return `${url.pathname}${url.search}${url.hash}`
+    } catch {
+        return href
+    }
+}
+
 function actionState({
     locale,
     market,
@@ -56,7 +67,7 @@ function actionState({
     })
 }
 
-function iosActions(context, { allowTestflight, testflightExpanded }) {
+function iosActions(context, { testflightExpanded }) {
     if (context.market === 'global') {
         return [actionState({
             ...context,
@@ -73,7 +84,7 @@ function iosActions(context, { allowTestflight, testflightExpanded }) {
         }),
     ]
 
-    if (!allowTestflight) return actions
+    if (context.market !== 'cn') return actions
 
     actions.push(actionState({
         ...context,
@@ -128,7 +139,6 @@ export function getMarketingStoreActionStates({
     placement,
     isWeChat = false,
     desktopTab = 'ios',
-    allowTestflight = false,
     testflightExpanded = false,
     apkAvailable = true,
 }) {
@@ -153,7 +163,7 @@ export function getMarketingStoreActionStates({
     }
 
     if (device === 'ios') {
-        return iosActions(context, { allowTestflight, testflightExpanded })
+        return iosActions(context, { testflightExpanded })
     }
 
     if (['android', 'harmonyos'].includes(device)) {
@@ -164,5 +174,5 @@ export function getMarketingStoreActionStates({
         return androidActions(context, { apkAvailable })
     }
 
-    return iosActions(context, { allowTestflight, testflightExpanded })
+    return iosActions(context, { testflightExpanded })
 }
