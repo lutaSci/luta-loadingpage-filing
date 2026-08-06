@@ -92,6 +92,19 @@ test('public store content excludes internal market and device narration', () =>
     }
 })
 
+test('China beta copy leads with user goals and includes redeem-code recovery', () => {
+    const store = MARKETING_CONTENT['zh-cn'].store
+
+    assert.equal(store.actions.expand_testflight.label, '体验新版汝塔')
+    assert.equal(store.actions.expand_testflight.description, '内测版，需要完成 2 步')
+    assert.match(store.actions.open_testflight_app.label, /苹果官方工具/)
+    assert.match(store.actions.open_testflight_app.description, /iOS 16/)
+    assert.match(store.actions.open_testflight_app.description, /不要点“打开”/)
+    assert.match(store.actions.open_testflight_beta.label, /安装新版汝塔/)
+    assert.match(store.testflightNote, /输入兑换码/)
+    assert.doesNotMatch(store.actions.expand_testflight.label, /TestFlight/i)
+})
+
 test('locale paths only switch content versions', () => {
     const expectedPaths = ['/global/zh-cn', '/global/zh-tw', '/global/en', '/global/ja', '/global/ko']
 

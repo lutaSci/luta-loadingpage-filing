@@ -12,6 +12,10 @@ import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { trackWebsitePageView } from '../lib/analytics.js'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
+import {
+    buildTestflightExpansionUrl,
+    hasExplicitTestflightParam,
+} from '../lib/marketingStoreActions.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
 
@@ -77,18 +81,34 @@ export default function MarketingLanding({ locale }) {
         : buildInstallEntryUrl('marketing_header')
     const { changeLanguage } = useLanguage()
     const [desktopTab, setDesktopTab] = useState('ios')
+    const [testflightExpanded, setTestflightExpanded] = useState(
+        () => typeof window !== 'undefined'
+            && hasExplicitTestflightParam(window.location.search),
+    )
     const heroStore = useStoreActionAdapter({
         locale: content.locale,
         placement: 'marketing_hero',
         desktopTab,
         onDesktopTabChange: setDesktopTab,
+        testflightExpanded,
+        onTestflightExpandedChange: setTestflightExpanded,
     })
     const finalStore = useStoreActionAdapter({
         locale: content.locale,
         placement: 'marketing_final',
         desktopTab,
         onDesktopTabChange: setDesktopTab,
+        testflightExpanded,
+        onTestflightExpandedChange: setTestflightExpanded,
     })
+
+    useEffect(() => {
+        if (usesHomepageSurface || typeof window === 'undefined') return
+        const nextUrl = buildTestflightExpansionUrl(window.location.href, testflightExpanded)
+        const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        if (nextUrl === currentUrl) return
+        window.history.replaceState(window.history.state, '', nextUrl)
+    }, [testflightExpanded, usesHomepageSurface])
 
     useEffect(() => {
         changeLanguage(content.languageKey)

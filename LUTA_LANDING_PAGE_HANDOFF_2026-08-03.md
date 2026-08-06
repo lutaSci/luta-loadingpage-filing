@@ -1,5 +1,7 @@
 # LUTA Landing Page 文案与技术交接
 
+> 2026-08-06 更新：China iOS 的新版体验入口已从隐藏测试参数改为普通官网默认可见；本文中 TestFlight、验收与风险章节已同步为当前规则。国际市场与 Smart Link 目录治理边界不变。
+
 ## 1. 交付基线
 
 - 仓库：`lutaSci/luta-loadingpage-filing`
@@ -22,7 +24,7 @@
 
 - `src/content/marketing/ja.js`、`src/content/marketing/ko.js`：产品语言说明、`TaBao`、必要安装文案。
 - `src/components/marketing/StoreActionGroup.jsx`：在下载区实际显示产品语言说明。
-- `src/lib/marketingStoreActions.js`、`src/components/marketing/useStoreActionAdapter.js`：TestFlight 默认隐藏；仅精确参数 `?testflight=1` 显示测试入口。
+- `src/lib/marketingStoreActions.js`、`src/components/marketing/useStoreActionAdapter.js`：China iOS 默认显示新版体验入口；国际市场不显示；精确参数 `?testflight=1` 只恢复已展开的两步指引。
 - `src/lib/installFlow.js`：正式 App Store 路径不可用而等待通知可用时，优先展示等待通知。
 - `src/lib/marketingSeo.js`、`src/pages/MarketingLanding.jsx`：客户端导航后同步更新全部 metadata。
 - `scripts/prerender-marketing.mjs`、`package.json`、`nginx.conf`：构建五份本地化 HTML，并由生产服务器直接返回；语言路由继续复用 Smart Link bearer-aware `no-store` 缓存策略。
@@ -105,6 +107,10 @@
 - 地区等待：`所在地区开放后通知我` / `所在地区开放后，我们将通过邮件通知您`
 - Google Play：`前往 Google Play 下载` / `通过 Google Play 安装官方版本`
 - Android：`下载经校验的官方 Android 安装包` / `核对版本与文件信息后下载`
+- 新版体验：`体验新版汝塔` / `内测版，需要完成 2 步`
+- 第 1 步：`安装苹果官方工具` / `支持 iOS 16 及以上；安装完成不要点“打开”，请直接返回本页面`
+- 第 2 步：`安装新版汝塔` / `返回本页面点击这里，再按提示完成安装`
+- 兑换码恢复：`看到“输入兑换码”？不用填写。返回浏览器，点击“第 2 步 · 安装新版汝塔”即可。`
 - 等待说明：`邮箱仅用于所在地区的 iOS 开放通知。点击按钮后，请完成表单提交；未提交的表单不会登记邮箱。`
 - 不可用标题：`此链接暂时不可用`
 - 恢复说明：`无需担心，您的操作没有问题。我们不会将您带到不可用的商店；您仍可查看官网当前可用的下载方式。`
@@ -249,9 +255,12 @@
 
 ### TestFlight
 
-- 普通访问：不渲染 TestFlight。
-- 明确测试参数：仅精确的单一 `?testflight=1` 开启现有两步 TestFlight 指引。
-- `?testflight=0`、重复参数或其他值均无效。
+- China iOS 普通访问：正式 App Store 之外，默认显示`体验新版汝塔`入口；点击后展开两步安装指引。
+- 国际市场：不显示 China TestFlight 入口，即使 URL 携带 `?testflight=1` 也必须隐藏并清理该状态参数。
+- `?testflight=1` 不再决定入口是否可见，只表示两步指引已展开，供 App Store 往返或刷新后恢复上下文。
+- `?testflight=0`、重复参数或其他值不自动展开；China iOS 的入口本身仍默认可见。
+- 第 1 步使用 China App Store 的 Apple 官方 TestFlight 页面；第 2 步继续使用现有公开邀请与受控跳转。
+- 用户语言先讲目标与动作，不要求先理解 TestFlight；“输入兑换码”必须明确解释为无需填写，并引导用户返回浏览器执行第 2 步。
 - 直接营销页的国际市场仍只显示正式 App Store；国际测试应使用受控测试 Smart Link。
 - Smart Link 目录只能在明确的 beta/test campaign 中返回 TestFlight 选项；普通目录不得下发。
 - TestFlight URL 不出现在展示组件中，仍通过既有受控跳转与配置层处理。
@@ -316,9 +325,10 @@
 
 ### 安装
 
-- 普通 iPhone 页面无 TestFlight 入口。
-- `?testflight=1` 在适用测试市场显示 TestFlight 展开入口；重复或错误参数不显示。
-- 正式 App Store 可用时，不同时展示等待通知或 TestFlight。
+- China iPhone 普通页面同时保留正式 App Store 主按钮与`体验新版汝塔`入口；国际市场只显示正式 App Store。
+- China iPhone 点击新版入口后显示两步指引、iOS 16 前置条件和“输入兑换码”恢复说明。
+- 单一精确 `?testflight=1` 在刷新后恢复展开状态；重复或错误参数不自动展开；国际市场始终不显示该入口。
+- 正式 App Store 与新版体验入口并存是当前有意设计；等待通知仍不得与可用正式 App Store 同时作为直接选项。
 - Smart Link 返回不可用国际 App Store + 可用 waitlist 时，只选择 waitlist 作为国际直接选项。
 - Android、HarmonyOS、WeChat、HarmonyOS NEXT 既有安全分流不回退。
 - 所有商店 URL 仍由配置层/受控跳转拥有，展示组件无硬编码 URL。
@@ -337,17 +347,17 @@
 ### 构建与质量
 
 - `npm ci` 成功。
-- `npm run test:attribution`：121/121 通过（合并前独立 QC 后的最终计数）。
+- `npm run test:attribution`：125/125 通过（2026-08-06 China iOS 流程更新后的计数）。
 - 本次涉及的源码、脚本与测试定向 ESLint：0 error、0 warning。
 - `npm run build` 成功并生成五份预渲染 HTML。
 - `git diff --check` 无空白错误。
-- 真实浏览器抽查通过：390 × 844 与 1280 × 720 均无横向溢出；中文/英文 Hero、产品语言提示和正式 App Store CTA 正常；普通访问无 TestFlight；控制台 0 error、0 warning。
+- 真实浏览器抽查通过：390 × 844 的 China 路由默认显示新版入口，展开、刷新恢复、兑换码提示、弹窗 Esc 与焦点恢复正常；国际路由不显示入口并清理展开参数；控制台 0 error、无错误遮罩。1280 × 720 的既有营销基线保持通过。
 
 ## 11. 回归测试清单
 
 ### 浏览器与响应式
 
-- iPhone Safari：简中、繁中、英、日、韩；普通链接与 `?testflight=1`。
+- iPhone Safari：简中、繁中、英、日、韩；China 普通链接、展开后的 `?testflight=1` 恢复与国际隐藏规则。
 - Android Chrome：Google Play、APK、微信外部浏览器指引。
 - HarmonyOS 与 HarmonyOS NEXT：兼容路径与 fail-closed 恢复路径。
 - Desktop Chrome/Safari/Firefox：iOS/Android Tab、键盘方向键、Home/End、焦点环。
@@ -358,7 +368,9 @@
 - `cn + ios + App Store ready`
 - `global + ios + App Store ready`
 - `global + ios + App Store unavailable + waitlist ready`
-- `cn + ios + testflight=1`
+- `cn + ios + 默认可见但未展开`
+- `cn + ios + testflight=1 已展开并刷新恢复`
+- `global + ios + testflight=1 仍隐藏并清理参数`
 - `android + Google Play`
 - `android + verified APK`
 - `Android in WeChat`
@@ -375,7 +387,7 @@
 ## 12. 风险与上线前置条件
 
 1. **App Store 地区识别**：浏览器无法读取用户 Apple ID 商店国家。服务端目录必须维护实际上架覆盖；否则“地区不可用”只能在用户进入 App Store 后才暴露。
-2. **TestFlight 目录治理**：代码已隐藏普通直达入口，但受控 Smart Link 若错误下发 TestFlight，仍会展示。后台必须把 TestFlight 限定为测试 campaign。
+2. **TestFlight 容量与邀请治理**：China 普通官网现已公开入口；公开邀请满员、暂停或失效时会形成直接死路。发布负责人必须监控邀请可用性并在异常时通过版本回滚或配置更新关闭入口。Smart Link 目录仍必须把 TestFlight 限定为测试 campaign。
 3. **静态托管兼容**：本交付依赖 Nginx 将显式路由映射到 `dist/global/*.html`。若部署平台忽略 `nginx.conf`，SEO 会退回根 SPA HTML。
 4. **根路由语言**：`/` 是 `x-default`，运行时按偏好语言切换；严肃的语言 SEO 投放应始终使用显式 `/global/{locale}`。
 5. **日韩语言质量**：按要求未重写主体；原审查指出的日韩宗教化与母语自然度风险仍存在，后续应由母语佛教内容编辑单独复核。
@@ -383,6 +395,7 @@
 7. **既有全仓 lint 债务**：全仓 `npm run lint` 仍被基线中的 6 个既有错误与 4 个警告阻断，位于 `GlitchText.jsx`、`ParticleSystem.jsx`、`Silk.jsx`、`SplitText.jsx`、`Toast.jsx`、`ui/badge.jsx`、`ui/button.jsx`；本次改动文件定向 lint 已全部通过。
 8. **依赖风险**：`npm ci` 报告 3 个 high severity advisories；本次未改依赖版本或 lockfile。应另建依赖治理任务评估，禁止在本次文案交付中直接执行破坏性 `npm audit fix --force`。
 9. **Bundle 体积**：生产构建保留既有大 chunk 警告（最大约 863 kB，gzip 约 234 kB）；非本次文案变更引入，后续可独立做代码分割。
+10. **真实设备剩余验证**：2026-08-06 已完成生产构建与 390 × 844 浏览器视口验证，但当前自动化浏览器不是 iPhone Safari，未替代真实中国区 Apple ID、TestFlight 安装、邀请接受和新版 App 首次打开的端到端验收。
 
 ## 13. 研发执行顺序
 
@@ -392,5 +405,5 @@
 4. 在与生产一致的 Nginx/CDN 规则下做路由 smoke test。
 5. 用真实 iPhone/Android/HarmonyOS 完成安装矩阵。
 6. 用社交抓取器重新抓取五个语言 URL。
-7. 确认 Smart Link 后台正式目录不含 TestFlight，地区未开放目录含可执行 waitlist。
+7. 确认 China 官网公开邀请可用且未满员；同时确认 Smart Link 后台正式目录不含 TestFlight，地区未开放目录含可执行 waitlist。
 8. 通过后发布；发布后监测 App Store 点击、waitlist 展示、错误恢复与错误下载率。

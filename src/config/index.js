@@ -48,7 +48,7 @@ export const config = {
         appStoreGlobal: 'https://apps.apple.com/app/id6778084383',
         iosTestFlight: 'itms-beta://testflight.apple.com/join/48vCAeVp',
         iosTestFlightWeb: 'https://testflight.apple.com/join/48vCAeVp',
-        testFlightAppStore: 'https://apps.apple.com/us/app/testflight/id899247664?mt=8',
+        testFlightAppStore: 'https://apps.apple.com/cn/app/testflight/id899247664?mt=8',
         googlePlay: 'https://play.google.com/store/apps/details?id=com.luta.reader',
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
     },

@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 import {
+    buildTestflightExpansionUrl,
     getMarketingStoreActionStates,
     hasExplicitTestflightParam,
     MARKETING_ACTION_KEYS,
@@ -23,6 +24,7 @@ const keys = states => states.map(state => state.actionKey)
 test('six primary market and device states resolve without URL ownership', () => {
     assert.deepEqual(keys(getMarketingStoreActionStates(base)), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
+        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, market: 'global' })), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
@@ -35,6 +37,7 @@ test('six primary market and device states resolve without URL ownership', () =>
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, device: 'desktop', desktopTab: 'ios' })), [
         MARKETING_ACTION_KEYS.APPLE_STORE,
+        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
     ])
     assert.deepEqual(keys(getMarketingStoreActionStates({ ...base, market: 'global', device: 'desktop', desktopTab: 'android' })), [
         MARKETING_ACTION_KEYS.GOOGLE_PLAY,
@@ -134,7 +137,6 @@ test('unconfigured APK remains visible but disabled', () => {
 test('expanded China iOS flow exposes the existing two TestFlight steps', () => {
     const actions = getMarketingStoreActionStates({
         ...base,
-        allowTestflight: true,
         testflightExpanded: true,
     })
     assert.deepEqual(keys(actions), [
@@ -145,24 +147,49 @@ test('expanded China iOS flow exposes the existing two TestFlight steps', () => 
     ])
 })
 
-test('TestFlight stays hidden unless the exact opt-in parameter is present', () => {
+test('China iOS exposes the beta guide by default and restores only an exact expanded state', () => {
     assert.equal(hasExplicitTestflightParam(''), false)
     assert.equal(hasExplicitTestflightParam('?testflight=0'), false)
     assert.equal(hasExplicitTestflightParam('?testflight=1&testflight=1'), false)
     assert.equal(hasExplicitTestflightParam('?testflight=1'), true)
 
+    assert.deepEqual(keys(getMarketingStoreActionStates(base)), [
+        MARKETING_ACTION_KEYS.APPLE_STORE,
+        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
+    ])
+
     assert.deepEqual(keys(getMarketingStoreActionStates({
         ...base,
+        market: 'global',
         testflightExpanded: true,
     })), [MARKETING_ACTION_KEYS.APPLE_STORE])
 
     assert.deepEqual(keys(getMarketingStoreActionStates({
         ...base,
-        allowTestflight: true,
-    })), [
-        MARKETING_ACTION_KEYS.APPLE_STORE,
-        MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT,
-    ])
+        market: 'unknown',
+        testflightExpanded: true,
+    })), [MARKETING_ACTION_KEYS.APPLE_STORE])
+})
+
+test('expanded TestFlight state preserves other route parameters and supports recovery after reload', () => {
+    assert.equal(
+        buildTestflightExpansionUrl(
+            'https://lutaai.com/global/zh-cn?route_market=cn&utm_source=wechat#download-options',
+            true,
+        ),
+        '/global/zh-cn?route_market=cn&utm_source=wechat&testflight=1#download-options',
+    )
+    assert.equal(
+        buildTestflightExpansionUrl(
+            'https://lutaai.com/global/zh-cn?route_market=cn&testflight=1#download-options',
+            false,
+        ),
+        '/global/zh-cn?route_market=cn#download-options',
+    )
+    assert.equal(
+        buildTestflightExpansionUrl('http://[', true),
+        'http://[',
+    )
 })
 
 test('store action states expose only the normalized rendering contract', () => {
@@ -200,6 +227,19 @@ test('direct overseas iOS uses the global App Store fallback without a waitlist 
     assert.match(configSource, /appStoreGlobal:\s*'https:\/\/apps\.apple\.com\/app\/id6778084383'/)
     assert.match(adapterSource, /state\.market === 'global'[\s\S]{0,120}config\.downloads\.appStoreGlobal/)
     assert.doesNotMatch(adapterSource, /WAITLIST|iosOverseasWaitlist|buildWaitlistFallbackUrl/)
+})
+
+test('China TestFlight prerequisite opens the China App Store storefront', async () => {
+    const configSource = await readFile(
+        new URL('../src/config/index.js', import.meta.url),
+        'utf8',
+    )
+
+    assert.match(
+        configSource,
+        /testFlightAppStore:\s*'https:\/\/apps\.apple\.com\/cn\/app\/testflight\/id899247664\?mt=8'/,
+    )
+    assert.doesNotMatch(configSource, /apps\.apple\.com\/us\/app\/testflight/)
 })
 
 test('device normalization distinguishes HarmonyOS NEXT before Android compatibility', () => {
@@ -306,6 +346,18 @@ test('hero and final CTA share one controlled desktop platform tab', async () =>
         2,
     )
     assert.equal(source.match(/onDesktopTabChange: setDesktopTab/g)?.length, 2)
+})
+
+test('hero and final CTA share one recoverable TestFlight expansion state', async () => {
+    const source = await readFile(
+        new URL('../src/pages/MarketingLanding.jsx', import.meta.url),
+        'utf8',
+    )
+
+    assert.match(source, /hasExplicitTestflightParam\(window\.location\.search\)/)
+    assert.match(source, /buildTestflightExpansionUrl\(window\.location\.href, testflightExpanded\)/)
+    assert.equal(source.match(/onTestflightExpandedChange: setTestflightExpanded/g)?.length, 2)
+    assert.equal(source.match(/\n\s+testflightExpanded,\n/g)?.length, 2)
 })
 
 test('desktop platform analytics ignore repeated activation of the selected tab', async () => {
