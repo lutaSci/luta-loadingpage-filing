@@ -1,6 +1,6 @@
 # LUTA Landing Page 文案与技术交接
 
-> 2026-08-06 更新：China iOS 的新版体验入口已从隐藏测试参数改为普通官网默认可见；本文中 TestFlight、验收与风险章节已同步为当前规则。国际市场与 Smart Link 目录治理边界不变。
+> 2026-08-06 更新：China iOS 的新版体验入口已从隐藏测试参数改为普通官网默认可见；普通官网参数不再被当作服务端 Smart Link 身份，TestFlight 官方工具页固定直达 Apple。本文中 TestFlight、验收与风险章节已同步为当前规则。国际市场与 Smart Link 目录治理边界不变。
 
 ## 1. 交付基线
 
@@ -329,6 +329,9 @@
 - China iPhone 点击新版入口后显示两步指引、iOS 16 前置条件和“输入兑换码”恢复说明。
 - 单一精确 `?testflight=1` 在刷新后恢复展开状态；重复或错误参数不自动展开；国际市场始终不显示该入口。
 - 正式 App Store 与新版体验入口并存是当前有意设计；等待通知仍不得与可用正式 App Store 同时作为直接选项。
+- `route_market`、UTM 和浏览器生成的 `clk_web_*` 只能用于官网推荐与网站分析，不得进入仅接受已落库 `lclk_*` 的 legacy `/continue` 合同。
+- 第 1 步 Apple TestFlight 官方工具页是安装前置资源，必须直接打开 Apple，不得经过 Smart Link；普通官网的第 2 步在没有 canonical Smart Link 上下文时使用公开邀请 fallback。
+- 真正的 Smart Link 首页继续使用服务端 context、catalog、`option_id` 与受控 `/out`，本修复不得把 stateful 入口降级成静态目标 URL。
 - Smart Link 返回不可用国际 App Store + 可用 waitlist 时，只选择 waitlist 作为国际直接选项。
 - Android、HarmonyOS、WeChat、HarmonyOS NEXT 既有安全分流不回退。
 - 所有商店 URL 仍由配置层/受控跳转拥有，展示组件无硬编码 URL。
@@ -347,7 +350,7 @@
 ### 构建与质量
 
 - `npm ci` 成功。
-- `npm run test:attribution`：125/125 通过（2026-08-06 China iOS 流程更新后的计数）。
+- `npm run test:attribution`：127/127 通过（2026-08-06 China iOS 入口与 Smart Link 合同修复后的计数）。
 - 本次涉及的源码、脚本与测试定向 ESLint：0 error、0 warning。
 - `npm run build` 成功并生成五份预渲染 HTML。
 - `git diff --check` 无空白错误。
@@ -400,7 +403,7 @@
 ## 13. 研发执行顺序
 
 1. 以指定 Commit 建分支并应用本交付全部文件，不要只复制三份文案文件。
-2. 执行 `npm ci`、全量测试、定向 lint、生产构建。
+2. 执行 `npm ci`、全量测试、定向 lint、生产构建；其中必须包含 `route_market=cn&testflight=1`、普通 UTM、浏览器 `clk_web_*` 与 canonical `lclk_*` 的合同回归。
 3. 核验五份 `dist/global/*.html` metadata。
 4. 在与生产一致的 Nginx/CDN 规则下做路由 smoke test。
 5. 用真实 iPhone/Android/HarmonyOS 完成安装矩阵。

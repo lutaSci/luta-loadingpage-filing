@@ -201,8 +201,7 @@ export function useStoreActionAdapter({
         trackEvent('ios_beta_step1_confirm', { placement })
         trackCta(state)
         setTestflightConfirmVisible(false)
-        openExternal(buildContinueUrl('testflight_app', placement)
-            || config.downloads.testFlightAppStore)
+        openExternal(config.downloads.testFlightAppStore)
     }, [placement, states, trackCta])
 
     const changeDesktopTab = useCallback((nextTab) => {

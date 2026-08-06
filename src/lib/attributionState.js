@@ -116,6 +116,15 @@ function appendValidWebsiteEntryFields(searchParams, state) {
     }
 }
 
+function getCanonicalLegacyRoot(state) {
+    const slug = state?.slug || ''
+    const clickId = state?.click_id || ''
+    if (!ATTRIBUTION_SLUG_RE.test(slug) || !LEGACY_CLICK_ID_RE.test(clickId)) {
+        return null
+    }
+    return { clickId, slug }
+}
+
 export function getAttributionState() {
     if (_cached) return _cached
 
@@ -198,18 +207,19 @@ export function buildWaitlistFallbackUrl(waitlistUrl) {
 }
 
 /**
- * Build a continue-redirect URL that the backend will 302 to the final
- * store target with proper Install Referrer / campaign-link params.
+ * Continue a server-issued legacy Smart Link root through the backend's
+ * compatibility bridge. Direct website UTM and market parameters are not a
+ * canonical root and must fall back to the public destination instead of
+ * presenting a browser-generated click id as server-owned identity.
  *
  * @param {'google'|'apple'|'apk'|'waitlist'|'testflight_app'|'testflight_beta'} store
  * @param {string} placement - button location identifier
- * @returns {string|null} full URL or null if no attribution context
+ * @returns {string|null} full URL or null without canonical legacy context
  */
 export function buildContinueUrl(store, placement) {
     const state = getAttributionState()
-    if (!state) return null
-
-    const slug = state.slug || config.attribution.defaultSlug
+    const legacyRoot = getCanonicalLegacyRoot(state)
+    if (!legacyRoot) return null
 
     const qs = new URLSearchParams()
     qs.set('store', store)
@@ -220,10 +230,10 @@ export function buildContinueUrl(store, placement) {
         if (key === 'slug') continue
         if (state[key]) qs.set(key, state[key])
     }
-    qs.set('slug', slug)
+    qs.set('slug', legacyRoot.slug)
     if (!qs.has('traffic_purpose')) qs.set('traffic_purpose', getTrafficPurpose())
 
-    return `${config.attribution.continueBase}/r/${encodeURIComponent(slug)}/continue?${qs.toString()}`
+    return `${config.attribution.continueBase}/r/${encodeURIComponent(legacyRoot.slug)}/continue?${qs.toString()}`
 }
 
 /**
@@ -235,7 +245,7 @@ export function buildVerifiedApkEntryUrl(placement) {
     const state = getAttributionState()
 
     // A canonical legacy root can continue without creating a second click.
-    if (state?.slug && LEGACY_CLICK_ID_RE.test(state.click_id || '')) {
+    if (getCanonicalLegacyRoot(state)) {
         return buildContinueUrl('apk', placement)
     }
 
@@ -271,8 +281,9 @@ export function buildInstallEntryUrl(placement) {
 
     // Reuse only a server-issued legacy root. Browser-generated click ids do
     // not prove a canonical root and must not be forwarded as if they did.
-    if (state?.slug && LEGACY_CLICK_ID_RE.test(state.click_id || '')) {
-        qs.set('click_id', state.click_id)
+    const legacyRoot = getCanonicalLegacyRoot(state)
+    if (legacyRoot) {
+        qs.set('click_id', legacyRoot.clickId)
     }
 
     if (!qs.has('utm_source')) qs.set('utm_source', 'official_website')

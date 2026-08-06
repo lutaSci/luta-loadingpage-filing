@@ -29,10 +29,11 @@ async function loadAttributionModule(rawUrl, label) {
     return import(`${moduleUrl}?case=${label}-${Date.now()}-${Math.random()}`)
 }
 
-test('shortlink landing builds continue URL with original slug click id and UTM', async () => {
+test('canonical legacy landing builds continue URL with server-issued root identity', async () => {
     globalThis.sessionStorage = createSessionStorage()
+    const clickId = `lclk_${'a'.repeat(32)}`
     const mod = await loadAttributionModule(
-        'https://lutaai.com/?slug=global-store&click_id=clk_short_001&utm_source=xhs&utm_medium=social&utm_campaign=camp_001&content_id=content001&operator=qa_ops&platform=xhs&route_market=global&traffic_purpose=qa',
+        `https://lutaai.com/?slug=global-store&click_id=${clickId}&utm_source=xhs&utm_medium=social&utm_campaign=camp_001&content_id=content001&operator=qa_ops&platform=xhs&route_market=global&traffic_purpose=qa`,
         'shortlink',
     )
 
@@ -41,7 +42,7 @@ test('shortlink landing builds continue URL with original slug click id and UTM'
     assert.equal(continueUrl.origin, 'https://go.lutaai.com')
     assert.equal(continueUrl.pathname, '/r/global-store/continue')
     assert.equal(continueUrl.searchParams.get('store'), 'google')
-    assert.equal(continueUrl.searchParams.get('click_id'), 'clk_short_001')
+    assert.equal(continueUrl.searchParams.get('click_id'), clickId)
     assert.equal(continueUrl.searchParams.get('utm_source'), 'xhs')
     assert.equal(continueUrl.searchParams.get('utm_campaign'), 'camp_001')
     assert.equal(continueUrl.searchParams.get('content_id'), 'content001')
@@ -65,13 +66,10 @@ test('direct UTM landing generates website-direct click id and reuses it for sam
         'direct-first',
     )
     const firstState = first.getAttributionState()
-    const firstUrl = new URL(first.buildContinueUrl('google', 'footer_google'))
     const apkEntryUrl = new URL(first.buildVerifiedApkEntryUrl('mobile_android_china'))
 
-    assert.equal(firstUrl.pathname, '/r/website-direct/continue')
     assert.match(firstState.click_id, /^clk_web_uuid-/)
-    assert.equal(firstUrl.searchParams.get('slug'), 'website-direct')
-    assert.equal(firstUrl.searchParams.get('click_id'), firstState.click_id)
+    assert.equal(first.buildContinueUrl('google', 'footer_google'), null)
     assert.equal(apkEntryUrl.origin, 'https://go.lutaai.com')
     assert.equal(apkEntryUrl.pathname, '/r/website-direct')
     assert.equal(apkEntryUrl.searchParams.get('utm_source'), 'direct_qc')
@@ -108,6 +106,25 @@ test('direct UTM route_market is reported as an explicit attribution parameter',
         market: 'global',
         source: 'attribution_param',
     })
+    for (const store of ['google', 'apple', 'apk', 'waitlist', 'testflight_app', 'testflight_beta']) {
+        assert.equal(mod.buildContinueUrl(store, 'marketing_hero'), null)
+    }
+})
+
+test('the production China route override cannot create a legacy continue handoff', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const mod = await loadAttributionModule(
+        'https://lutaai.com/global/zh-cn?route_market=cn&testflight=1',
+        'china-route-override',
+    )
+
+    assert.deepEqual(mod.resolveRouteContext(false), {
+        market: 'cn',
+        source: 'attribution_param',
+    })
+    assert.match(mod.getAttributionState().click_id, /^clk_web_/)
+    assert.equal(mod.buildContinueUrl('testflight_app', 'marketing_hero'), null)
+    assert.equal(mod.buildContinueUrl('testflight_beta', 'marketing_hero'), null)
 })
 
 test('unattributed landing returns null so buttons use original store URL', async () => {
@@ -269,15 +286,27 @@ test('legacy production slugs remain authoritative before route_market rollout c
     })
 })
 
-test('attributed TestFlight handoff uses backend continue route', async () => {
+test('browser-generated TestFlight attribution never enters the legacy continue contract', async () => {
     globalThis.sessionStorage = createSessionStorage()
     const mod = await loadAttributionModule(
         'https://lutaai.com/?slug=cn-store&click_id=clk_beta&utm_source=owned&route_market=cn',
         'testflight',
     )
 
+    assert.equal(mod.buildContinueUrl('testflight_app', 'mobile_ios'), null)
+    assert.equal(mod.buildContinueUrl('testflight_beta', 'mobile_ios'), null)
+})
+
+test('canonical legacy TestFlight handoff can use the backend compatibility bridge', async () => {
+    globalThis.sessionStorage = createSessionStorage()
+    const clickId = `lclk_${'c'.repeat(32)}`
+    const mod = await loadAttributionModule(
+        `https://lutaai.com/?slug=cn-store&click_id=${clickId}&utm_source=owned&route_market=cn`,
+        'canonical-testflight',
+    )
+
     const continueUrl = new URL(mod.buildContinueUrl('testflight_beta', 'mobile_ios'))
     assert.equal(continueUrl.pathname, '/r/cn-store/continue')
     assert.equal(continueUrl.searchParams.get('store'), 'testflight_beta')
-    assert.equal(continueUrl.searchParams.get('click_id'), 'clk_beta')
+    assert.equal(continueUrl.searchParams.get('click_id'), clickId)
 })

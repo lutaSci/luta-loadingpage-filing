@@ -230,16 +230,19 @@ test('direct overseas iOS uses the global App Store fallback without a waitlist 
 })
 
 test('China TestFlight prerequisite opens the China App Store storefront', async () => {
-    const configSource = await readFile(
-        new URL('../src/config/index.js', import.meta.url),
-        'utf8',
-    )
+    const [configSource, adapterSource, legacySource] = await Promise.all([
+        readFile(new URL('../src/config/index.js', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/marketing/useStoreActionAdapter.js', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/DownloadButtons.jsx', import.meta.url), 'utf8'),
+    ])
 
     assert.match(
         configSource,
         /testFlightAppStore:\s*'https:\/\/apps\.apple\.com\/cn\/app\/testflight\/id899247664\?mt=8'/,
     )
     assert.doesNotMatch(configSource, /apps\.apple\.com\/us\/app\/testflight/)
+    assert.doesNotMatch(adapterSource, /buildContinueUrl\('testflight_app'/)
+    assert.doesNotMatch(legacySource, /buildContinueUrl\('testflight_app'/)
 })
 
 test('device normalization distinguishes HarmonyOS NEXT before Android compatibility', () => {
