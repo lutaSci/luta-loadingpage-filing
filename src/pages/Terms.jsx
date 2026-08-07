@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PaperDocument from '../components/PaperDocument';
 import { useLanguage } from '../contexts/LanguageContext';
+import { trackWebsitePageView } from '../lib/analytics.js';
 
 const Terms = () => {
     const { currentLanguage } = useLanguage();
@@ -28,6 +29,7 @@ const Terms = () => {
             ko: '이용약관 - LUTA APP'
         };
         document.title = titles[currentLanguage] || titles.zh;
+        trackWebsitePageView({ locale: currentLanguage });
     }, [currentLanguage]);
 
     const getTitle = () => {

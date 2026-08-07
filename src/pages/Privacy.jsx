@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PaperDocument from '../components/PaperDocument';
 import { useLanguage } from '../contexts/LanguageContext';
+import { trackWebsitePageView } from '../lib/analytics.js';
 
 const Privacy = () => {
     const { currentLanguage } = useLanguage();
@@ -28,6 +29,7 @@ const Privacy = () => {
             ko: '개인정보 보호정책 - LUTA APP'
         };
         document.title = titles[currentLanguage] || titles.zh;
+        trackWebsitePageView({ locale: currentLanguage });
     }, [currentLanguage]);
 
     const getTitle = () => {

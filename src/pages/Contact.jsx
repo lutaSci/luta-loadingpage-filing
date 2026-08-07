@@ -4,6 +4,7 @@ import { ArrowLeft, Mail, Twitter, Github, Copy, CheckCircle } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { config } from '../config';
+import { trackWebsitePageView } from '../lib/analytics.js';
 
 const Contact = () => {
     const { t, currentLanguage } = useLanguage();
@@ -21,6 +22,7 @@ const Contact = () => {
             ko: '문의하기 - 汝塔APP'
         };
         document.title = titles[currentLanguage];
+        trackWebsitePageView({ locale: currentLanguage });
     }, [currentLanguage]);
 
     // ═══════════════════════════════════════════════════════════════════

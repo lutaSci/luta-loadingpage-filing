@@ -72,6 +72,8 @@ export const config = {
         homepageSurfaceEnabled: import.meta.env?.VITE_SMART_LINK_HOMEPAGE_SURFACE === 'true',
     },
     analytics: {
+        gaId: import.meta.env?.VITE_GA4_ID || 'G-5QE6T3L0LD',
+        captureGaDevelopment: import.meta.env?.VITE_GA4_CAPTURE_DEVELOPMENT === 'true',
         posthogKey: import.meta.env?.VITE_POSTHOG_KEY || 'phc_AJ9WrJztG6H87z7xD7Xfa97abfCau4EbYXMSDUxo6Rsv',
         posthogHost: import.meta.env?.VITE_POSTHOG_HOST || 'https://posthog.lutaai.com',
         captureDevelopment: import.meta.env?.VITE_POSTHOG_CAPTURE_DEVELOPMENT === 'true',

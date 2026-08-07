@@ -23,13 +23,20 @@ import {
     DEFAULT_LUTA_API_BASE,
     resolveLutaApiBase,
 } from '../src/config/index.js'
-import { INSTALL_WEB_EVENT_NAMES, sanitizeInstallProperties } from '../src/lib/analytics.js'
+import {
+    buildGoogleAnalyticsConfig,
+    INSTALL_WEB_EVENT_NAMES,
+    sanitizeInstallProperties,
+    sanitizeWebsiteProperties,
+    shouldCaptureGoogleAnalytics,
+    WEBSITE_EVENT_NAMES,
+} from '../src/lib/analytics.js'
 import { getInstallCopy } from '../src/lib/installCopy.js'
 
 const SHA256 = 'a'.repeat(64)
 const LEGACY_CLICK_ID = `lclk_${'c'.repeat(32)}`
 
-test('Google Analytics excludes install, bearer-query and persisted Smart Link journeys', () => {
+test('analytics starts only after React has removed Smart Link bearer data', () => {
     const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
     assert.match(html, /window\.location\.pathname === '\/install'/)
     assert.match(html, /smartLinkParams\.has\('state'\)/)
@@ -38,10 +45,71 @@ test('Google Analytics excludes install, bearer-query and persisted Smart Link j
     assert.match(html, /sessionStorage\.getItem\('luta-smart-link-homepage-entry-v1'\)/)
     assert.match(html, /robots\.content = 'noindex,nofollow'/)
     assert.match(html, /<link rel="canonical" href="https:\/\/lutaai\.com\/" \/>/)
-    assert.match(html, /if \(!isSmartLinkJourney\)/)
-    assert.match(html, /page_location:\s*window\.location\.origin \+ window\.location\.pathname/)
-    assert.match(html, /page_path:\s*window\.location\.pathname/)
-    assert.equal(html.includes('page_location: window.location.href'), false)
+    assert.equal(html.includes('googletagmanager.com'), false)
+    assert.equal(html.includes("window.gtag('config'"), false)
+})
+
+test('website events use one strict dictionary and privacy-safe property allowlist', () => {
+    assert.deepEqual(WEBSITE_EVENT_NAMES, [
+        'website_page_viewed',
+        'website_download_option_viewed',
+        'website_download_cta_clicked',
+    ])
+    assert.deepEqual(sanitizeWebsiteProperties({
+        surface: 'official_website',
+        page_path: '/global/zh-cn',
+        click_id: 'clk_opaque.01:restore',
+        utm_source: 'owned',
+        cta_target: 'apple_store',
+        state: 'signed-secret',
+        full_url: 'https://lutaai.com/install?state=signed-secret',
+        email: 'visitor@example.com',
+    }), {
+        surface: 'official_website',
+        page_path: '/global/zh-cn',
+        click_id: 'clk_opaque.01:restore',
+        utm_source: 'owned',
+        cta_target: 'apple_store',
+    })
+    assert.deepEqual(sanitizeWebsiteProperties({
+        page_path: '/install?state=secret',
+        click_id: 'bad click/id',
+        utm_campaign: 'a'.repeat(129),
+        placement: 'bad\nvalue',
+    }), {})
+})
+
+test('GA4 uses manual safe-path page views, explicit campaign fields and production gating', () => {
+    const gaConfig = buildGoogleAnalyticsConfig({
+        page_path: '/global/zh-cn',
+        utm_source: 'newsletter',
+        utm_medium: 'email',
+        utm_campaign: 'launch',
+        utm_term: 'sutra',
+        utm_content: 'hero',
+    }, {
+        origin: 'https://lutaai.com',
+        pathname: '/global/zh-cn',
+        search: '?state=signed-secret',
+    }, '汝塔')
+
+    assert.deepEqual(gaConfig, {
+        send_page_view: false,
+        page_location: 'https://lutaai.com/global/zh-cn',
+        page_path: '/global/zh-cn',
+        page_title: '汝塔',
+        campaign_source: 'newsletter',
+        campaign_medium: 'email',
+        campaign_name: 'launch',
+        campaign_term: 'sutra',
+        campaign_content: 'hero',
+    })
+    assert.equal(JSON.stringify(gaConfig).includes('signed-secret'), false)
+    assert.equal(shouldCaptureGoogleAnalytics({ traffic_purpose: 'production' }, 'lutaai.com'), true)
+    assert.equal(shouldCaptureGoogleAnalytics({ traffic_purpose: 'qa' }, 'lutaai.com'), false)
+    assert.equal(shouldCaptureGoogleAnalytics({ traffic_purpose: 'unknown' }, 'lutaai.com'), false)
+    assert.equal(shouldCaptureGoogleAnalytics({ traffic_purpose: 'production' }, 'localhost'), false)
+    assert.equal(shouldCaptureGoogleAnalytics({ traffic_purpose: 'production' }, 'localhost', true), true)
 })
 
 test('iPhone choices use user-facing edition language rather than account terminology', () => {
