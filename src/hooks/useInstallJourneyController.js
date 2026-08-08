@@ -287,21 +287,15 @@ export function useInstallJourneyController({
     const replaceVisibleUrl = useCallback(region => {
         onChoiceChange?.(region)
         if (surface === 'official_homepage') return
-        const continuationUrl = buildInstallContinuationUrl({
-            origin: window.location.origin,
-            state: stateToken,
-            legacySlug: legacyEntry?.legacySlug,
-            clickId: legacyEntry?.clickId,
-            choice: region,
-        })
-        if (!continuationUrl) return
-        const url = new URL(continuationUrl)
-        window.history.replaceState({}, '', `${url.pathname}${url.search}`)
+        const safeChoice = region === 'cn' || region === 'global'
+            ? `?choice=${encodeURIComponent(region)}`
+            : ''
+        // The signed state and legacy click tuple remain in memory/session only.
+        // A copy action can construct a continuation URL explicitly, but normal
+        // UI state must never put bearer identity back into browser history.
+        window.history.replaceState({}, '', `/install${safeChoice}`)
     }, [
-        legacyEntry?.clickId,
-        legacyEntry?.legacySlug,
         onChoiceChange,
-        stateToken,
         surface,
     ])
 

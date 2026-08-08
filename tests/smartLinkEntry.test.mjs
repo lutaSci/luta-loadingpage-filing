@@ -8,6 +8,7 @@ import {
     hasSmartLinkBearer,
     parseSmartLinkEntry,
     readSmartLinkEntrySession,
+    resolveSmartLinkCleanupLocation,
     updateSmartLinkEntryChoice,
 } from '../src/lib/smartLinkEntry.js'
 
@@ -81,4 +82,27 @@ test('detects every bearer-shaped URL before analytics bootstrap', () => {
     assert.equal(hasSmartLinkBearer('?state=signed'), true)
     assert.equal(hasSmartLinkBearer(`?legacy_slug=cn-store&click_id=${LEGACY_CLICK_ID}`), true)
     assert.equal(hasSmartLinkBearer('?utm_source=owned'), false)
+})
+
+test('cleans valid and malformed bearer URLs without restoring hidden identity', () => {
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=signed.state&choice=global',
+        homepageSurfaceEnabled: false,
+    }), '/install?choice=global')
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=signed.state&choice=global',
+        homepageSurfaceEnabled: true,
+    }), '/')
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=one&state=two&choice=global',
+        homepageSurfaceEnabled: true,
+    }), '/install')
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/privacy',
+        search: '?legacy_slug=bad&click_id=bad&utm_source=private',
+        hash: '#policy',
+    }), '/privacy#policy')
 })

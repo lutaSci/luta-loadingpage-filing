@@ -6,8 +6,8 @@ import { Colors } from '../design/colors'
 import { memo, useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { detectDevice, detectIsMainlandChina, detectIsWeChat } from '../lib/deviceDetection'
-import { trackEvent, trackWebsiteEvent } from '../lib/analytics'
-import { buildContinueUrl, buildVerifiedApkEntryUrl, getAttributionState, resolveRouteContext } from '../lib/attributionState'
+import { trackWebsiteEvent } from '../lib/analytics'
+import { buildContinueUrl, buildVerifiedApkEntryUrl, resolveRouteContext } from '../lib/attributionState'
 import WeChatMask from './WeChatMask'
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
@@ -169,7 +169,6 @@ const PcTabSwitcher = memo(({ activeTab, onTabChange, iosLabel, androidLabel }) 
             }`}
             onClick={() => {
                 onTabChange('ios')
-                trackEvent('pc_tab_switch', { tab: 'ios' })
             }}
         >
             <Apple className="w-3.5 h-3.5" />
@@ -183,7 +182,6 @@ const PcTabSwitcher = memo(({ activeTab, onTabChange, iosLabel, androidLabel }) 
             }`}
             onClick={() => {
                 onTabChange('android')
-                trackEvent('pc_tab_switch', { tab: 'android' })
             }}
         >
             <Smartphone className="w-3.5 h-3.5" />
@@ -283,12 +281,6 @@ const IOSGuide = memo(({
     }, [placement])
 
     const handleAppStoreClick = useCallback(() => {
-        const attrs = getAttributionState()
-        trackEvent('ios_appstore_click', {
-            click_id: attrs?.click_id,
-            utm_campaign: attrs?.utm_campaign,
-            content_id: attrs?.content_id,
-        })
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'apple_store',
             placement,
@@ -300,7 +292,6 @@ const IOSGuide = memo(({
     const handleBetaToggle = useCallback(() => {
         setShowBeta(prev => {
             const next = !prev
-            trackEvent('ios_beta_toggle', { expanded: next })
             if (next) {
                 trackWebsiteEvent('website_download_option_viewed', {
                     cta_target: 'testflight_beta',
@@ -312,12 +303,10 @@ const IOSGuide = memo(({
     }, [placement])
 
     const handleBetaStep1Click = useCallback(() => {
-        trackEvent('ios_beta_step1_click', { placement })
         setShowConfirm(true)
-    }, [placement])
+    }, [])
 
     const handleBetaStep1Confirm = useCallback(() => {
-        trackEvent('ios_beta_step1_confirm', { placement })
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'testflight_app',
             placement,
@@ -327,7 +316,6 @@ const IOSGuide = memo(({
     }, [placement])
 
     const handleBetaStep2Click = useCallback(() => {
-        trackEvent('ios_beta_step2_click', { placement })
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'testflight_beta',
             placement,
@@ -427,13 +415,6 @@ const AndroidGuideChina = memo(({ t, placement = 'mobile_android_china' }) => {
     }, [placement])
 
     const handleClick = useCallback(() => {
-        const attrs = getAttributionState()
-        trackEvent('android_download_click', {
-            source: 'apk',
-            click_id: attrs?.click_id,
-            utm_campaign: attrs?.utm_campaign,
-            content_id: attrs?.content_id,
-        })
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'apk',
             placement,
@@ -469,7 +450,6 @@ const WeChatGuide = memo(({ t, onShowMask, placement = 'mobile_android_wechat' }
             ctaText={t('wechatGuideCta')}
             ctaIcon={ExternalLinkIcon}
             onClick={() => {
-                trackEvent('wechat_guide_click')
                 trackWebsiteEvent('website_download_cta_clicked', {
                     cta_target: 'wechat_guide',
                     placement,
@@ -494,13 +474,6 @@ const AndroidGuideOverseas = memo(({ t, placement = 'mobile_android_overseas' })
     }, [placement])
 
     const handleClick = useCallback(() => {
-        const attrs = getAttributionState()
-        trackEvent('android_download_click', {
-            source: 'google_play',
-            click_id: attrs?.click_id,
-            utm_campaign: attrs?.utm_campaign,
-            content_id: attrs?.content_id,
-        })
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'google_play',
             placement,
@@ -542,7 +515,6 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const [showWeChatMask, setShowWeChatMask] = useState(needWeChatMask)
 
     const handleInstallDocClick = useCallback(() => {
-        trackEvent('install_doc_click')
         trackWebsiteEvent('website_download_cta_clicked', {
             cta_target: 'install_documentation',
             placement: 'download_help',

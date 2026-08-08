@@ -6,9 +6,23 @@ import {
     resolveRouteContext,
 } from './attributionState.js'
 import { detectDevice, detectIsMainlandChina } from './deviceDetection.js'
+import { hasSmartLinkBearer } from './smartLinkEntry.js'
 
-const GA_ID = 'G-5QE6T3L0LD'
+export const GOOGLE_ANALYTICS_ID = 'G-5QE6T3L0LD'
+export const GOOGLE_CTA_EVENT_NAME = 'website_download_cta_clicked'
+
 let posthogClientPromise = null
+let googleAnalyticsInitialized = false
+let lastPosthogPageViewSignature = null
+let lastGooglePageViewLocation = null
+let previousGooglePageLocation = null
+
+export const WEBSITE_EVENT_NAMES = Object.freeze([
+    'website_page_viewed',
+    'website_download_option_viewed',
+    GOOGLE_CTA_EVENT_NAME,
+])
+const WEBSITE_EVENT_NAME_SET = new Set(WEBSITE_EVENT_NAMES)
 
 export const INSTALL_WEB_EVENT_NAMES = Object.freeze([
     'install_gate_viewed',
@@ -18,6 +32,60 @@ export const INSTALL_WEB_EVENT_NAMES = Object.freeze([
 const INSTALL_EVENT_NAMES = new Set(INSTALL_WEB_EVENT_NAMES)
 // deep_link_handled is part of the approved dictionary but is emitted only by
 // the mobile client after it receives and resolves the link.
+
+const TRAFFIC_PURPOSES = new Set([
+    'production',
+    'qa',
+    'smoke',
+    'internal',
+    'development',
+    'unknown',
+])
+const ENTRY_TYPES = new Set(['direct', 'direct_utm', 'shortlink'])
+const ROUTE_MARKETS = new Set(['cn', 'global', 'unknown'])
+const ROUTE_MARKET_SOURCES = new Set([
+    'slug',
+    'attribution_param',
+    'legacy_slug_map',
+    'heuristic',
+    'smart_link_context',
+    'unknown',
+])
+const DEVICE_OS_VALUES = new Set([
+    'ios',
+    'android',
+    'harmonyos',
+    'harmonyos_next',
+    'desktop',
+    'unknown',
+])
+const TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/
+const CAMPAIGN_TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._~+:/-]*$/
+
+const WEBSITE_PROPERTY_KEYS = new Set([
+    'surface',
+    'page_path',
+    'entry_type',
+    'route_market',
+    'route_market_source',
+    'traffic_purpose',
+    'device_os',
+    'locale',
+    'slug',
+    'click_id',
+    'link_id',
+    'option_id',
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+    'content_id',
+    'operator',
+    'acquisition_platform',
+    'cta_target',
+    'placement',
+])
 
 const INSTALL_PROPERTY_KEYS = new Set([
     'surface',
@@ -47,9 +115,293 @@ const INSTALL_PROPERTY_KEYS = new Set([
     'click_id',
 ])
 
+function normalizeEnum(value, allowed, fallback = 'unknown') {
+    return typeof value === 'string' && allowed.has(value) ? value : fallback
+}
+
+function sanitizeText(value, maxLength) {
+    if (typeof value !== 'string' && typeof value !== 'number') return null
+    const normalized = String(value).trim()
+    if (!normalized || normalized.length > maxLength) return null
+    if (Array.from(normalized).some(character => {
+        const codePoint = character.codePointAt(0)
+        return codePoint <= 31 || codePoint === 127
+    })) return null
+    return normalized
+}
+
+function sanitizeToken(value, maxLength = 128) {
+    const normalized = sanitizeText(value, maxLength)
+    return normalized && TOKEN_RE.test(normalized) ? normalized : null
+}
+
+function containsLikelyPersonalData(value) {
+    return /@/.test(value)
+        || /(?:^|\D)(?:\+?\d[\s().-]*){7,}(?:$|\D)/.test(value)
+}
+
+export function sanitizeGoogleCampaignValue(value) {
+    const normalized = sanitizeText(value, 100)
+    if (
+        !normalized
+        || !CAMPAIGN_TOKEN_RE.test(normalized)
+        || containsLikelyPersonalData(normalized)
+    ) return null
+    return normalized
+}
+
+function sanitizePagePath(value) {
+    const normalized = sanitizeText(value, 256)
+    if (!normalized || !normalized.startsWith('/')) return '/'
+    return normalized.split(/[?#]/, 1)[0] || '/'
+}
+
+function sanitizeLocale(value) {
+    const normalized = sanitizeText(value, 32)
+    return normalized && /^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/.test(normalized)
+        ? normalized
+        : 'unknown'
+}
+
+function sanitizeApprovedWebsiteValue(key, value) {
+    if (key === 'surface') return value === 'official_website' ? value : null
+    if (key === 'page_path') return sanitizePagePath(value)
+    if (key === 'entry_type') return normalizeEnum(value, ENTRY_TYPES)
+    if (key === 'route_market') return normalizeEnum(value, ROUTE_MARKETS)
+    if (key === 'route_market_source') return normalizeEnum(value, ROUTE_MARKET_SOURCES)
+    if (key === 'traffic_purpose') return normalizeEnum(value, TRAFFIC_PURPOSES)
+    if (key === 'device_os') return normalizeEnum(value, DEVICE_OS_VALUES)
+    if (key === 'locale') return sanitizeLocale(value)
+    if (key === 'slug') return sanitizeToken(value, 80)
+    if (['click_id', 'link_id', 'option_id'].includes(key)) return sanitizeToken(value, 128)
+    if (['cta_target', 'placement', 'acquisition_platform'].includes(key)) {
+        return sanitizeToken(value, 80)
+    }
+    if (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].includes(key)) {
+        const normalized = sanitizeText(value, 128)
+        return normalized && !containsLikelyPersonalData(normalized) ? normalized : null
+    }
+    if (['content_id', 'operator'].includes(key)) {
+        const normalized = sanitizeText(value, 128)
+        return normalized && !containsLikelyPersonalData(normalized) ? normalized : null
+    }
+    return null
+}
+
+export function sanitizeWebsiteProperties(params) {
+    const safe = {}
+    for (const [key, value] of Object.entries(params || {})) {
+        if (!WEBSITE_PROPERTY_KEYS.has(key)) continue
+        const normalized = sanitizeApprovedWebsiteValue(key, value)
+        if (normalized !== null) safe[key] = normalized
+    }
+    return safe
+}
+
+export function sanitizeInstallProperties(params) {
+    const safe = {}
+    Object.entries(params || {}).forEach(([key, value]) => {
+        if (!INSTALL_PROPERTY_KEYS.has(key)) return
+        if (['artifact_id', 'click_id', 'link_id', 'option_id'].includes(key)) {
+            const normalized = sanitizeToken(value, 128)
+            if (normalized) safe[key] = normalized
+            return
+        }
+        if (key === 'traffic_purpose') {
+            safe[key] = normalizeEnum(value, TRAFFIC_PURPOSES)
+            return
+        }
+        if (key === 'page_path') {
+            safe[key] = sanitizePagePath(value)
+            return
+        }
+        if (key === 'locale') {
+            safe[key] = sanitizeLocale(value)
+            return
+        }
+        if (typeof value === 'boolean' || typeof value === 'number') {
+            safe[key] = value
+            return
+        }
+        const normalized = sanitizeText(value, 160)
+        if (normalized && !containsLikelyPersonalData(normalized)) safe[key] = normalized
+    })
+    return safe
+}
+
+function isLocalHostname(hostname) {
+    return ['localhost', '127.0.0.1', '::1', '[::1]'].includes(hostname)
+}
+
+function safePageLocation(pagePath, runtimeWindow = globalThis.window) {
+    if (!runtimeWindow?.location) return null
+    return `${runtimeWindow.location.origin}${sanitizePagePath(pagePath)}`
+}
+
+function safeReferrer(value) {
+    if (!value) return null
+    try {
+        const url = new URL(value)
+        if (!['http:', 'https:'].includes(url.protocol)) return null
+        return `${url.origin}${url.pathname}`
+    } catch {
+        return null
+    }
+}
+
+function safeUrlProperty(value) {
+    if (!value || value === '$direct') return value || null
+    try {
+        const url = new URL(value)
+        if (!['http:', 'https:'].includes(url.protocol)) return null
+        return `${url.origin}${url.pathname}`
+    } catch {
+        return null
+    }
+}
+
+const POSTHOG_URL_PROPERTIES = new Set([
+    '$current_url',
+    '$initial_current_url',
+    '$referrer',
+    '$initial_referrer',
+    '$session_entry_url',
+    '$session_entry_referrer',
+])
+
+const POSTHOG_CAMPAIGN_PROPERTY_RE = /^(?:\$initial_|\$session_entry_)?utm_(?:source|medium|campaign|content|term)$/
+const POSTHOG_SENSITIVE_ATTRIBUTION_RE = /^(?:\$initial_|\$session_entry_)?(?:state|legacy_slug|invite_code|gclid|dclid|fbclid|msclkid|ttclid|twclid|li_fat_id)$/i
+
+export function sanitizePosthogCapture(data) {
+    if (!data?.properties || typeof data.properties !== 'object') return data
+
+    const properties = { ...data.properties }
+    for (const [key, value] of Object.entries(properties)) {
+        if (POSTHOG_URL_PROPERTIES.has(key)) {
+            const safe = safeUrlProperty(value)
+            if (safe) properties[key] = safe
+            else delete properties[key]
+            continue
+        }
+        if (POSTHOG_CAMPAIGN_PROPERTY_RE.test(key)) {
+            const safe = sanitizeText(value, 128)
+            if (safe && !containsLikelyPersonalData(safe)) properties[key] = safe
+            else delete properties[key]
+            continue
+        }
+        if (POSTHOG_SENSITIVE_ATTRIBUTION_RE.test(key)) delete properties[key]
+    }
+
+    return { ...data, properties }
+}
+
+function hasAnalyticsBearer(runtimeWindow = globalThis.window) {
+    return Boolean(runtimeWindow?.location && hasSmartLinkBearer(runtimeWindow.location.search))
+}
+
+export function shouldCaptureGoogleAnalytics(
+    properties,
+    runtimeWindow = globalThis.window,
+) {
+    if (!runtimeWindow?.location || runtimeWindow.location.protocol !== 'https:') return false
+    if (!['lutaai.com', 'www.lutaai.com'].includes(runtimeWindow.location.hostname)) return false
+    if (hasAnalyticsBearer(runtimeWindow)) return false
+    return properties?.traffic_purpose === 'production'
+}
+
+export function buildGooglePageViewPayload(
+    properties,
+    {
+        documentTitle = globalThis.document?.title || '',
+        documentReferrer = globalThis.document?.referrer || '',
+        previousPageLocation = null,
+        runtimeWindow = globalThis.window,
+    } = {},
+) {
+    const safe = sanitizeWebsiteProperties(properties)
+    const pageLocation = safePageLocation(safe.page_path, runtimeWindow)
+    if (!pageLocation) return null
+
+    const payload = {
+        send_to: GOOGLE_ANALYTICS_ID,
+        page_location: pageLocation,
+        page_title: sanitizeText(documentTitle, 300) || pageLocation,
+    }
+    const referrer = safeReferrer(previousPageLocation || documentReferrer)
+    if (referrer && referrer !== pageLocation) payload.page_referrer = referrer
+
+    const campaignFields = {
+        campaign_source: safe.utm_source,
+        campaign_medium: safe.utm_medium,
+        campaign_name: safe.utm_campaign,
+        campaign_content: safe.utm_content,
+        campaign_term: safe.utm_term,
+    }
+    for (const [key, value] of Object.entries(campaignFields)) {
+        const normalized = sanitizeGoogleCampaignValue(value)
+        if (normalized) payload[key] = normalized
+    }
+    return payload
+}
+
+export function buildGoogleCtaPayload(
+    properties,
+    { runtimeWindow = globalThis.window } = {},
+) {
+    const safe = sanitizeWebsiteProperties(properties)
+    const payload = { send_to: GOOGLE_ANALYTICS_ID }
+    const pageLocation = safePageLocation(safe.page_path, runtimeWindow)
+    if (pageLocation) payload.page_location = pageLocation
+    for (const key of [
+        'cta_target',
+        'placement',
+        'entry_type',
+        'route_market',
+        'device_os',
+        'locale',
+        'page_path',
+    ]) {
+        if (safe[key] !== undefined) payload[key] = safe[key]
+    }
+    return payload
+}
+
+function initializeGoogleAnalytics(properties) {
+    if (!shouldCaptureGoogleAnalytics(properties)) return false
+    if (googleAnalyticsInitialized) return true
+
+    window.dataLayer = window.dataLayer || []
+    window.gtag = window.gtag || function gtag() {
+        window.dataLayer.push(arguments)
+    }
+    window.gtag('consent', 'default', {
+        ad_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+    })
+    window.gtag('js', new Date())
+    const pageLocation = safePageLocation(properties.page_path)
+    const pageReferrer = safeReferrer(document.referrer)
+    window.gtag('config', GOOGLE_ANALYTICS_ID, {
+        allow_ad_personalization_signals: false,
+        allow_google_signals: false,
+        ...(pageLocation ? { page_location: pageLocation } : {}),
+        ...(pageReferrer ? { page_referrer: pageReferrer } : {}),
+        send_page_view: false,
+    })
+
+    const script = document.createElement('script')
+    script.async = true
+    script.dataset.lutaAnalyticsProvider = 'google'
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ANALYTICS_ID}`
+    document.head.appendChild(script)
+    googleAnalyticsInitialized = true
+    return true
+}
+
 export const initializeAnalytics = () => {
-    if (typeof window === 'undefined') return Promise.resolve(null)
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    if (typeof window === 'undefined' || hasAnalyticsBearer(window)) return Promise.resolve(null)
+    const isLocal = isLocalHostname(window.location.hostname)
     if (!config.analytics.posthogKey || (isLocal && !config.analytics.captureDevelopment)) {
         return Promise.resolve(null)
     }
@@ -62,6 +414,7 @@ export const initializeAnalytics = () => {
                 autocapture: false,
                 capture_pageview: false,
                 capture_pageleave: false,
+                before_send: sanitizePosthogCapture,
                 // This surface only emits explicit capture calls. Keep optional
                 // PostHog features from loading remote config or dependencies so
                 // analytics outages never leak browser-console errors into the
@@ -73,8 +426,13 @@ export const initializeAnalytics = () => {
                 disable_session_recording: true,
                 person_profiles: 'identified_only',
                 persistence: 'localStorage+cookie',
+                save_campaign_params: false,
+                save_referrer: false,
             })
             return posthog
+        }).catch(() => {
+            posthogClientPromise = null
+            return null
         })
     }
     return posthogClientPromise
@@ -93,7 +451,7 @@ function websiteContext() {
     const route = resolveRouteContext(detectIsMainlandChina())
     const device = detectDevice()
 
-    return {
+    return sanitizeWebsiteProperties({
         surface: 'official_website',
         page_path: window.location.pathname,
         entry_type: getAttributionEntryType(),
@@ -108,52 +466,76 @@ function websiteContext() {
         utm_medium: attribution?.utm_medium,
         utm_campaign: attribution?.utm_campaign,
         utm_content: attribution?.utm_content,
+        utm_term: attribution?.utm_term,
         content_id: attribution?.content_id,
         operator: attribution?.operator,
         acquisition_platform: attribution?.platform,
-    }
+    })
 }
 
-export const trackEvent = (eventName, params = {}) => {
-    if (typeof window.gtag === 'function') {
-        window.gtag('event', eventName, {
-            send_to: GA_ID,
-            ...params,
-        })
-    }
+function capturePosthogEvent(eventName, properties) {
+    if (hasAnalyticsBearer(window)) return false
+    const pageLocation = safePageLocation(properties.page_path)
+    initializeAnalytics()
+        .then(posthog => posthog?.capture(eventName, {
+            ...properties,
+            // PostHog adds the current URL automatically. Override it with a
+            // canonical path so query parameters never enter the payload.
+            ...(pageLocation ? { $current_url: pageLocation } : {}),
+        }))
+        .catch(() => {})
+    return true
+}
+
+function trackGooglePageView(properties) {
+    if (!shouldCaptureGoogleAnalytics(properties)) return false
+    const payload = buildGooglePageViewPayload(properties, {
+        previousPageLocation: previousGooglePageLocation,
+    })
+    if (!payload || payload.page_location === lastGooglePageViewLocation) return false
+    if (!initializeGoogleAnalytics(properties)) return false
+    window.gtag('event', 'page_view', payload)
+    previousGooglePageLocation = payload.page_location
+    lastGooglePageViewLocation = payload.page_location
+    return true
+}
+
+function trackGoogleCta(properties) {
+    if (!shouldCaptureGoogleAnalytics(properties)) return false
+    if (!initializeGoogleAnalytics(properties)) return false
+    window.gtag('event', GOOGLE_CTA_EVENT_NAME, buildGoogleCtaPayload(properties))
+    return true
 }
 
 export const trackWebsiteEvent = (eventName, params = {}) => {
-    const properties = {
+    if (!WEBSITE_EVENT_NAME_SET.has(eventName) || typeof window === 'undefined') return false
+    const properties = sanitizeWebsiteProperties({
         ...websiteContext(),
         ...params,
-    }
-    initializeAnalytics()
-        .then(posthog => posthog?.capture(eventName, properties))
-        .catch(() => {})
+    })
+    const captured = capturePosthogEvent(eventName, properties)
+    if (eventName === GOOGLE_CTA_EVENT_NAME) trackGoogleCta(properties)
+    return captured
 }
 
 export const trackWebsitePageView = (params = {}) => {
-    trackWebsiteEvent('website_page_viewed', params)
-}
-
-export function sanitizeInstallProperties(params) {
-    const safe = {}
-    Object.entries(params || {}).forEach(([key, value]) => {
-        if (!INSTALL_PROPERTY_KEYS.has(key)) return
-        if (key === 'click_id') {
-            if (typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) {
-                safe[key] = value
-            }
-            return
-        }
-        if (typeof value === 'boolean' || typeof value === 'number') {
-            safe[key] = value
-            return
-        }
-        if (typeof value === 'string' && value.length <= 160) safe[key] = value
+    if (typeof window === 'undefined' || hasAnalyticsBearer(window)) return false
+    const properties = sanitizeWebsiteProperties({
+        ...websiteContext(),
+        ...params,
     })
-    return safe
+    const signature = [
+        properties.page_path,
+        properties.locale,
+        properties.entry_type,
+        properties.click_id || '',
+    ].join(':')
+    if (signature === lastPosthogPageViewSignature) return false
+
+    const captured = capturePosthogEvent('website_page_viewed', properties)
+    if (captured) lastPosthogPageViewSignature = signature
+    trackGooglePageView(properties)
+    return captured
 }
 
 /**
@@ -161,7 +543,11 @@ export function sanitizeInstallProperties(params) {
  * Signed state, full URLs, UTM free text and user-entered data are never sent.
  */
 export const trackInstallEvent = (eventName, params = {}) => {
-    if (!INSTALL_EVENT_NAMES.has(eventName)) return
+    if (
+        !INSTALL_EVENT_NAMES.has(eventName)
+        || typeof window === 'undefined'
+        || hasAnalyticsBearer(window)
+    ) return false
     const device = detectDevice()
     const properties = sanitizeInstallProperties({
         surface: 'install_gate',
@@ -178,8 +564,13 @@ export const trackInstallEvent = (eventName, params = {}) => {
         locale: navigator.language || 'unknown',
         ...params,
     })
+    const pageLocation = safePageLocation(properties.page_path)
 
     initializeAnalytics()
-        .then(posthog => posthog?.capture(eventName, properties))
+        .then(posthog => posthog?.capture(eventName, {
+            ...properties,
+            ...(pageLocation ? { $current_url: pageLocation } : {}),
+        }))
         .catch(() => {})
+    return true
 }

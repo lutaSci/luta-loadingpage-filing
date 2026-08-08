@@ -8,7 +8,10 @@ import {
     hasExplicitTestflightParam,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
+    persistTestflightExpansion,
+    readTestflightExpansion,
     resolveMarketingDevice,
+    TESTFLIGHT_EXPANSION_SESSION_KEY,
 } from '../src/lib/marketingStoreActions.js'
 import { resolveWebsiteDeviceOs } from '../src/lib/analytics.js'
 
@@ -192,6 +195,25 @@ test('expanded TestFlight state preserves other route parameters and supports re
     )
 })
 
+test('interactive TestFlight expansion persists per path without changing browser history', () => {
+    const values = new Map()
+    const storage = {
+        getItem: key => values.get(key) || null,
+        setItem: (key, value) => values.set(key, String(value)),
+    }
+
+    persistTestflightExpansion('/global/zh-cn', true, storage)
+    assert.equal(readTestflightExpansion('/global/zh-cn', storage), true)
+    assert.equal(readTestflightExpansion('/global/en', storage), false)
+    assert.deepEqual(JSON.parse(values.get(TESTFLIGHT_EXPANSION_SESSION_KEY)), {
+        pathname: '/global/zh-cn',
+        expanded: true,
+    })
+
+    persistTestflightExpansion('/global/zh-cn', false, storage)
+    assert.equal(readTestflightExpansion('/global/zh-cn', storage), false)
+})
+
 test('store action states expose only the normalized rendering contract', () => {
     const [state] = getMarketingStoreActionStates({ ...base, market: 'global' })
     assert.deepEqual(Object.keys(state), [
@@ -351,19 +373,22 @@ test('hero and final CTA share one controlled desktop platform tab', async () =>
     assert.equal(source.match(/onDesktopTabChange: setDesktopTab/g)?.length, 2)
 })
 
-test('hero and final CTA share one recoverable TestFlight expansion state', async () => {
+test('hero and final CTA share TestFlight state without manufacturing page history', async () => {
     const source = await readFile(
         new URL('../src/pages/MarketingLanding.jsx', import.meta.url),
         'utf8',
     )
 
     assert.match(source, /hasExplicitTestflightParam\(window\.location\.search\)/)
-    assert.match(source, /buildTestflightExpansionUrl\(window\.location\.href, testflightExpanded\)/)
+    assert.match(source, /readTestflightExpansion\(window\.location\.pathname\)/)
+    assert.match(source, /persistTestflightExpansion\(window\.location\.pathname, testflightExpanded\)/)
+    assert.doesNotMatch(source, /buildTestflightExpansionUrl\(window\.location\.href, testflightExpanded\)/)
+    assert.doesNotMatch(source, /history\.replaceState/)
     assert.equal(source.match(/onTestflightExpandedChange: setTestflightExpanded/g)?.length, 2)
     assert.equal(source.match(/\n\s+testflightExpanded,\n/g)?.length, 2)
 })
 
-test('desktop platform analytics ignore repeated activation of the selected tab', async () => {
+test('desktop platform state ignores repeated activation of the selected tab', async () => {
     const source = await readFile(
         new URL('../src/components/marketing/useStoreActionAdapter.js', import.meta.url),
         'utf8',
