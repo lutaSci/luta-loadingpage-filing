@@ -177,3 +177,25 @@ export function hasSmartLinkBearer(search = '') {
         return false
     }
 }
+
+export function resolveSmartLinkCleanupLocation({
+    pathname,
+    search = '',
+    hash = '',
+    homepageSurfaceEnabled = false,
+}) {
+    if (!hasSmartLinkBearer(search) || typeof pathname !== 'string') return null
+
+    const inbound = parseSmartLinkEntry(search)
+    if (pathname === '/install') {
+        const usesHomepageSurface = homepageSurfaceEnabled && Boolean(inbound)
+        const safeChoice = !usesHomepageSurface && inbound?.choice
+            ? `?choice=${encodeURIComponent(inbound.choice)}`
+            : ''
+        return `${usesHomepageSurface ? '/' : '/install'}${safeChoice}${hash}`
+    }
+
+    // Bearer-shaped query parameters are never retained on non-install routes,
+    // even when malformed or when the homepage bridge is disabled.
+    return `${pathname}${hash}`
+}

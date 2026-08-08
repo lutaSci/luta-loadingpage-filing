@@ -53,7 +53,9 @@ test('install compatibility route keeps the legacy page behind an opt-in homepag
     assert.match(route, /usesHomepageSurface \? <RootHomepage \/> : <Install \/>/)
     assert.match(config, /VITE_SMART_LINK_HOMEPAGE_SURFACE === 'true'/)
     assert.match(provider, /location\.pathname === '\/install'/)
-    assert.match(provider, /navigate\(`\/\$\{location\.hash \|\| ''\}`,\s*\{ replace: true \}\)/)
+    assert.match(provider, /resolveSmartLinkCleanupLocation/)
+    assert.match(provider, /if \(safeLocation\) navigate\(safeLocation, \{ replace: true \}\)/)
+    assert.match(provider, /safelyCaptureEntry\(window\.location\.search, true\)/)
     assert.match(provider, /hasSmartLinkBearer\(location\.search\)/)
 })
 

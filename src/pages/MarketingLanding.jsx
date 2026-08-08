@@ -10,11 +10,11 @@ import { useStoreActionAdapter } from '../components/marketing/useStoreActionAda
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
-import { trackWebsitePageView } from '../lib/analytics.js'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
 import {
-    buildTestflightExpansionUrl,
     hasExplicitTestflightParam,
+    persistTestflightExpansion,
+    readTestflightExpansion,
 } from '../lib/marketingStoreActions.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
@@ -83,7 +83,10 @@ export default function MarketingLanding({ locale }) {
     const [desktopTab, setDesktopTab] = useState('ios')
     const [testflightExpanded, setTestflightExpanded] = useState(
         () => typeof window !== 'undefined'
-            && hasExplicitTestflightParam(window.location.search),
+            && (
+                hasExplicitTestflightParam(window.location.search)
+                || readTestflightExpansion(window.location.pathname)
+            ),
     )
     const heroStore = useStoreActionAdapter({
         locale: content.locale,
@@ -103,12 +106,8 @@ export default function MarketingLanding({ locale }) {
     })
 
     useEffect(() => {
-        if (usesHomepageSurface || typeof window === 'undefined') return
-        const nextUrl = buildTestflightExpansionUrl(window.location.href, testflightExpanded)
-        const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`
-        if (nextUrl === currentUrl) return
-        window.history.replaceState(window.history.state, '', nextUrl)
-    }, [testflightExpanded, usesHomepageSurface])
+        persistTestflightExpansion(window.location.pathname, testflightExpanded)
+    }, [testflightExpanded])
 
     useEffect(() => {
         changeLanguage(content.languageKey)
@@ -125,26 +124,6 @@ export default function MarketingLanding({ locale }) {
             document.documentElement.style.scrollBehavior = previousScrollBehavior
         }
     }, [content])
-
-    useEffect(() => {
-        if (usesHomepageSurface && controller.loadStatus === 'loading') return
-        trackWebsitePageView({
-            locale: content.locale,
-            ...(usesHomepageSurface ? {
-                click_id: controller.installContext?.clickId,
-                entry_type: 'shortlink',
-                link_id: controller.installContext?.linkId,
-                route_market: controller.installContext?.campaignTargetMarket || 'unknown',
-                route_market_source: 'smart_link_context',
-                traffic_purpose: controller.installContext?.trafficPurpose || 'unknown',
-            } : {}),
-        })
-    }, [
-        content.locale,
-        controller.installContext,
-        controller.loadStatus,
-        usesHomepageSurface,
-    ])
 
     const heroSmartLinkActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup

@@ -19,6 +19,42 @@ export const MARKETING_CTA_TARGETS = Object.freeze({
     [MARKETING_ACTION_KEYS.INSTALL_DOCUMENTATION]: 'install_documentation',
 })
 
+export const TESTFLIGHT_EXPANSION_SESSION_KEY = 'luta-testflight-expansion-v1'
+
+function defaultSessionStorage() {
+    try {
+        return globalThis.sessionStorage || null
+    } catch {
+        return null
+    }
+}
+
+export function readTestflightExpansion(pathname, storage = defaultSessionStorage()) {
+    if (!storage || typeof pathname !== 'string') return false
+    try {
+        const saved = JSON.parse(storage.getItem(TESTFLIGHT_EXPANSION_SESSION_KEY) || 'null')
+        return saved?.pathname === pathname && saved?.expanded === true
+    } catch {
+        return false
+    }
+}
+
+export function persistTestflightExpansion(
+    pathname,
+    expanded,
+    storage = defaultSessionStorage(),
+) {
+    if (!storage || typeof pathname !== 'string') return
+    try {
+        storage.setItem(TESTFLIGHT_EXPANSION_SESSION_KEY, JSON.stringify({
+            pathname,
+            expanded: expanded === true,
+        }))
+    } catch {
+        // Presentation continuity is optional when private storage is unavailable.
+    }
+}
+
 export function resolveMarketingDevice(device) {
     if (device?.isHarmonyOSNext) return 'harmonyos_next'
     if (device?.isIOS) return 'ios'

@@ -52,11 +52,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="汝塔APP" />
     
-    <!-- Google Analytics -->
+    <!-- Smart Link privacy bootstrap (first-party only). -->
     <script>
-      // Smart Link journeys are measured by strict first-party allowlists.
-      // Do not load GA before React removes bearer state from the visible URL:
-      // enhanced measurement can observe History API changes and reconstruct it.
+      // Third-party analytics is initialized by the React analytics boundary
+      // only after bearer state has been removed from the visible URL.
       const smartLinkParams = new URLSearchParams(window.location.search);
       const hasSmartLinkBearer = smartLinkParams.has('state')
         || smartLinkParams.has('legacy_slug')
@@ -78,20 +77,6 @@
         robots.name = 'robots';
         robots.content = 'noindex,nofollow';
         document.head.appendChild(robots);
-      }
-
-      if (!isSmartLinkJourney) {
-        const gaScript = document.createElement('script');
-        gaScript.async = true;
-        gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-5QE6T3L0LD';
-        document.head.appendChild(gaScript);
-        window.dataLayer = window.dataLayer || [];
-        window.gtag = function(){window.dataLayer.push(arguments);};
-        window.gtag('js', new Date());
-        window.gtag('config', 'G-5QE6T3L0LD', {
-          page_location: window.location.origin + window.location.pathname,
-          page_path: window.location.pathname
-        });
       }
     </script>
   </head>

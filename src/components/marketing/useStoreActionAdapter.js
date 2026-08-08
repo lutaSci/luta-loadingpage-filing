@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { config } from '../../config/index.js'
-import { trackEvent, trackWebsiteEvent } from '../../lib/analytics.js'
+import { trackWebsiteEvent } from '../../lib/analytics.js'
 import {
     buildContinueUrl,
     buildVerifiedApkEntryUrl,
-    getAttributionState,
     resolveRouteContext,
 } from '../../lib/attributionState.js'
 import {
@@ -116,15 +115,8 @@ export function useStoreActionAdapter({
         const state = states.find(candidate => candidate.actionKey === actionKey)
         if (!state || ['disabled', 'loading'].includes(state.status)) return
 
-        const attrs = getAttributionState()
-
         switch (actionKey) {
         case MARKETING_ACTION_KEYS.APPLE_STORE:
-            trackEvent('ios_appstore_click', {
-                click_id: attrs?.click_id,
-                utm_campaign: attrs?.utm_campaign,
-                content_id: attrs?.content_id,
-            })
             trackCta(state)
             openExternal(
                 buildContinueUrl('apple', placement)
@@ -134,50 +126,33 @@ export function useStoreActionAdapter({
             )
             break
         case MARKETING_ACTION_KEYS.GOOGLE_PLAY:
-            trackEvent('android_download_click', {
-                source: 'google_play',
-                click_id: attrs?.click_id,
-                utm_campaign: attrs?.utm_campaign,
-                content_id: attrs?.content_id,
-            })
             trackCta(state)
             openExternal(buildContinueUrl('google', placement) || config.downloads.googlePlay)
             break
         case MARKETING_ACTION_KEYS.VERIFIED_APK:
             if (!apkEntryUrl) return
-            trackEvent('android_download_click', {
-                source: 'apk',
-                click_id: attrs?.click_id,
-                utm_campaign: attrs?.utm_campaign,
-                content_id: attrs?.content_id,
-            })
             trackCta(state)
             openExternal(apkEntryUrl)
             break
         case MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT:
             {
                 const nextExpanded = !testflightExpanded
-                trackEvent('ios_beta_toggle', { expanded: nextExpanded })
                 changeTestflightExpanded(nextExpanded)
             }
             break
         case MARKETING_ACTION_KEYS.TESTFLIGHT_APP:
-            trackEvent('ios_beta_step1_click', { placement })
             setTestflightConfirmVisible(true)
             break
         case MARKETING_ACTION_KEYS.TESTFLIGHT_BETA:
-            trackEvent('ios_beta_step2_click', { placement })
             trackCta(state)
             window.location.href = buildContinueUrl('testflight_beta', placement)
                 || config.downloads.iosTestFlight
             break
         case MARKETING_ACTION_KEYS.WECHAT_GUIDE:
-            trackEvent('wechat_guide_click')
             trackCta(state)
             setWechatGuideVisible(true)
             break
         case MARKETING_ACTION_KEYS.INSTALL_DOCUMENTATION:
-            trackEvent('install_doc_click')
             trackCta(state)
             openExternal(config.downloads.installDoc)
             break
@@ -198,22 +173,19 @@ export function useStoreActionAdapter({
             candidate => candidate.actionKey === MARKETING_ACTION_KEYS.TESTFLIGHT_APP,
         )
         if (!state) return
-        trackEvent('ios_beta_step1_confirm', { placement })
         trackCta(state)
         setTestflightConfirmVisible(false)
         openExternal(config.downloads.testFlightAppStore)
-    }, [placement, states, trackCta])
+    }, [states, trackCta])
 
     const changeDesktopTab = useCallback((nextTab) => {
         if (!['ios', 'android'].includes(nextTab)) return
         if (nextTab === desktopTab) return
         if (controlledDesktopTab === undefined) setInternalDesktopTab(nextTab)
         onDesktopTabChange?.(nextTab)
-        trackEvent('pc_tab_switch', { tab: nextTab })
     }, [controlledDesktopTab, desktopTab, onDesktopTabChange])
 
     const openSupport = useCallback(() => {
-        trackEvent('install_doc_click')
         trackWebsiteEvent('website_download_cta_clicked', {
             locale,
             cta_target: 'install_documentation',
