@@ -4,48 +4,102 @@
 # and unrelated paths stay on luta-app so this route does not silently migrate
 # the rest of the historical download namespace.
 download.lutaai.com {
-  encode gzip zstd
+	encode gzip zstd
 
-  header {
-    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    X-Content-Type-Options "nosniff"
-    X-Frame-Options "DENY"
-    Referrer-Policy "strict-origin-when-cross-origin"
-    Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
-  }
+	# Reduce bot noise without retaining the user-agent itself.
+	map {header.User-Agent} {known_bot} {
+		~(?i)(bot|spider|crawler|headless|preview|fetcher) true
+		default false
+	}
 
-  @private_android_rollback path /releases/android/china/_rollback/*
-  handle @private_android_rollback {
-    respond 404
-  }
+	# Only qualified tokenized APK requests enter this privacy-minimized log.
+	# The host must persist /var/log/caddy outside the container. Status, size
+	# and duration are Caddy standard fields; request identity is discarded.
+	log apk_delivery {
+		no_hostname
+		output file /var/log/caddy/apk-delivery.json {
+			mode 0600
+			roll_size 50mb
+			roll_keep 35
+			roll_keep_for 840h
+		}
+		format filter {
+			wrap json
+			request>headers delete
+			request>remote_ip delete
+			request>client_ip delete
+			request>uri delete
+		}
+	}
 
-  @immutable_china_android path /releases/android/china/*
-  handle @immutable_china_android {
-    # Reach the OSS endpoint directly while keeping the bound custom Host.
-    # Going through static.lutaai.co here would cross its Cloudflare cache,
-    # where a pre-upload NoSuchKey response can otherwise outlive the upload.
-    reverse_proxy https://luta-public.oss-cn-beijing.aliyuncs.com {
-      header_up Host static.lutaai.co
-      # download.lutaai.com is the user-facing handoff. Do not let browsers
-      # retain an upstream error. The release script still stages the catalog
-      # only after exact size + SHA public-readiness checks succeed.
-      header_down Cache-Control "no-store, max-age=0"
-      header_down -Age
-      header_down -Expires
-      transport http {
-        tls_server_name luta-public.oss-cn-beijing.aliyuncs.com
-      }
-    }
-  }
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "accelerometer=(), autoplay=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+	}
 
-  handle {
-    reverse_proxy https://luta-app.oss-cn-beijing.aliyuncs.com {
-      header_up Host download.lutaai.com
-      transport http {
-        tls_server_name luta-app.oss-cn-beijing.aliyuncs.com
-      }
-    }
-  }
+	@private_android_rollback path /releases/android/china/_rollback/*
+	handle @private_android_rollback {
+		respond 404
+	}
 
-  tls {$ACME_EMAIL}
+	@qualified_apk_delivery path_regexp qualified_apk_delivery ^/dl/(?P<traffic_purpose>production|qa|smoke|internal|development)/(?P<download_id>dl_[0-9a-f]{32})/(?P<artifact_size_bytes>[1-9][0-9]*)(?P<object_path>/releases/android/china/(?P<version_build>[A-Za-z0-9._+-]+)/(?P<artifact_id>[0-9a-f]{64})\.apk)$
+	handle @qualified_apk_delivery {
+		log_name apk_delivery
+		log_append <traffic_purpose {re.qualified_apk_delivery.traffic_purpose}
+		log_append <download_id {re.qualified_apk_delivery.download_id}
+		log_append <artifact_id {re.qualified_apk_delivery.artifact_id}
+		log_append <artifact_size_bytes {re.qualified_apk_delivery.artifact_size_bytes}
+		log_append <version_build {re.qualified_apk_delivery.version_build}
+		log_append <range_header {http.request.header.Range}
+		log_append <known_bot {known_bot}
+		rewrite {re.qualified_apk_delivery.object_path}
+		reverse_proxy https://luta-public.oss-cn-beijing.aliyuncs.com {
+			header_up Host static.lutaai.co
+			header_down Cache-Control "no-store, max-age=0"
+			header_down -Age
+			header_down -Expires
+			transport http {
+				tls_server_name luta-public.oss-cn-beijing.aliyuncs.com
+			}
+		}
+	}
+
+	# Never let malformed or expired tokenized paths fall through to legacy OSS.
+	@invalid_apk_delivery path /dl/*
+	handle @invalid_apk_delivery {
+		respond 404
+	}
+
+	@immutable_china_android path /releases/android/china/*
+	handle @immutable_china_android {
+		# Reach the OSS endpoint directly while keeping the bound custom Host.
+		# Going through static.lutaai.co here would cross its Cloudflare cache,
+		# where a pre-upload NoSuchKey response can otherwise outlive the upload.
+		reverse_proxy https://luta-public.oss-cn-beijing.aliyuncs.com {
+			header_up Host static.lutaai.co
+			# download.lutaai.com is the user-facing handoff. Do not let browsers
+			# retain an upstream error. The release script still stages the catalog
+			# only after exact size + SHA public-readiness checks succeed.
+			header_down Cache-Control "no-store, max-age=0"
+			header_down -Age
+			header_down -Expires
+			transport http {
+				tls_server_name luta-public.oss-cn-beijing.aliyuncs.com
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy https://luta-app.oss-cn-beijing.aliyuncs.com {
+			header_up Host download.lutaai.com
+			transport http {
+				tls_server_name luta-app.oss-cn-beijing.aliyuncs.com
+			}
+		}
+	}
+
+	tls {$ACME_EMAIL}
 }
