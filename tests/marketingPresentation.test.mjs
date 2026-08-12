@@ -36,9 +36,12 @@ test('hero viewport fills the first visual viewport without clipping short or zo
     assert.doesNotMatch(css, /\.luta-marketing-hero-layout\s*\{[^}]*min-height:\s*(?:48\.75rem|51rem)/s)
 })
 
-test('mobile hero keeps the original visual narrative and floats the install dock safely', async () => {
-    const [hero, css] = await Promise.all([
+test('mobile landing exposes a viewport-fixed platform selector and synchronized install CTA', async () => {
+    const [hero, pageShell, landing, storeGroup, css] = await Promise.all([
         readSource('../src/components/marketing/MarketingHero.jsx'),
+        readSource('../src/components/marketing/PageShell.jsx'),
+        readSource('../src/pages/MarketingLanding.jsx'),
+        readSource('../src/components/marketing/StoreActionGroup.jsx'),
         readSource('../src/components/marketing/marketing.css'),
     ])
     const copyIndex = hero.indexOf('className="luta-marketing-hero-copy"')
@@ -48,20 +51,31 @@ test('mobile hero keeps the original visual narrative and floats the install doc
     assert.ok(copyIndex >= 0, 'expected hero copy')
     assert.ok(visualIndex > copyIndex, 'expected product visual after hero copy')
     assert.ok(actionsIndex > visualIndex, 'expected install actions after the product visual')
-    assert.match(hero, /new IntersectionObserver/)
-    assert.match(hero, /data-install-dock-visible=\{isVisible\}/)
+    assert.doesNotMatch(hero, /useInstallDockVisibility|data-install-dock-visible|new IntersectionObserver/)
+    assert.doesNotMatch(hero, /presentation="persistent-mobile"/)
+    assert.match(pageShell, /className="luta-marketing-floating-actions"/)
+    assert.match(pageShell, /data-slot="persistent-install-actions"/)
+    assert.match(landing, /floatingActions={floatingActions}/)
+    assert.match(landing, /presentation="persistent-mobile"/)
     assert.match(
         css,
-        /@media \(max-width: 63\.999rem\)[\s\S]*?\.luta-marketing-hero-actions\s*\{[^}]*position:\s*fixed/s,
+        /@media \(max-width: 63\.999rem\)[\s\S]*?\.luta-marketing-floating-actions\s*\{[^}]*position:\s*fixed/s,
     )
-    assert.match(
-        css,
-        /inset-block-end:\s*calc\(0\.75rem \+ env\(safe-area-inset-bottom, 0px\)\)/,
-    )
-    assert.match(
-        css,
-        /\.luta-marketing-hero\[data-install-dock-visible="false"\] \.luta-marketing-hero-actions\s*\{[^}]*visibility:\s*hidden/s,
-    )
+    assert.match(css, /--luta-marketing-floating-action-bottom:\s*4rem/)
+    assert.match(css, /inset-block-end:\s*calc\([\s\S]*var\(--luta-marketing-floating-action-bottom\)[\s\S]*env\(safe-area-inset-bottom, 0px\)[\s\S]*\)/)
+    assert.doesNotMatch(css, /data-install-dock-visible|backdrop-filter/)
+    assert.match(css, /data-presentation="persistent-mobile"/)
+    assert.match(css, /\.luta-marketing-store-action:not\(\[data-presented="true"\]\)/)
+    assert.match(css, /width:\s*min\(\s*23rem,/)
+    assert.match(css, /grid-template-columns:\s*var\(--luta-marketing-floating-action-size\) minmax\(0, 1fr\)/)
+    assert.match(css, /min-height:\s*3\.5rem/)
+    assert.match(css, /grid-template-columns:\s*1\.25rem minmax\(0, 1fr\) 1\.25rem/)
+    assert.match(css, /padding-block-end:\s*calc\(8\.5rem \+ env\(safe-area-inset-bottom, 0px\)\)/)
+    assert.match(storeGroup, /aria-haspopup="menu"/)
+    assert.match(storeGroup, /role="menuitemradio"/)
+    assert.match(storeGroup, /adapter\.changeDesktopTab\(platform\)/)
+    assert.match(storeGroup, /selectedPlatform === 'ios' \? Apple : Smartphone/)
+    assert.match(storeGroup, /selectedPlatform === 'ios' \? 'iOS' : 'Android'/)
 })
 
 test('store action presentation contains no internal market or device narration', async () => {
@@ -76,6 +90,8 @@ test('store action presentation contains no internal market or device narration'
     assert.match(source, /data-variant=/)
     assert.match(source, /valueCtaCopy/)
     assert.match(source, /state\.actionKey === adapter\.primaryAction\?\.actionKey/)
+    assert.match(source, /adapter\.primaryAction \|\| adapter\.states\[0\]/)
+    assert.match(source, /data-presented=\{isPrimary \|\| undefined\}/)
 })
 
 test('footer renders copyright through the dynamic formatter', async () => {
