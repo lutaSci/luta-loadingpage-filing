@@ -535,6 +535,41 @@
     align-self: end;
 }
 
+@media (max-width: 63.999rem) {
+    .luta-marketing-hero-actions {
+        position: fixed;
+        z-index: calc(var(--luta-marketing-layer-header) - 1);
+        inset-block-end: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        inset-inline-start: 50%;
+        width: min(
+            30rem,
+            calc(
+                100% - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)
+            )
+        );
+        padding: 0.5rem;
+        background: rgba(7, 60, 50, 0.94);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: calc(var(--luta-marketing-radius-action) + 0.5rem);
+        box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.24);
+        -webkit-backdrop-filter: blur(1rem);
+        backdrop-filter: blur(1rem);
+        transform: translateX(-50%);
+        transition:
+            opacity var(--luta-marketing-motion-fast),
+            transform var(--luta-marketing-motion-fast),
+            visibility 0s linear;
+    }
+
+    .luta-marketing-hero[data-install-dock-visible="false"] .luta-marketing-hero-actions {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translate(-50%, calc(100% + 2rem));
+        transition-delay: 0s, 0s, var(--luta-marketing-motion-fast);
+    }
+}
+
 .luta-marketing-store-group {
     width: 100%;
     max-width: 30rem;
