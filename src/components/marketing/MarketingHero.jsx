@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { HeroVisualFan } from './ProductVisual.jsx'
 import StoreActionGroup from './StoreActionGroup.jsx'
 
@@ -5,9 +6,35 @@ function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
 }
 
+function useInstallDockVisibility() {
+    const heroRef = useRef(null)
+    const [isVisible, setIsVisible] = useState(true)
+
+    useEffect(() => {
+        const hero = heroRef.current
+        if (!hero || typeof IntersectionObserver !== 'function') return undefined
+
+        const observer = new IntersectionObserver(([entry]) => {
+            setIsVisible(entry.isIntersecting)
+        })
+        observer.observe(hero)
+
+        return () => observer.disconnect()
+    }, [])
+
+    return { heroRef, isVisible }
+}
+
 export default function MarketingHero({ content, storeAdapter, storeActions }) {
+    const { heroRef, isVisible } = useInstallDockVisibility()
+
     return (
-        <section className="luta-marketing-hero" aria-labelledby="marketing-hero-title">
+        <section
+            ref={heroRef}
+            className="luta-marketing-hero"
+            aria-labelledby="marketing-hero-title"
+            data-install-dock-visible={isVisible}
+        >
             <div className="luta-marketing-container luta-marketing-hero-layout">
                 <div className="luta-marketing-hero-copy">
                     <p className="luta-marketing-eyebrow">{content.hero.eyebrow}</p>

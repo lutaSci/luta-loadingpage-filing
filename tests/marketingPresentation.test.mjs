@@ -36,6 +36,34 @@ test('hero viewport fills the first visual viewport without clipping short or zo
     assert.doesNotMatch(css, /\.luta-marketing-hero-layout\s*\{[^}]*min-height:\s*(?:48\.75rem|51rem)/s)
 })
 
+test('mobile hero keeps the original visual narrative and floats the install dock safely', async () => {
+    const [hero, css] = await Promise.all([
+        readSource('../src/components/marketing/MarketingHero.jsx'),
+        readSource('../src/components/marketing/marketing.css'),
+    ])
+    const copyIndex = hero.indexOf('className="luta-marketing-hero-copy"')
+    const actionsIndex = hero.indexOf('className="luta-marketing-hero-actions"')
+    const visualIndex = hero.indexOf('className="luta-marketing-hero-visual"')
+
+    assert.ok(copyIndex >= 0, 'expected hero copy')
+    assert.ok(visualIndex > copyIndex, 'expected product visual after hero copy')
+    assert.ok(actionsIndex > visualIndex, 'expected install actions after the product visual')
+    assert.match(hero, /new IntersectionObserver/)
+    assert.match(hero, /data-install-dock-visible=\{isVisible\}/)
+    assert.match(
+        css,
+        /@media \(max-width: 63\.999rem\)[\s\S]*?\.luta-marketing-hero-actions\s*\{[^}]*position:\s*fixed/s,
+    )
+    assert.match(
+        css,
+        /inset-block-end:\s*calc\(0\.75rem \+ env\(safe-area-inset-bottom, 0px\)\)/,
+    )
+    assert.match(
+        css,
+        /\.luta-marketing-hero\[data-install-dock-visible="false"\] \.luta-marketing-hero-actions\s*\{[^}]*visibility:\s*hidden/s,
+    )
+})
+
 test('store action presentation contains no internal market or device narration', async () => {
     const source = await readSource('../src/components/marketing/StoreActionGroup.jsx')
 
