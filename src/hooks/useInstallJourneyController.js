@@ -80,7 +80,11 @@ export function useInstallJourneyController({
     const viewTrackedKeyRef = useRef(null)
     const recoveryReasonRef = useRef('unknown')
 
-    const displayOs = deviceOs === 'desktop' ? activePlatform : deviceOs
+    const displayOs = deviceOs === 'harmonyos_next'
+        ? deviceOs
+        : (surface === 'official_homepage' || deviceOs === 'desktop')
+            ? activePlatform
+            : deviceOs
     const isTerminalState = ['missing_state', 'failed', 'no_options'].includes(loadStatus)
 
     useEffect(() => {

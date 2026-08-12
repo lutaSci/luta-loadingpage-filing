@@ -8,6 +8,7 @@ export default function SmartLinkStoreActionGroup({
     controller,
     showSupport = true,
     tone = 'dark',
+    presentation,
     valueCtaCopy,
 }) {
     const showReturnedRecovery = controller.recoveryOpen && !controller.isTerminalState
@@ -17,6 +18,7 @@ export default function SmartLinkStoreActionGroup({
             className="luta-marketing-smartlink-actions"
             data-slot="smart-link-install-actions"
             data-state={controller.loadStatus}
+            data-presentation={presentation}
         >
             <div className="sr-only" aria-live="polite">{controller.announcement}</div>
             <StoreActionGroup
@@ -25,6 +27,7 @@ export default function SmartLinkStoreActionGroup({
                 adapter={adapter}
                 showSupport={showSupport}
                 tone={tone}
+                presentation={presentation}
                 valueCtaCopy={valueCtaCopy}
             />
 

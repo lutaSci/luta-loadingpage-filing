@@ -47,6 +47,10 @@ export function useStoreActionAdapter({
 
     const [internalDesktopTab, setInternalDesktopTab] = useState('ios')
     const desktopTab = controlledDesktopTab ?? internalDesktopTab
+    const selectedPlatform = desktopTab === 'android' ? 'android' : 'ios'
+    const presentedDeviceKey = deviceKey === 'harmonyos_next'
+        ? deviceKey
+        : selectedPlatform
     const [internalTestflightExpanded, setInternalTestflightExpanded] = useState(false)
     const testflightExpanded = controlledTestflightExpanded ?? internalTestflightExpanded
     const [testflightConfirmVisible, setTestflightConfirmVisible] = useState(false)
@@ -70,7 +74,7 @@ export function useStoreActionAdapter({
         () => getMarketingStoreActionStates({
             locale,
             market: route.market,
-            device: deviceKey,
+            device: presentedDeviceKey,
             placement,
             isWeChat,
             desktopTab,
@@ -80,10 +84,10 @@ export function useStoreActionAdapter({
         [
             apkEntryUrl,
             desktopTab,
-            deviceKey,
             isWeChat,
             locale,
             placement,
+            presentedDeviceKey,
             route.market,
             testflightExpanded,
         ],
@@ -192,10 +196,11 @@ export function useStoreActionAdapter({
 
     const changeDesktopTab = useCallback((nextTab) => {
         if (!['ios', 'android'].includes(nextTab)) return
+        if (deviceKey === 'harmonyos_next') return
         if (nextTab === desktopTab) return
         if (controlledDesktopTab === undefined) setInternalDesktopTab(nextTab)
         onDesktopTabChange?.(nextTab)
-    }, [controlledDesktopTab, desktopTab, onDesktopTabChange])
+    }, [controlledDesktopTab, desktopTab, deviceKey, onDesktopTabChange])
 
     const openSupport = useCallback(() => {
         trackWebsiteEvent('website_download_cta_clicked', {
@@ -211,7 +216,9 @@ export function useStoreActionAdapter({
         device: deviceKey,
         isDesktop: deviceKey === 'desktop',
         market: route.market,
+        platformSelectable: deviceKey !== 'harmonyos_next',
         primaryAction,
+        selectedPlatform,
         states,
         testflightConfirmVisible,
         testflightExpanded,

@@ -349,8 +349,8 @@ test('stateful Header, Hero and final CTA consume one shared journey controller'
         readFile(new URL('../src/contexts/SmartLinkJourneyContext.jsx', import.meta.url), 'utf8'),
     ])
 
-    assert.equal(landing.match(/<SmartLinkStoreActionGroup/g)?.length, 2)
-    assert.equal(landing.match(/controller=\{controller\}/g)?.length, 2)
+    assert.equal(landing.match(/<SmartLinkStoreActionGroup/g)?.length, 3)
+    assert.equal(landing.match(/controller=\{controller\}/g)?.length, 3)
     assert.equal(landing.match(/useSmartLinkStoreActionAdapter\(\{/g)?.length, 3)
     assert.match(landing, /adapter=\{heroSmartLinkStore\}/)
     assert.match(landing, /adapter=\{finalSmartLinkStore\}/)
@@ -397,12 +397,26 @@ test('header, hero and final CTA share one controlled desktop platform tab', asy
         new URL('../src/pages/MarketingLanding.jsx', import.meta.url),
         'utf8',
     )
-    assert.match(source, /const \[desktopTab, setDesktopTab\] = useState\('ios'\)/)
+    assert.match(source, /const \[desktopTab, setDesktopTab\] = useState\(getInitialStorePlatform\)/)
     assert.equal(
         source.match(/\n\s+desktopTab,\n\s+onDesktopTabChange: setDesktopTab/g)?.length,
         3,
     )
     assert.equal(source.match(/onDesktopTabChange: setDesktopTab/g)?.length, 3)
+})
+
+test('persistent homepage platform selection can override mobile device presentation safely', async () => {
+    const [landing, adapter, controller] = await Promise.all([
+        readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/marketing/useStoreActionAdapter.js', import.meta.url), 'utf8'),
+        readFile(new URL('../src/hooks/useInstallJourneyController.js', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(landing, /\['android', 'harmonyos', 'harmonyos_next'\]\.includes\(device\) \? 'android' : 'ios'/)
+    assert.match(adapter, /const presentedDeviceKey = deviceKey === 'harmonyos_next'/)
+    assert.match(adapter, /device:\s*presentedDeviceKey/)
+    assert.match(adapter, /platformSelectable:\s*deviceKey !== 'harmonyos_next'/)
+    assert.match(controller, /surface === 'official_homepage' \|\| deviceOs === 'desktop'/)
 })
 
 test('header, hero and final CTA share TestFlight state without manufacturing page history', async () => {

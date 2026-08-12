@@ -12,16 +12,23 @@ import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
+import { detectDevice } from '../lib/deviceDetection.js'
 import {
     hasExplicitTestflightParam,
     persistTestflightExpansion,
     readTestflightExpansion,
+    resolveMarketingDevice,
 } from '../lib/marketingStoreActions.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
 
 function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
+}
+
+function getInitialStorePlatform() {
+    const device = resolveMarketingDevice(detectDevice())
+    return ['android', 'harmonyos', 'harmonyos_next'].includes(device) ? 'android' : 'ios'
 }
 
 function WhyLuta({ content }) {
@@ -81,7 +88,7 @@ export default function MarketingLanding({ locale }) {
         ? '#download-options'
         : buildInstallEntryUrl('marketing_header')
     const { changeLanguage } = useLanguage()
-    const [desktopTab, setDesktopTab] = useState('ios')
+    const [desktopTab, setDesktopTab] = useState(getInitialStorePlatform)
     const [testflightExpanded, setTestflightExpanded] = useState(
         () => typeof window !== 'undefined'
             && (
@@ -166,6 +173,24 @@ export default function MarketingLanding({ locale }) {
             valueCtaCopy={content.hero.primaryCta}
         />
     ) : null
+    const floatingActions = usesHomepageSurface ? (
+        <SmartLinkStoreActionGroup
+            adapter={heroSmartLinkStore}
+            content={content}
+            controller={controller}
+            showSupport={false}
+            presentation="persistent-mobile"
+            valueCtaCopy={content.hero.primaryCta}
+        />
+    ) : (
+        <StoreActionGroup
+            content={content.store}
+            adapter={heroStore}
+            showSupport={false}
+            presentation="persistent-mobile"
+            valueCtaCopy={content.hero.primaryCta}
+        />
+    )
     const finalSmartLinkActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup
             adapter={finalSmartLinkStore}
@@ -180,6 +205,7 @@ export default function MarketingLanding({ locale }) {
             headerInstallHref={headerInstallHref}
             onHeaderInstall={handleHeaderInstall}
             onSupport={finalStore.openSupport}
+            floatingActions={floatingActions}
         >
             <MarketingHero
                 content={content}
