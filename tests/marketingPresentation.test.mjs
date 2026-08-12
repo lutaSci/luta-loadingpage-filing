@@ -46,6 +46,8 @@ test('store action presentation contains no internal market or device narration'
     assert.doesNotMatch(source, /data-(?:action-key|channel|market|placement)=/)
     assert.match(source, /data-status=\{state\.status\}/)
     assert.match(source, /data-variant=/)
+    assert.match(source, /valueCtaCopy/)
+    assert.match(source, /state\.actionKey === adapter\.primaryAction\?\.actionKey/)
 })
 
 test('footer renders copyright through the dynamic formatter', async () => {

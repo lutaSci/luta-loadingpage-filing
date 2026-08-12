@@ -16,6 +16,7 @@ import {
     getMarketingStoreActionStates,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
+    resolvePrimaryMarketingAction,
     resolveMarketingDevice,
 } from '../../lib/marketingStoreActions.js'
 
@@ -168,6 +169,17 @@ export function useStoreActionAdapter({
         trackCta,
     ])
 
+    const primaryAction = useMemo(
+        () => resolvePrimaryMarketingAction(states),
+        [states],
+    )
+
+    const activatePrimary = useCallback(() => {
+        if (!primaryAction) return false
+        activate(primaryAction.actionKey)
+        return true
+    }, [activate, primaryAction])
+
     const confirmTestflightApp = useCallback(() => {
         const state = states.find(
             candidate => candidate.actionKey === MARKETING_ACTION_KEYS.TESTFLIGHT_APP,
@@ -199,11 +211,13 @@ export function useStoreActionAdapter({
         device: deviceKey,
         isDesktop: deviceKey === 'desktop',
         market: route.market,
+        primaryAction,
         states,
         testflightConfirmVisible,
         testflightExpanded,
         wechatGuideVisible,
         activate,
+        activatePrimary,
         changeDesktopTab,
         closeTestflightConfirm: () => setTestflightConfirmVisible(false),
         closeWechatGuide: () => setWechatGuideVisible(false),

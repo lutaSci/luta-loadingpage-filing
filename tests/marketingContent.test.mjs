@@ -82,6 +82,37 @@ test('hero visual contract keeps three accessible screens with one prioritized c
     }
 })
 
+test('hero leads with reading, understanding, daily practice, and a truthful free-reading action', () => {
+    const simplified = MARKETING_CONTENT['zh-cn']
+    const traditional = MARKETING_CONTENT['zh-tw']
+
+    assert.equal(simplified.navigation.getApp, '免费开始阅读')
+    assert.equal(simplified.hero.eyebrow, '面向全球中文读者的佛教经典阅读与理解工具')
+    assert.deepEqual(simplified.hero.desktopTitle, [
+        '从阅读经典开始',
+        '理解经文中的智慧',
+        '让修学融入日常',
+    ])
+    assert.match(simplified.hero.lead, /白话译文/)
+    assert.match(simplified.hero.lead, /AI 辅助理解/)
+    assert.deepEqual(simplified.hero.primaryCta, {
+        label: '免费开始阅读',
+        description: '基础阅读持续免费 · 将前往适合您的官方安装方式',
+    })
+
+    assert.equal(traditional.navigation.getApp, '免費開始閱讀')
+    assert.match(traditional.hero.lead, /白話譯文/)
+
+    for (const locale of MARKETING_LOCALES) {
+        const resource = MARKETING_CONTENT[locale]
+        assert.equal(resource.navigation.getApp, resource.hero.primaryCta.label)
+        assert.equal(typeof resource.hero.primaryCta.label, 'string')
+        assert.equal(resource.hero.primaryCta.label.trim().length > 0, true)
+        assert.equal(typeof resource.hero.primaryCta.description, 'string')
+        assert.equal(resource.hero.primaryCta.description.trim().length > 0, true)
+    }
+})
+
 test('public store content excludes internal market and device narration', () => {
     for (const locale of MARKETING_LOCALES) {
         const store = MARKETING_CONTENT[locale].store
