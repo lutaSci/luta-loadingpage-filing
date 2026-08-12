@@ -43,6 +43,7 @@ export default function MarketingHero({ content, storeAdapter, storeActions }) {
                             anchorId="download-options"
                             adapter={storeAdapter}
                             showSupport={false}
+                            valueCtaCopy={content.hero.primaryCta}
                         />
                     )}
                 </div>

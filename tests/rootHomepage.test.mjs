@@ -125,10 +125,10 @@ test('marketing path detection accepts canonical locale routes with a trailing s
 test('static share metadata matches the released root positioning', async () => {
     const source = await readFile(new URL('../index.html', import.meta.url), 'utf8')
 
-    assert.match(source, /<title>汝塔 LUTA｜佛教经典阅读与修学辅助工具<\/title>/)
+    assert.match(source, /<title>汝塔 LUTA｜佛教经典阅读与理解工具<\/title>/)
     assert.match(source, /name="luta-homepage-experience" content="marketing-v1"/)
-    assert.match(source, /property="og:title" content="汝塔 LUTA｜佛教经典阅读与修学辅助工具"/)
-    assert.match(source, /name="twitter:title" content="汝塔 LUTA｜佛教经典阅读与修学辅助工具"/)
+    assert.match(source, /property="og:title" content="汝塔 LUTA｜佛教经典阅读与理解工具"/)
+    assert.match(source, /name="twitter:title" content="汝塔 LUTA｜佛教经典阅读与理解工具"/)
 })
 
 test('production deploy smoke verifies the root marketing shell', async () => {

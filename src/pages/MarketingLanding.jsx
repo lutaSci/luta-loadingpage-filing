@@ -7,6 +7,7 @@ import ProductStory from '../components/marketing/ProductStory.jsx'
 import SmartLinkStoreActionGroup from '../components/marketing/SmartLinkStoreActionGroup.jsx'
 import StoreActionGroup from '../components/marketing/StoreActionGroup.jsx'
 import { useStoreActionAdapter } from '../components/marketing/useStoreActionAdapter.js'
+import { useSmartLinkStoreActionAdapter } from '../components/marketing/useSmartLinkStoreActionAdapter.js'
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
@@ -88,6 +89,14 @@ export default function MarketingLanding({ locale }) {
                 || readTestflightExpansion(window.location.pathname)
             ),
     )
+    const headerDirectStore = useStoreActionAdapter({
+        locale: content.locale,
+        placement: 'marketing_header',
+        desktopTab,
+        onDesktopTabChange: setDesktopTab,
+        testflightExpanded,
+        onTestflightExpandedChange: setTestflightExpanded,
+    })
     const heroStore = useStoreActionAdapter({
         locale: content.locale,
         placement: 'marketing_hero',
@@ -104,6 +113,28 @@ export default function MarketingLanding({ locale }) {
         testflightExpanded,
         onTestflightExpandedChange: setTestflightExpanded,
     })
+    const headerSmartLinkStore = useSmartLinkStoreActionAdapter({
+        controller,
+        locale: content.locale,
+        placement: 'marketing_header',
+    })
+    const heroSmartLinkStore = useSmartLinkStoreActionAdapter({
+        controller,
+        locale: content.locale,
+        placement: 'marketing_hero',
+    })
+    const finalSmartLinkStore = useSmartLinkStoreActionAdapter({
+        controller,
+        locale: content.locale,
+        placement: 'marketing_final',
+    })
+    const headerStore = usesHomepageSurface ? headerSmartLinkStore : headerDirectStore
+
+    const handleHeaderInstall = (event) => {
+        if (!headerStore.primaryAction) return
+        event.preventDefault()
+        headerStore.activatePrimary()
+    }
 
     useEffect(() => {
         persistTestflightExpansion(window.location.pathname, testflightExpanded)
@@ -127,18 +158,19 @@ export default function MarketingLanding({ locale }) {
 
     const heroSmartLinkActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup
+            adapter={heroSmartLinkStore}
             anchorId="download-options"
             content={content}
             controller={controller}
-            placement="marketing_hero"
             showSupport={false}
+            valueCtaCopy={content.hero.primaryCta}
         />
     ) : null
     const finalSmartLinkActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup
+            adapter={finalSmartLinkStore}
             content={content}
             controller={controller}
-            placement="marketing_final"
         />
     ) : null
 
@@ -146,6 +178,7 @@ export default function MarketingLanding({ locale }) {
         <PageShell
             content={content}
             headerInstallHref={headerInstallHref}
+            onHeaderInstall={handleHeaderInstall}
             onSupport={finalStore.openSupport}
         >
             <MarketingHero

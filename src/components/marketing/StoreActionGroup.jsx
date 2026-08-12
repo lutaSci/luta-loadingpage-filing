@@ -120,13 +120,13 @@ function MarketingDialog({
     )
 }
 
-function StoreActionButton({ state, copy, expanded, onActivate, onVisible }) {
+function StoreActionButton({ state, copy, expanded, onActivate, onVisible, valueCtaCopy }) {
     const actionRef = useRef(null)
     const pending = state.status === 'loading'
     const Icon = pending
         ? LoaderCircle
         : icons[state.actionKey] || channelIcons[state.iconKey || state.channel] || ExternalLink
-    const actionCopy = state.copy || copy.actions[state.actionKey] || {
+    const actionCopy = valueCtaCopy || state.copy || copy.actions[state.actionKey] || {
         label: copy.disabled,
         description: '',
     }
@@ -198,6 +198,7 @@ export default function StoreActionGroup({
     adapter,
     tone = 'dark',
     showSupport = true,
+    valueCtaCopy,
 }) {
     const panelId = useId()
     const tabsRef = useRef(null)
@@ -291,6 +292,12 @@ export default function StoreActionGroup({
                         expanded={adapter.testflightExpanded}
                         onActivate={adapter.activate}
                         onVisible={recordVisibleOption}
+                        valueCtaCopy={
+                            state.status === 'ready'
+                            && state.actionKey === adapter.primaryAction?.actionKey
+                                ? valueCtaCopy
+                                : undefined
+                        }
                     />
                 ))}
             </div>
