@@ -59,7 +59,7 @@ test('production server prerenders active routes and temporarily redirects retir
     assert.match(source, /try_files \/global\/\$1\.html =404;/)
     assert.match(
         source,
-        /location ~ \^\/global\/\(en\|ja\|ko\)\/\?\$ \{[\s\S]{0,250}Cache-Control "no-store, max-age=0"[\s\S]{0,250}return 302 \/\$is_args\$args;/,
+        /location ~ \^\/global\/\(en\|ja\|ko\)\/\?\$ \{[\s\S]{0,350}absolute_redirect off;[\s\S]{0,350}Cache-Control "no-store, max-age=0"[\s\S]{0,350}return 302 \/\$is_args\$args;/,
     )
 })
 
