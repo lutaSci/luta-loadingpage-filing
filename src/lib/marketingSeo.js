@@ -6,9 +6,6 @@ export const MARKETING_SOCIAL_IMAGE_URL = `${MARKETING_ORIGIN}/twitter_meta_img.
 const OPEN_GRAPH_LOCALES = Object.freeze({
     'zh-cn': 'zh_CN',
     'zh-tw': 'zh_TW',
-    en: 'en_US',
-    ja: 'ja_JP',
-    ko: 'ko_KR',
 })
 
 function normalizePathname(pathname) {

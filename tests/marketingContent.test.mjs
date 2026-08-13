@@ -2,10 +2,12 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
+    ALL_MARKETING_LOCALES,
     formatMarketingCopyright,
     getMarketingContent,
     MARKETING_CONTENT,
     MARKETING_LOCALES,
+    RETIRED_MARKETING_LOCALES,
 } from '../src/content/marketingLanding.js'
 import { MARKETING_LOCALE_REGISTRY } from '../src/lib/marketingLocales.js'
 
@@ -18,7 +20,8 @@ function shape(value) {
 }
 
 test('marketing locales are explicit and never silently fall back', () => {
-    assert.deepEqual(MARKETING_LOCALES, ['zh-cn', 'zh-tw', 'en', 'ja', 'ko'])
+    assert.deepEqual(MARKETING_LOCALES, ['zh-cn', 'zh-tw'])
+    assert.deepEqual(RETIRED_MARKETING_LOCALES, ['en', 'ja', 'ko'])
     assert.equal(getMarketingContent('zh-cn').locale, 'zh-CN')
     assert.equal(getMarketingContent('zh-tw').locale, 'zh-TW')
     assert.equal(getMarketingContent('en').languageKey, 'en')
@@ -27,8 +30,8 @@ test('marketing locales are explicit and never silently fall back', () => {
     assert.throws(() => getMarketingContent('fr'), /Unsupported marketing locale/)
 })
 
-test('all five marketing resources use one component data contract', () => {
-    const entries = MARKETING_LOCALES.map(locale => structuredClone(MARKETING_CONTENT[locale]))
+test('all retained marketing resources use one component data contract', () => {
+    const entries = ALL_MARKETING_LOCALES.map(locale => structuredClone(MARKETING_CONTENT[locale]))
 
     for (const entry of entries) {
         delete entry.locale
@@ -38,7 +41,7 @@ test('all five marketing resources use one component data contract', () => {
     }
 
     for (const entry of entries.slice(1)) assert.deepEqual(shape(entries[0]), shape(entry))
-    for (const locale of MARKETING_LOCALES) {
+    for (const locale of ALL_MARKETING_LOCALES) {
         assert.deepEqual(
             MARKETING_CONTENT[locale].stories.map(story => story.id),
             ['reading', 'practice', 'history'],
@@ -137,13 +140,18 @@ test('China beta copy leads with user goals and includes redeem-code recovery', 
 })
 
 test('locale paths only switch content versions', () => {
-    const expectedPaths = ['/global/zh-cn', '/global/zh-tw', '/global/en', '/global/ja', '/global/ko']
+    const expectedPaths = ['/global/zh-cn', '/global/zh-tw']
 
     assert.deepEqual(MARKETING_LOCALES.map(locale => MARKETING_CONTENT[locale].path), expectedPaths)
     for (const locale of MARKETING_LOCALES) {
         assert.equal('market' in MARKETING_CONTENT[locale], false)
         assert.equal('alternatePath' in MARKETING_CONTENT[locale], false)
     }
+
+    assert.deepEqual(
+        RETIRED_MARKETING_LOCALES.map(locale => MARKETING_CONTENT[locale].path),
+        ['/global/en', '/global/ja', '/global/ko'],
+    )
 })
 
 test('legal filing identity is never localized', () => {
