@@ -1,9 +1,17 @@
 import englishContent from './marketing/en.js'
 import japaneseContent from './marketing/ja.js'
 import koreanContent from './marketing/ko.js'
-import { MARKETING_LOCALE_KEYS } from '../lib/marketingLocales.js'
+import {
+    MARKETING_LOCALE_KEYS,
+    RETIRED_MARKETING_LOCALE_KEYS,
+} from '../lib/marketingLocales.js'
 
 export const MARKETING_LOCALES = MARKETING_LOCALE_KEYS
+export const RETIRED_MARKETING_LOCALES = RETIRED_MARKETING_LOCALE_KEYS
+export const ALL_MARKETING_LOCALES = Object.freeze([
+    ...MARKETING_LOCALES,
+    ...RETIRED_MARKETING_LOCALES,
+])
 
 const sharedPaths = Object.freeze({
     'zh-cn': '/global/zh-cn',
