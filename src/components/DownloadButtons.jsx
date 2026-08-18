@@ -511,7 +511,7 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     const isMainlandChina = routeContext.market === 'cn'
     const isWeChat = useMemo(() => detectIsWeChat(), [])
 
-    const needWeChatMask = isWeChat && !device.isIOS
+    const needWeChatMask = isWeChat && !device.isIOS && !device.isHarmonyOSNext
     const [showWeChatMask, setShowWeChatMask] = useState(needWeChatMask)
 
     const handleInstallDocClick = useCallback(() => {
@@ -527,6 +527,11 @@ const DownloadButtons = memo(({ pcTab = 'ios', onPcTabChange }) => {
     }, [])
 
     const renderContent = () => {
+        // The retained Legacy fallback owns no verified HarmonyOS NEXT package.
+        // Leave only the shared installation-help action instead of offering
+        // an Android APK or store route.
+        if (device.isHarmonyOSNext) return null
+
         if (device.isIOS) {
             return <IOSGuide
                 t={t}

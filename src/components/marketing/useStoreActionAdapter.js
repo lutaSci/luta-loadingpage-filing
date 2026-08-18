@@ -12,6 +12,7 @@ import {
     detectIsMainlandChina,
     detectIsWeChat,
 } from '../../lib/deviceDetection.js'
+import { isInstallPlatformSelectable } from '../../lib/installFlow.js'
 import {
     getMarketingStoreActionStates,
     MARKETING_ACTION_KEYS,
@@ -48,9 +49,8 @@ export function useStoreActionAdapter({
     const [internalDesktopTab, setInternalDesktopTab] = useState('ios')
     const desktopTab = controlledDesktopTab ?? internalDesktopTab
     const selectedPlatform = desktopTab === 'android' ? 'android' : 'ios'
-    const presentedDeviceKey = deviceKey === 'harmonyos_next'
-        ? deviceKey
-        : selectedPlatform
+    const platformSelectable = isInstallPlatformSelectable(deviceKey)
+    const presentedDeviceKey = platformSelectable ? selectedPlatform : deviceKey
     const [internalTestflightExpanded, setInternalTestflightExpanded] = useState(false)
     const testflightExpanded = controlledTestflightExpanded ?? internalTestflightExpanded
     const [testflightConfirmVisible, setTestflightConfirmVisible] = useState(false)
@@ -196,11 +196,11 @@ export function useStoreActionAdapter({
 
     const changeDesktopTab = useCallback((nextTab) => {
         if (!['ios', 'android'].includes(nextTab)) return
-        if (deviceKey === 'harmonyos_next') return
+        if (!platformSelectable) return
         if (nextTab === desktopTab) return
         if (controlledDesktopTab === undefined) setInternalDesktopTab(nextTab)
         onDesktopTabChange?.(nextTab)
-    }, [controlledDesktopTab, desktopTab, deviceKey, onDesktopTabChange])
+    }, [controlledDesktopTab, desktopTab, onDesktopTabChange, platformSelectable])
 
     const openSupport = useCallback(() => {
         trackWebsiteEvent('website_download_cta_clicked', {
@@ -216,7 +216,7 @@ export function useStoreActionAdapter({
         device: deviceKey,
         isDesktop: deviceKey === 'desktop',
         market: route.market,
-        platformSelectable: deviceKey !== 'harmonyos_next',
+        platformSelectable,
         primaryAction,
         selectedPlatform,
         states,

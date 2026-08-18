@@ -13,6 +13,7 @@ import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { buildInstallEntryUrl } from '../lib/attributionState.js'
 import { detectDevice } from '../lib/deviceDetection.js'
+import { resolveInstallPlatformPresentation } from '../lib/installFlow.js'
 import {
     hasExplicitTestflightParam,
     persistTestflightExpansion,
@@ -28,7 +29,7 @@ function LineTitle({ lines }) {
 
 function getInitialStorePlatform() {
     const device = resolveMarketingDevice(detectDevice())
-    return ['android', 'harmonyos', 'harmonyos_next'].includes(device) ? 'android' : 'ios'
+    return resolveInstallPlatformPresentation(device)
 }
 
 function WhyLuta({ content }) {

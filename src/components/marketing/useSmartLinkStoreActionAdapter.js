@@ -157,7 +157,7 @@ export function useSmartLinkStoreActionAdapter({ controller, locale, placement }
         isDesktop: controller.deviceOs === 'desktop',
         market: controller.installContext?.campaignTargetMarket || 'unknown',
         openSupport,
-        platformSelectable: controller.deviceOs !== 'harmonyos_next',
+        platformSelectable: controller.platformSelectable,
         primaryAction,
         recordVisibleOption,
         selectedPlatform: controller.activePlatform,
