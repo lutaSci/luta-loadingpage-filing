@@ -412,11 +412,13 @@ test('persistent homepage platform selection can override mobile device presenta
         readFile(new URL('../src/hooks/useInstallJourneyController.js', import.meta.url), 'utf8'),
     ])
 
-    assert.match(landing, /\['android', 'harmonyos', 'harmonyos_next'\]\.includes\(device\) \? 'android' : 'ios'/)
-    assert.match(adapter, /const presentedDeviceKey = deviceKey === 'harmonyos_next'/)
+    assert.match(landing, /resolveInstallPlatformPresentation\(device\)/)
+    assert.match(adapter, /const platformSelectable = isInstallPlatformSelectable\(deviceKey\)/)
+    assert.match(adapter, /const presentedDeviceKey = platformSelectable \? selectedPlatform : deviceKey/)
     assert.match(adapter, /device:\s*presentedDeviceKey/)
-    assert.match(adapter, /platformSelectable:\s*deviceKey !== 'harmonyos_next'/)
-    assert.match(controller, /surface === 'official_homepage' \|\| deviceOs === 'desktop'/)
+    assert.match(adapter, /platformSelectable,/)
+    assert.match(controller, /const platformSelectable = isInstallPlatformSelectable\(deviceOs\)/)
+    assert.match(controller, /const displayOs = platformSelectable/)
 })
 
 test('header, hero and final CTA share TestFlight state without manufacturing page history', async () => {

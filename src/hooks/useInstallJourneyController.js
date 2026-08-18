@@ -17,8 +17,10 @@ import {
     buildInstallContinuationUrl,
     buildLegacyControlledOutUrl,
     buildLegacyInstallContextUrl,
+    isInstallPlatformSelectable,
     normalizeInstallContext,
     resolveDeviceOs,
+    resolveInstallPlatformPresentation,
     resolveMarketChoiceRelation,
     selectDirectInstallChoices,
 } from '../lib/installFlow.js'
@@ -64,7 +66,7 @@ export function useInstallJourneyController({
 
     const [selectedRegion, setSelectedRegion] = useState(entry?.choice || null)
     const [activePlatform, setActivePlatform] = useState(() => (
-        deviceOs === 'android' ? 'android' : 'ios'
+        resolveInstallPlatformPresentation(deviceOs)
     ))
     const [loadStatus, setLoadStatus] = useState(() => (
         hasEntry ? 'loading' : missingStateIsTerminal ? 'missing_state' : 'idle'
@@ -80,11 +82,12 @@ export function useInstallJourneyController({
     const viewTrackedKeyRef = useRef(null)
     const recoveryReasonRef = useRef('unknown')
 
-    const displayOs = deviceOs === 'harmonyos_next'
-        ? deviceOs
-        : (surface === 'official_homepage' || deviceOs === 'desktop')
+    const platformSelectable = isInstallPlatformSelectable(deviceOs)
+    const displayOs = platformSelectable
+        ? (surface === 'official_homepage' || deviceOs === 'desktop')
             ? activePlatform
             : deviceOs
+        : deviceOs
     const isTerminalState = ['missing_state', 'failed', 'no_options'].includes(loadStatus)
 
     useEffect(() => {
@@ -464,13 +467,17 @@ export function useInstallJourneyController({
     }, [handleRecoveryAction, onExitJourney])
 
     const switchPlatform = useCallback(platform => {
-        if (!['ios', 'android'].includes(platform) || platform === activePlatform) return
+        if (
+            !platformSelectable
+            || !['ios', 'android'].includes(platform)
+            || platform === activePlatform
+        ) return
         setActivePlatform(platform)
         setSelectedRegion(null)
         setRecoveryOpen(false)
         setWechatEmphasis(false)
         replaceVisibleUrl(null)
-    }, [activePlatform, replaceVisibleUrl])
+    }, [activePlatform, platformSelectable, replaceVisibleUrl])
 
     return {
         activePlatform,
@@ -493,6 +500,7 @@ export function useInstallJourneyController({
         loadStatus,
         openAppUrl,
         openInstalledApp,
+        platformSelectable,
         recoveryOpen,
         reloadOptions,
         selectChoice,
