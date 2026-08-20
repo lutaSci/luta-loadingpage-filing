@@ -75,6 +75,10 @@ export const config = {
         posthogKey: import.meta.env?.VITE_POSTHOG_KEY || 'phc_AJ9WrJztG6H87z7xD7Xfa97abfCau4EbYXMSDUxo6Rsv',
         posthogHost: import.meta.env?.VITE_POSTHOG_HOST || 'https://posthog.lutaai.com',
         captureDevelopment: import.meta.env?.VITE_POSTHOG_CAPTURE_DEVELOPMENT === 'true',
+        metaPixelEnabled: import.meta.env?.VITE_META_PIXEL_ENABLED === 'true',
+        metaPixelId: /^\d{5,32}$/.test(import.meta.env?.VITE_META_PIXEL_ID || '')
+            ? import.meta.env.VITE_META_PIXEL_ID
+            : '',
     },
     springFestival: {
         puzzleUrl: 'https://game.lutaai.com',

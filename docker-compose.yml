@@ -7,6 +7,8 @@ services:
       args:
         VITE_LUTA_API_BASE: ${VITE_LUTA_API_BASE:-https://api.lutaai.com}
         VITE_SMART_LINK_HOMEPAGE_SURFACE: ${VITE_SMART_LINK_HOMEPAGE_SURFACE:-false}
+        VITE_META_PIXEL_ENABLED: ${VITE_META_PIXEL_ENABLED:-false}
+        VITE_META_PIXEL_ID: ${VITE_META_PIXEL_ID:-}
     environment:
       - NODE_ENV=production
     restart: unless-stopped
