@@ -10,7 +10,14 @@ function openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer')
 }
 
-export function useSmartLinkStoreActionAdapter({ controller, locale, placement }) {
+const EMPTY_ANALYTICS_CONTEXT = Object.freeze({})
+
+export function useSmartLinkStoreActionAdapter({
+    controller,
+    locale,
+    placement,
+    analyticsContext = EMPTY_ANALYTICS_CONTEXT,
+}) {
     const viewedOptions = useRef(new Set())
 
     const states = useMemo(() => {
@@ -83,6 +90,7 @@ export function useSmartLinkStoreActionAdapter({ controller, locale, placement }
         if (viewedOptions.current.has(signature)) return
         viewedOptions.current.add(signature)
         trackWebsiteEvent('website_download_option_viewed', {
+            ...analyticsContext,
             click_id: controller.installContext?.clickId,
             cta_target: state.channel,
             entry_type: 'shortlink',
@@ -94,7 +102,7 @@ export function useSmartLinkStoreActionAdapter({ controller, locale, placement }
             route_market_source: 'smart_link_context',
             traffic_purpose: controller.installContext?.trafficPurpose || 'unknown',
         })
-    }, [controller.installContext])
+    }, [analyticsContext, controller.installContext])
 
     const activate = useCallback(actionKey => {
         const state = states.find(candidate => candidate.actionKey === actionKey)
@@ -105,6 +113,7 @@ export function useSmartLinkStoreActionAdapter({ controller, locale, placement }
         }
         if (!state.choice) return
         trackWebsiteEvent('website_download_cta_clicked', {
+            ...analyticsContext,
             click_id: controller.installContext?.clickId,
             cta_target: state.channel,
             entry_type: 'shortlink',
@@ -117,7 +126,7 @@ export function useSmartLinkStoreActionAdapter({ controller, locale, placement }
             traffic_purpose: controller.installContext?.trafficPurpose || 'unknown',
         })
         controller.selectChoice(state.choice)
-    }, [controller, locale, placement, states])
+    }, [analyticsContext, controller, locale, placement, states])
 
     const primaryAction = useMemo(
         () => resolvePrimaryMarketingAction(states),

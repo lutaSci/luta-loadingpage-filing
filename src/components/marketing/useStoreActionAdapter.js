@@ -26,9 +26,12 @@ function openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+const EMPTY_ANALYTICS_CONTEXT = Object.freeze({})
+
 export function useStoreActionAdapter({
     locale,
     placement,
+    analyticsContext = EMPTY_ANALYTICS_CONTEXT,
     desktopTab: controlledDesktopTab,
     onDesktopTabChange,
     testflightExpanded: controlledTestflightExpanded,
@@ -100,21 +103,23 @@ export function useStoreActionAdapter({
         if (viewedOptions.current.has(signature)) return
         viewedOptions.current.add(signature)
         trackWebsiteEvent('website_download_option_viewed', {
+            ...analyticsContext,
             locale: state.locale,
             cta_target: ctaTarget,
             placement: state.placement,
         })
-    }, [])
+    }, [analyticsContext])
 
     const trackCta = useCallback((state) => {
         const ctaTarget = MARKETING_CTA_TARGETS[state.actionKey]
         if (!ctaTarget) return
         trackWebsiteEvent('website_download_cta_clicked', {
+            ...analyticsContext,
             locale,
             cta_target: ctaTarget,
             placement: state.placement,
         })
-    }, [locale])
+    }, [analyticsContext, locale])
 
     const activate = useCallback((actionKey) => {
         const state = states.find(candidate => candidate.actionKey === actionKey)

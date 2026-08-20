@@ -83,6 +83,8 @@ test('website allowlist rejects unknown properties and likely personal data', ()
         utm_campaign: 'person@example.com',
         operator: '+86 138 0013 8000',
         click_id: 'lclk_0123456789abcdef0123456789abcdef',
+        experiment_key: 'marketing_cta_copy_v1',
+        experiment_variant: 'treatment_platform',
         arbitrary_secret: 'must-not-pass',
     })
 
@@ -92,6 +94,17 @@ test('website allowlist rejects unknown properties and likely personal data', ()
     assert.equal('operator' in safe, false)
     assert.equal('arbitrary_secret' in safe, false)
     assert.equal(safe.click_id, 'lclk_0123456789abcdef0123456789abcdef')
+    assert.equal(safe.experiment_key, 'marketing_cta_copy_v1')
+    assert.equal(safe.experiment_variant, 'treatment_platform')
+})
+
+test('experiment fields reject free-form or personal values', () => {
+    const safe = sanitizeWebsiteProperties({
+        experiment_key: 'person@example.com',
+        experiment_variant: 'treatment platform',
+    })
+
+    assert.deepEqual(safe, {})
 })
 
 test('manual GA page view contains a canonical path and approved campaign fields only', () => {
@@ -139,6 +152,8 @@ test('GA CTA projection excludes attribution identity and free-form properties',
         option_id: 'option-secret',
         utm_campaign: 'free-form-campaign',
         operator: 'ops_internal',
+        experiment_key: 'marketing_cta_copy_v1',
+        experiment_variant: 'treatment_platform',
     }, { runtimeWindow: productionWindow('?state=never-copy') })
 
     assert.deepEqual(payload, {
