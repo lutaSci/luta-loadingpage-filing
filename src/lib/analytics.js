@@ -95,6 +95,8 @@ const WEBSITE_PROPERTY_KEYS = new Set([
     'acquisition_platform',
     'cta_target',
     'placement',
+    'experiment_key',
+    'experiment_variant',
 ])
 
 const INSTALL_PROPERTY_KEYS = new Set([
@@ -184,7 +186,13 @@ function sanitizeApprovedWebsiteValue(key, value) {
     if (key === 'locale') return sanitizeLocale(value)
     if (key === 'slug') return sanitizeToken(value, 80)
     if (['click_id', 'link_id', 'option_id'].includes(key)) return sanitizeToken(value, 128)
-    if (['cta_target', 'placement', 'acquisition_platform'].includes(key)) {
+    if ([
+        'cta_target',
+        'placement',
+        'acquisition_platform',
+        'experiment_key',
+        'experiment_variant',
+    ].includes(key)) {
         return sanitizeToken(value, 80)
     }
     if (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].includes(key)) {

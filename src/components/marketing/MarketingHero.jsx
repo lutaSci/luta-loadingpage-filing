@@ -5,7 +5,12 @@ function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
 }
 
-export default function MarketingHero({ content, storeAdapter, storeActions }) {
+export default function MarketingHero({
+    content,
+    storeAdapter,
+    storeActions,
+    valueCtaCopy,
+}) {
     return (
         <section
             className="luta-marketing-hero"
@@ -46,7 +51,7 @@ export default function MarketingHero({ content, storeAdapter, storeActions }) {
                             anchorId="download-options"
                             adapter={storeAdapter}
                             showSupport={false}
-                            valueCtaCopy={content.hero.primaryCta}
+                            valueCtaCopy={valueCtaCopy}
                         />
                     )}
                 </div>

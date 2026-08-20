@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import MarketingHero from '../components/marketing/MarketingHero.jsx'
 import PageShell from '../components/marketing/PageShell.jsx'
@@ -11,7 +11,7 @@ import { useSmartLinkStoreActionAdapter } from '../components/marketing/useSmart
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
-import { buildInstallEntryUrl } from '../lib/attributionState.js'
+import { buildInstallEntryUrl, getTrafficPurpose } from '../lib/attributionState.js'
 import { detectDevice } from '../lib/deviceDetection.js'
 import { resolveInstallPlatformPresentation } from '../lib/installFlow.js'
 import {
@@ -20,6 +20,10 @@ import {
     readTestflightExpansion,
     resolveMarketingDevice,
 } from '../lib/marketingStoreActions.js'
+import {
+    marketingCtaExperimentProperties,
+    resolveMarketingCtaCopyExperiment,
+} from '../lib/marketingCtaExperiment.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
 
@@ -85,6 +89,20 @@ function FinalCallToAction({ content, adapter, storeActions }) {
 export default function MarketingLanding({ locale }) {
     const content = getMarketingContent(locale)
     const { controller, usesHomepageSurface } = useSmartLinkJourney()
+    const trafficPurpose = usesHomepageSurface
+        ? controller.installContext?.trafficPurpose || 'unknown'
+        : getTrafficPurpose()
+    const ctaExperiment = useMemo(
+        () => resolveMarketingCtaCopyExperiment({ trafficPurpose }),
+        [trafficPurpose],
+    )
+    const heroAnalyticsContext = useMemo(
+        () => marketingCtaExperimentProperties(ctaExperiment),
+        [ctaExperiment],
+    )
+    const heroValueCtaCopy = ctaExperiment.useValueCopy
+        ? content.hero.primaryCta
+        : undefined
     const headerInstallHref = usesHomepageSurface
         ? '#download-options'
         : buildInstallEntryUrl('marketing_header')
@@ -106,6 +124,7 @@ export default function MarketingLanding({ locale }) {
         onTestflightExpandedChange: setTestflightExpanded,
     })
     const heroStore = useStoreActionAdapter({
+        analyticsContext: heroAnalyticsContext,
         locale: content.locale,
         placement: 'marketing_hero',
         desktopTab,
@@ -127,6 +146,7 @@ export default function MarketingLanding({ locale }) {
         placement: 'marketing_header',
     })
     const heroSmartLinkStore = useSmartLinkStoreActionAdapter({
+        analyticsContext: heroAnalyticsContext,
         controller,
         locale: content.locale,
         placement: 'marketing_hero',
@@ -171,7 +191,7 @@ export default function MarketingLanding({ locale }) {
             content={content}
             controller={controller}
             showSupport={false}
-            valueCtaCopy={content.hero.primaryCta}
+            valueCtaCopy={heroValueCtaCopy}
         />
     ) : null
     const floatingActions = usesHomepageSurface ? (
@@ -181,7 +201,7 @@ export default function MarketingLanding({ locale }) {
             controller={controller}
             showSupport={false}
             presentation="persistent-mobile"
-            valueCtaCopy={content.hero.primaryCta}
+            valueCtaCopy={heroValueCtaCopy}
         />
     ) : (
         <StoreActionGroup
@@ -189,7 +209,7 @@ export default function MarketingLanding({ locale }) {
             adapter={heroStore}
             showSupport={false}
             presentation="persistent-mobile"
-            valueCtaCopy={content.hero.primaryCta}
+            valueCtaCopy={heroValueCtaCopy}
         />
     )
     const finalSmartLinkActions = usesHomepageSurface ? (
@@ -212,6 +232,7 @@ export default function MarketingLanding({ locale }) {
                 content={content}
                 storeAdapter={heroStore}
                 storeActions={heroSmartLinkActions}
+                valueCtaCopy={heroValueCtaCopy}
             />
             <WhyLuta content={content.why} />
             {content.stories.map(story => <ProductStory key={story.id} story={story} />)}
