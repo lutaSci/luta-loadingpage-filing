@@ -24,6 +24,7 @@ import {
     resolveMarketChoiceRelation,
     selectDirectInstallChoices,
 } from '../lib/installFlow.js'
+import { resolveInstallDisplayLocation } from '../lib/smartLinkEntry.js'
 
 const HANDOFF_SESSION_KEY = 'luta-install-handoff-pending-at'
 const HANDOFF_MAX_AGE_MS = 30 * 60 * 1000
@@ -294,13 +295,13 @@ export function useInstallJourneyController({
     const replaceVisibleUrl = useCallback(region => {
         onChoiceChange?.(region)
         if (surface === 'official_homepage') return
-        const safeChoice = region === 'cn' || region === 'global'
-            ? `?choice=${encodeURIComponent(region)}`
-            : ''
         // The signed state and legacy click tuple remain in memory/session only.
-        // A copy action can construct a continuation URL explicitly, but normal
-        // UI state must never put bearer identity back into browser history.
-        window.history.replaceState({}, '', `/install${safeChoice}`)
+        // The one validated provider click ID can remain on the safe URL for
+        // the corresponding consented SDK, but it never enters Luta events.
+        window.history.replaceState({}, '', resolveInstallDisplayLocation({
+            choice: region,
+            search: window.location.search,
+        }))
     }, [
         onChoiceChange,
         surface,
