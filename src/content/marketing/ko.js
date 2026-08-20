@@ -180,6 +180,7 @@ const koreanContent = {
         privacy: '개인정보처리방침',
         terms: '이용약관',
         contact: '문의하기',
+        measurementSettings: '광고 측정 설정',
         help: '도움말 센터',
         copyrightOwner: '深圳市师利千秋文化科技有限公司',
         copyrightRights: 'All rights reserved.',

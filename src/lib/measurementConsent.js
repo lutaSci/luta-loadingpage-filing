@@ -1,5 +1,6 @@
 export const MEASUREMENT_CONSENT_STORAGE_KEY = 'luta-ad-measurement-consent-v1'
 export const MEASUREMENT_CONSENT_EVENT = 'luta:ad-measurement-consent-changed'
+export const MEASUREMENT_CONSENT_SETTINGS_EVENT = 'luta:ad-measurement-consent-settings-requested'
 export const MEASUREMENT_CONSENT_VALUES = Object.freeze({
     unknown: 'unknown',
     granted: 'granted',
@@ -55,4 +56,22 @@ export function subscribeMeasurementConsent(listener, runtimeWindow = globalThis
     const handler = event => listener(event?.detail?.value || MEASUREMENT_CONSENT_VALUES.unknown)
     runtimeWindow.addEventListener(MEASUREMENT_CONSENT_EVENT, handler)
     return () => runtimeWindow.removeEventListener(MEASUREMENT_CONSENT_EVENT, handler)
+}
+
+export function requestMeasurementConsentSettings(runtimeWindow = globalThis.window) {
+    if (!runtimeWindow?.dispatchEvent) return false
+    try {
+        const ConsentEvent = runtimeWindow.CustomEvent || globalThis.CustomEvent
+        if (!ConsentEvent) return false
+        runtimeWindow.dispatchEvent(new ConsentEvent(MEASUREMENT_CONSENT_SETTINGS_EVENT))
+        return true
+    } catch {
+        return false
+    }
+}
+
+export function subscribeMeasurementConsentSettings(listener, runtimeWindow = globalThis.window) {
+    if (!runtimeWindow?.addEventListener || typeof listener !== 'function') return () => {}
+    runtimeWindow.addEventListener(MEASUREMENT_CONSENT_SETTINGS_EVENT, listener)
+    return () => runtimeWindow.removeEventListener(MEASUREMENT_CONSENT_SETTINGS_EVENT, listener)
 }

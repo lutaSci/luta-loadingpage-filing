@@ -180,6 +180,7 @@ const japaneseContent = {
         privacy: 'プライバシーポリシー',
         terms: '利用規約',
         contact: 'お問い合わせ',
+        measurementSettings: '広告測定設定',
         help: 'ヘルプセンター',
         copyrightOwner: '深圳市师利千秋文化科技有限公司',
         copyrightRights: 'All rights reserved.',

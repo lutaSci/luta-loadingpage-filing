@@ -18,6 +18,8 @@ import {
 import {
     MEASUREMENT_CONSENT_STORAGE_KEY,
     readMeasurementConsent,
+    requestMeasurementConsentSettings,
+    subscribeMeasurementConsentSettings,
     writeMeasurementConsent,
 } from '../src/lib/measurementConsent.js'
 
@@ -205,6 +207,32 @@ test('advertising measurement consent is explicit and persisted without a defaul
     assert.equal(values.get(MEASUREMENT_CONSENT_STORAGE_KEY), 'granted')
     assert.equal(readMeasurementConsent(storage), 'granted')
     assert.equal(writeMeasurementConsent('invalid', storage), 'unknown')
+})
+
+test('advertising measurement settings reopen through an explicit shared event', () => {
+    const listeners = new Map()
+    class RuntimeCustomEvent {
+        constructor(type) {
+            this.type = type
+        }
+    }
+    const runtimeWindow = {
+        CustomEvent: RuntimeCustomEvent,
+        addEventListener: (type, listener) => listeners.set(type, listener),
+        removeEventListener: type => listeners.delete(type),
+        dispatchEvent: event => listeners.get(event.type)?.(event),
+    }
+    let requests = 0
+    const unsubscribe = subscribeMeasurementConsentSettings(
+        () => { requests += 1 },
+        runtimeWindow,
+    )
+
+    assert.equal(requestMeasurementConsentSettings(runtimeWindow), true)
+    assert.equal(requests, 1)
+    unsubscribe()
+    assert.equal(requestMeasurementConsentSettings(runtimeWindow), true)
+    assert.equal(requests, 1)
 })
 
 test('PostHog send boundary removes query strings and identity-shaped attribution', () => {

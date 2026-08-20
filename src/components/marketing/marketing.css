@@ -830,6 +830,14 @@
         display: block;
         pointer-events: none;
         transform: translateX(-50%);
+        transition: inset-block-end var(--luta-marketing-motion-fast) var(--luta-marketing-motion-ease-enter);
+    }
+
+    html[data-ad-measurement-prompt="visible"] .luta-marketing-floating-actions {
+        inset-block-end: var(
+            --ad-measurement-prompt-clearance,
+            calc(7.5rem + env(safe-area-inset-bottom, 0px))
+        );
     }
 
     .luta-marketing-floating-actions :where(
