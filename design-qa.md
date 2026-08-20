@@ -1,97 +1,60 @@
-# LUTA Mobile Persistent Install Actions — Design QA
+# Advertising Measurement Consent — Design QA
 
-qa_date: 2026-08-12 Asia/Shanghai
-route: `/global/zh-cn`
-browser: Microsoft Edge DevTools device emulation
-scope: mobile-only viewport-fixed platform selector plus synchronized install CTA
+## Scope and reference
 
-## Source visual truth
+- Source mobile concept: `/Users/drinkle/.codex/generated_images/01a00e4a-a649-70e2-a6c7-558a3c385688/exec-c3dd86da-7903-422d-84fd-3aa8f83dadf2.png` (`853 × 1844`).
+- Source desktop concept: `/Users/drinkle/.codex/generated_images/01a00e4a-a649-70e2-a6c7-558a3c385688/exec-b50eec16-479a-4fdf-bbcf-4c294bfc328b.png` (`1370 × 1148`).
+- Implemented component: `src/components/MeasurementConsentBanner.jsx`.
+- Responsive coordination: `src/components/marketing/marketing.css`.
+- Re-entry controls: `src/components/marketing/MarketingFooter.jsx` and `src/pages/Privacy.jsx`.
+- Intentional deviation: the user approved the concept, then explicitly requested a smaller mobile surface. The implemented mobile card therefore prioritizes the same choices and hierarchy in a more compact form instead of matching the concept's height.
 
-- Approved visual target: `/Users/drinkle/.codex/generated_images/019ff404-8044-70e0-89dd-689a98bcadc4/exec-8c7a2d99-a19b-4d57-8ee4-e6d1a894c3c8.png`
-- Source pixels: `965 × 1630`; generated-raster density and CSS viewport are unknown.
-- The source establishes the product shape of the floating action group: a circular platform selector on the left, one primary CTA on the right, both completely visible above the viewport bottom.
+## Comparison evidence
 
-## Rendered implementation
+| State | Requested CSS viewport | Exported image | Evidence |
+| --- | ---: | ---: | --- |
+| Simplified Chinese mobile, first visit | `390 × 844` | `375 × 812` | `/Users/drinkle/.codex/visualizations/2026/08/20/smart-link-consent-compact/mobile-390x844-final.png` |
+| Simplified Chinese narrow mobile, first visit | `320 × 568` | `305 × 541` | `/Users/drinkle/.codex/visualizations/2026/08/20/smart-link-consent-compact/mobile-320x568.png` |
+| Simplified Chinese desktop, first visit | `1440 × 900` | `1425 × 891` | `/Users/drinkle/.codex/visualizations/2026/08/20/smart-link-consent-compact/desktop-1440x900-final.png` |
+| Mobile side-by-side, source left / implementation right | normalized to `812px` high | `751 × 812` | `/Users/drinkle/.codex/visualizations/2026/08/20/smart-link-consent-compact/mobile-comparison-final.png` |
+| Desktop side-by-side, source left / implementation right | normalized to `891px` high | `2488 × 891` | `/Users/drinkle/.codex/visualizations/2026/08/20/smart-link-consent-compact/desktop-comparison-final.png` |
 
-- Local URL: `http://127.0.0.1:4173/global/zh-cn`
-- Primary implementation screenshot, iOS selected: `/Users/drinkle/Downloads/127.0.0.1_4173_global_zh-cn(iPhone 16 Pro Max) (1).png.crdownload`
-- Android state screenshot: `/Users/drinkle/Downloads/127.0.0.1_4173_global_zh-cn(iPhone 16 Pro Max) (2).png.crdownload`
-- Implementation pixels: `1320 × 2868`.
-- CSS viewport: `440 × 956`; effective device scale factor: `3`.
-- Additional compact-device checks: iPhone SE `375 × 667` and narrow responsive `320 × 568`, at both page top and footer.
+The browser tool exports the page area smaller than the requested CSS viewport because of the in-app browser frame. DOM geometry below was measured against the requested CSS viewport rather than inferred from exported pixels.
 
-The Edge downloads have a temporary `.crdownload` suffix because Edge requires a secondary save choice; file inspection confirms both are complete `1320 × 2868` PNG images.
+## Fidelity and responsive checks
 
-## Comparison evidence and normalization
+- Typography: existing marketing type system retained; compact mobile labels remain readable and desktop copy keeps the full explanation.
+- Spacing: first-visit mobile card is `78.5px` high at both `390px` and `320px` requested widths. Buttons remain `44px` minimum height.
+- CTA clearance: the fixed install action and consent card keep an `8.5px` measured gap with `0px` overlap at both mobile widths.
+- Adaptive structure: a `ResizeObserver` derives the fixed CTA clearance from the actual rendered prompt top edge. This covers language wrapping and future copy changes without per-locale offsets.
+- Color and shape: white compact surface, emerald positive action, neutral necessary action, and existing marketing radii match the approved direction and the site design system.
+- Content: mobile uses `广告衡量 · Meta/Google：到达/下载点击 · 隐私政策`; desktop retains the complete sentence. Both expose explicit `仅必要` and `允许衡量` choices.
+- Images and core page layout: existing hero images, content order, header, language switch, and primary installation actions were not replaced or restyled.
+- Overflow: measured document width did not exceed the browser viewport at `320px`, `390px`, or `1440px`.
 
-### Full view
+## Interaction and console verification
 
-The source and iOS implementation were opened in one comparison input. The source is a conceptual artboard with an outer canvas and a different aspect ratio, so the full-view comparison is used for composition and hierarchy only; it is not treated as an equal-viewport pixel comparison.
+- First visit cannot be dismissed without choosing `仅必要` or `允许衡量`.
+- `允许衡量` removes the prompt and clears its layout dataset and CSS clearance variable.
+- Footer `广告测量设置` reopens the prompt after a choice.
+- Reopened settings expose an explicit close control.
+- Changing from allowed to necessary reloads the page and removes provider measurement state.
+- Privacy page exposes the same durable settings entry.
+- Browser console after final mobile and desktop render: `0` errors, `0` warnings.
 
-- Source: `965 × 1630`.
-- Implementation: `1320 × 2868` at `440 × 956` CSS pixels and `3×` density.
-- Normalization: no density-only findings were filed from the full view.
+## Iteration history
 
-### Focused CTA region
+1. Replaced the full modal with a compact responsive region and moved persistent settings access into the footer and privacy page.
+2. Initial narrow-screen QA found the fixed install action overlapping a wrapped Traditional Chinese prompt by about `12px` at `320px`.
+3. Replaced the fixed offset with geometry-driven clearance; re-test showed `0px` overlap.
+4. Further compressed the first-visit mobile surface from about `103px` to `78.5px` by using a single-line compact disclosure while preserving two `44px` choices and the privacy link.
+5. Re-tested Simplified Chinese at `320 × 568` and `390 × 844`, desktop at `1440 × 900`, allow/reopen/withdraw interactions, overflow, and console output.
 
-The source, iOS implementation, and Android implementation were cropped from their actual images and opened together in one comparison input:
+## Automated verification
 
-- Source focus: `/Users/drinkle/.codex/visualizations/2026/08/12/019ff404-8044-70e0-89dd-689a98bcadc4/floating-cta-qa/source-cta-focus.png` (`650 × 220`).
-- iOS focus: `/Users/drinkle/.codex/visualizations/2026/08/12/019ff404-8044-70e0-89dd-689a98bcadc4/floating-cta-qa/implementation-ios-cta-focus.png` (`649 × 222`).
-- Android focus: `/Users/drinkle/.codex/visualizations/2026/08/12/019ff404-8044-70e0-89dd-689a98bcadc4/floating-cta-qa/implementation-android-cta-focus.png` (`649 × 222`).
-- The implementation crops were downsampled only for same-scale visual judgment; no source or product asset was modified.
-
-## Fixed-position evidence
-
-The action group is rendered by `PageShell` after the footer and outside the Hero and section document flow. At `440 × 956`:
-
-- page top: `position=fixed`, `scrollY=0`, `top=836`, `bottom=892`, `height=56`
-- page footer: `position=fixed`, `scrollY=5843`, `top=836`, `bottom=892`, `height=56`
-- viewport: `innerHeight=956`, `visualViewport.height=956`
-
-The group therefore remains at the same viewport coordinates and keeps a `64px` bottom clearance at both scroll positions. At iPhone SE `375 × 667`, the footer state measured `top=547`, `bottom=603`, `height=56`, again leaving `64px` of bottom clearance. A separate `320 × 568` top/footer visual check confirmed both controls remain fully visible without horizontal overflow. Footer padding reserves content space behind the persistent control.
-
-## Findings
-
-No actionable P0, P1, or P2 mismatch remains.
-
-| Fidelity surface | Result | Evidence |
-| --- | --- | --- |
-| Fonts and typography | passed | Primary CTA remains centered and readable; iOS and Android labels stay legible inside the circular selector without truncation. |
-| Spacing and layout rhythm | passed | Selector and CTA share one aligned fixed group; the 56px controls remain fully inside both long and compact viewports with a constant 64px bottom offset. |
-| Colors and tokens | passed | Existing pine field, action green, paper selector, white borders, and restrained elevation match the approved direction and existing Marketing tokens. |
-| Image and icon fidelity | passed | Existing product screenshots remain unchanged. Platform and action affordances use Lucide library icons; no placeholder, emoji, CSS drawing, or handcrafted SVG was introduced. |
-| Copy and content | passed | CTA remains `免费开始阅读`; selector exposes explicit `iOS` or `Android` text plus platform icon and chevron. |
-| Accessibility and interaction | passed | Selector exposes `aria-haspopup=menu`, expanded state, radio-menu semantics, current selection, keyboard navigation, Escape, outside-click dismissal, and focus restoration. |
-
-Accepted P3 variance: the implementation uses the project's outline Apple icon rather than the mock's filled Apple glyph. The explicit `iOS` label, accessible name, and menu make the function unambiguous, so this does not block acceptance.
-
-## Comparison history
-
-1. **P1 — CTA belonged to the Hero and disappeared after the Hero left the viewport.**
-   Fix: removed Hero visibility observation and mounted one persistent action group at `PageShell` level with `position: fixed`.
-
-2. **P1 — the control sat too close to the viewport edge and appeared clipped in long-screen emulation.**
-   Fix: replaced the edge-adjacent dock with a viewport token of `4rem + safe-area-inset-bottom`; verified identical geometry at page top and footer.
-
-3. **P2 — the first circular resource-switch icon did not explain its purpose.**
-   Fix: replaced it with the selected platform icon, explicit `iOS` / `Android` label, chevron, and a two-option accessible menu.
-
-4. **P2 — the Android label and chevron were cramped in the 56px circle.**
-   Fix: changed the trigger to a centered vertical flex layout, sized the Android label independently, and absolutely positioned the chevron. The post-fix Android focused comparison shows both elements clearly.
-
-## Browser and engineering checks
-
-- Platform menu opened and switched between iPhone and Android/HarmonyOS.
-- The visible primary CTA synchronized with the selected platform.
-- Android CTA opened `https://play.google.com/store/apps/details?id=com.luta.reader`.
-- iOS CTA route was verified against the App Store path.
-- Fixed geometry passed at `440 × 956` and `375 × 667`; the narrow `320 × 568` visual state also passed at page top and footer.
-- Browser application errors: `0`. Visible console entries were the React development prompt, a browser extension message, and Edge's lazy-image intervention.
-- `npm run test:attribution`: `141 / 141` passed.
-- Targeted ESLint for all changed source and tests: passed.
-- `npm run build`: passed; only the existing `>500 kB` chunk warning remains.
-- Repository-wide lint still reports six pre-existing unrelated errors in `GlitchText.jsx`, `Silk.jsx`, `Toast.jsx`, and shared UI files; no changed file is implicated.
+- `npm run test:attribution`: `157/157` passed.
+- `npm run build`: passed; only the repository's existing bundle-size warning remains.
+- Targeted ESLint across all changed JavaScript, JSX, and test files: passed.
 - `git diff --check`: passed.
 
 final result: passed

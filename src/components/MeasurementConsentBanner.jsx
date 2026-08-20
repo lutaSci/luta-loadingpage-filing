@@ -1,57 +1,64 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { X } from 'lucide-react'
 
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import {
     MEASUREMENT_CONSENT_VALUES,
     readMeasurementConsent,
     subscribeMeasurementConsent,
+    subscribeMeasurementConsentSettings,
     writeMeasurementConsent,
 } from '../lib/measurementConsent.js'
 
 const COPY = {
     zh: {
         title: '广告效果衡量',
-        body: '经你同意后，我们会加载 Meta Pixel，并让 Google 使用广告存储，以衡量页面到达和下载按钮点击。不会发送 Smart Link state、汝塔内部用户/点击 ID 或你输入的内容。',
-        necessary: '仅使用必要功能',
-        allow: '允许广告效果衡量',
-        settings: '广告测量设置',
+        body: '允许 Meta 与 Google 衡量页面到达和下载点击。',
+        compactTitle: '广告衡量',
+        compactBody: 'Meta/Google：到达/下载点击',
+        necessary: '仅必要',
+        allow: '允许衡量',
         close: '关闭设置',
-        privacy: '查看隐私政策',
+        privacy: '隐私政策',
     },
     zhTW: {
         title: '廣告成效衡量',
-        body: '經你同意後，我們會載入 Meta Pixel，並讓 Google 使用廣告儲存，以衡量頁面到達和下載按鈕點擊。不會傳送 Smart Link state、汝塔內部使用者/點擊 ID 或你輸入的內容。',
-        necessary: '僅使用必要功能',
-        allow: '允許廣告成效衡量',
-        settings: '廣告衡量設定',
+        body: '允許 Meta 與 Google 衡量頁面到達和下載點擊。',
+        compactTitle: '廣告衡量',
+        compactBody: 'Meta/Google：到達/下載點擊',
+        necessary: '僅必要',
+        allow: '允許衡量',
         close: '關閉設定',
-        privacy: '查看隱私政策',
+        privacy: '隱私政策',
     },
     en: {
         title: 'Advertising measurement',
-        body: 'With your permission, we load Meta Pixel and allow Google advertising storage to measure page arrivals and download-button clicks. We do not send Smart Link state, Luta internal user/click IDs, or content you enter.',
+        body: 'Allow Meta and Google to measure page arrivals and download clicks.',
+        compactTitle: 'Ad measurement',
+        compactBody: 'Meta/Google: arrivals and download clicks',
         necessary: 'Necessary only',
         allow: 'Allow measurement',
-        settings: 'Ad measurement settings',
         close: 'Close settings',
-        privacy: 'Read privacy policy',
+        privacy: 'Privacy policy',
     },
     ja: {
         title: '広告効果の測定',
-        body: '同意後、Meta Pixel を読み込み、Google の広告ストレージを使用してページ到達とダウンロードボタンのクリックを測定します。Smart Link state、Luta 内部のユーザー／クリック ID、入力内容は送信しません。',
+        body: 'Meta と Google によるページ到達とダウンロードクリックの測定を許可します。',
+        compactTitle: '広告測定',
+        compactBody: 'Meta/Google：到達・ダウンロードクリック',
         necessary: '必要な機能のみ',
         allow: '測定を許可',
-        settings: '広告測定設定',
         close: '設定を閉じる',
         privacy: 'プライバシーポリシー',
     },
     ko: {
         title: '광고 성과 측정',
-        body: '동의하면 Meta Pixel을 로드하고 Google 광고 저장소를 사용하여 페이지 도착과 다운로드 버튼 클릭을 측정합니다. Smart Link state, Luta 내부 사용자/클릭 ID 또는 입력한 내용은 전송하지 않습니다.',
+        body: 'Meta와 Google의 페이지 도착 및 다운로드 클릭 측정을 허용합니다.',
+        compactTitle: '광고 측정',
+        compactBody: 'Meta/Google: 도착 및 다운로드 클릭',
         necessary: '필수 기능만 사용',
         allow: '측정 허용',
-        settings: '광고 측정 설정',
         close: '설정 닫기',
         privacy: '개인정보처리방침',
     },
@@ -62,8 +69,58 @@ export default function MeasurementConsentBanner() {
     const copy = useMemo(() => COPY[currentLanguage] || COPY.zh, [currentLanguage])
     const [consent, setConsent] = useState(readMeasurementConsent)
     const [expanded, setExpanded] = useState(consent === MEASUREMENT_CONSENT_VALUES.unknown)
+    const bannerRef = useRef(null)
 
     useEffect(() => subscribeMeasurementConsent(setConsent), [])
+    useEffect(() => subscribeMeasurementConsentSettings(() => setExpanded(true)), [])
+    useLayoutEffect(() => {
+        const root = document.documentElement
+        if (expanded) root.dataset.adMeasurementPrompt = 'visible'
+        else {
+            delete root.dataset.adMeasurementPrompt
+            root.style.removeProperty('--ad-measurement-prompt-clearance')
+        }
+        return () => {
+            delete root.dataset.adMeasurementPrompt
+            root.style.removeProperty('--ad-measurement-prompt-clearance')
+        }
+    }, [expanded])
+    useLayoutEffect(() => {
+        if (!expanded) return undefined
+
+        const root = document.documentElement
+        const updateClearance = () => {
+            const banner = bannerRef.current
+            if (!banner) return
+            const bannerTop = banner.getBoundingClientRect().top
+            const clearance = Math.ceil(window.innerHeight - bannerTop + 8)
+            root.style.setProperty('--ad-measurement-prompt-clearance', `${clearance}px`)
+        }
+        let frameId = null
+        const scheduleUpdate = () => {
+            if (frameId !== null) window.cancelAnimationFrame(frameId)
+            frameId = window.requestAnimationFrame(() => {
+                frameId = null
+                updateClearance()
+            })
+        }
+        const resizeObserver = typeof ResizeObserver === 'undefined'
+            ? null
+            : new ResizeObserver(scheduleUpdate)
+
+        if (bannerRef.current) resizeObserver?.observe(bannerRef.current)
+        window.addEventListener('resize', scheduleUpdate)
+        window.visualViewport?.addEventListener('resize', scheduleUpdate)
+        updateClearance()
+
+        return () => {
+            if (frameId !== null) window.cancelAnimationFrame(frameId)
+            resizeObserver?.disconnect()
+            window.removeEventListener('resize', scheduleUpdate)
+            window.visualViewport?.removeEventListener('resize', scheduleUpdate)
+            root.style.removeProperty('--ad-measurement-prompt-clearance')
+        }
+    }, [copy, expanded])
 
     const choose = nextValue => {
         const previous = consent
@@ -75,58 +132,62 @@ export default function MeasurementConsentBanner() {
         ) window.location.reload()
     }
 
-    if (!expanded) {
-        return (
-            <button
-                type="button"
-                className="fixed bottom-3 left-3 z-[70] rounded-full border border-slate-300 bg-white/95 px-3 py-2 text-xs font-semibold text-slate-700 shadow-lg backdrop-blur hover:bg-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
-                onClick={() => setExpanded(true)}
-            >
-                {copy.settings}
-            </button>
-        )
-    }
+    if (!expanded) return null
+
+    const canDismiss = consent !== MEASUREMENT_CONSENT_VALUES.unknown
 
     return (
         <section
+            ref={bannerRef}
             aria-label={copy.title}
-            className="fixed inset-x-3 bottom-3 z-[70] mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-4 text-slate-800 shadow-2xl sm:p-5"
-            role="dialog"
+            className="fixed inset-x-2 z-[70] mx-auto max-w-[80rem] rounded-xl border border-slate-200 bg-white/98 px-2.5 py-1.5 text-slate-800 shadow-xl backdrop-blur-sm lg:inset-x-4 lg:rounded-2xl lg:px-4 lg:py-3"
+            role="region"
+            style={{ bottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
         >
-            <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h2 className="text-base font-bold">{copy.title}</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{copy.body}</p>
-                    <Link className="mt-2 inline-block text-sm font-semibold text-emerald-700 underline underline-offset-4" to="/privacy">
+            <div className="lg:flex lg:items-center lg:justify-between lg:gap-6">
+                <div className={`flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0 lg:flex-nowrap lg:gap-3 lg:pr-0 ${canDismiss ? 'pr-7' : ''}`}>
+                    <h2 className="shrink-0 text-xs font-bold leading-4 text-slate-900 lg:text-sm">
+                        <span className="lg:hidden">{copy.compactTitle}</span>
+                        <span className="hidden lg:inline">{copy.title}</span>
+                    </h2>
+                    <p className="min-w-0 text-[11px] leading-4 text-slate-600 lg:text-sm lg:leading-5">
+                        <span className="lg:hidden">{copy.compactBody}</span>
+                        <span className="hidden lg:inline">{copy.body}{' '}
+                            <Link className="font-semibold text-emerald-700 underline underline-offset-2" to="/privacy">
+                                {copy.privacy}
+                            </Link>
+                        </span>
+                    </p>
+                    <Link className="shrink-0 text-[11px] font-semibold leading-4 text-emerald-700 underline underline-offset-2 lg:hidden" to="/privacy">
                         {copy.privacy}
                     </Link>
                 </div>
-                {consent !== MEASUREMENT_CONSENT_VALUES.unknown && (
+                {canDismiss && (
                     <button
                         type="button"
                         aria-label={copy.close}
-                        className="rounded-lg px-2 py-1 text-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
                         onClick={() => setExpanded(false)}
                     >
-                        ×
+                        <X className="h-4 w-4" aria-hidden="true" />
                     </button>
                 )}
-            </div>
-            <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-                <button
-                    type="button"
-                    className="min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm font-bold hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300"
-                    onClick={() => choose(MEASUREMENT_CONSENT_VALUES.denied)}
-                >
-                    {copy.necessary}
-                </button>
-                <button
-                    type="button"
-                    className="min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300"
-                    onClick={() => choose(MEASUREMENT_CONSENT_VALUES.granted)}
-                >
-                    {copy.allow}
-                </button>
+                <div className="mt-1 grid grid-cols-2 gap-2 lg:mt-0 lg:flex lg:shrink-0">
+                    <button
+                        type="button"
+                        className="min-h-11 rounded-lg border border-slate-300 px-3 text-xs font-bold hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 lg:min-w-28 lg:text-sm"
+                        onClick={() => choose(MEASUREMENT_CONSENT_VALUES.denied)}
+                    >
+                        {copy.necessary}
+                    </button>
+                    <button
+                        type="button"
+                        className="min-h-11 rounded-lg bg-emerald-700 px-3 text-xs font-bold text-white hover:bg-emerald-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-emerald-300 lg:min-w-28 lg:text-sm"
+                        onClick={() => choose(MEASUREMENT_CONSENT_VALUES.granted)}
+                    >
+                        {copy.allow}
+                    </button>
+                </div>
             </div>
         </section>
     )
