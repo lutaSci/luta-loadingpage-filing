@@ -29,6 +29,10 @@ download.lutaai.com {
 			# the 35-day age policy authoritative. Disk use must be monitored.
 			roll_keep -1
 			roll_keep_for 840h
+			# The root-owned projection reader tracks rotated files by inode and
+			# byte offset. Keep rotations as JSONL instead of gzip so offsets are
+			# replayable without copying the private source log elsewhere.
+			roll_uncompressed
 		}
 		format filter {
 			wrap json

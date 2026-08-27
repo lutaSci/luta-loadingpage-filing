@@ -1,0 +1,61 @@
+name: APK Delivery Reader
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/workflows/apk-delivery-reader.yml"
+      - "ops/apk_delivery/**"
+      - "ops/caddy/download.lutaai.com.caddy"
+      - "tests/apkDeliveryReader.test.py"
+      - "tests/edgeConfig.test.mjs"
+      - "package-lock.json"
+      - "package.json"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/apk-delivery-reader.yml"
+      - "ops/apk_delivery/**"
+      - "ops/caddy/download.lutaai.com.caddy"
+      - "tests/apkDeliveryReader.test.py"
+      - "tests/edgeConfig.test.mjs"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: apk-delivery-reader-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Verify root-owned reader contract
+        run: |
+          python3 -m py_compile ops/apk_delivery/apk_delivery_reader.py
+          python3 tests/apkDeliveryReader.test.py
+
+      - name: Verify Caddy and website attribution contracts
+        run: |
+          npm ci
+          npm run test:attribution
+
+      - name: Validate Caddy 2.8.4 configuration
+        run: |
+          docker run --rm \
+            --env ACME_EMAIL=ci-validation@example.invalid \
+            --volume "$PWD/ops/caddy/download.lutaai.com.caddy:/etc/caddy/Caddyfile:ro" \
+            caddy:2.8.4 \
+            caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile

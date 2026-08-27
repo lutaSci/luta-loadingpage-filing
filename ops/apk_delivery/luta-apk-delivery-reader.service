@@ -1,0 +1,24 @@
+[Unit]
+Description=Luta root-owned APK delivery log projector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+EnvironmentFile=/etc/luta/apk-delivery-reader.env
+ExecStart=/usr/bin/python3 /opt/luta/apk-delivery-reader/apk_delivery_reader.py --source-id ${APK_DELIVERY_SOURCE_ID} --api-url ${APK_DELIVERY_API_URL}
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/var/log/caddy
+StateDirectory=luta-apk-delivery-reader
+StateDirectoryMode=0700
+RuntimeDirectory=luta-apk-delivery-reader
+RuntimeDirectoryMode=0700
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
