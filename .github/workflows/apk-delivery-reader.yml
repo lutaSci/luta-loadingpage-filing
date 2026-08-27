@@ -55,6 +55,7 @@ jobs:
       - name: Validate Caddy 2.8.4 configuration
         run: |
           docker run --rm \
+            --env ACME_EMAIL=ci-validation@example.invalid \
             --volume "$PWD/ops/caddy/download.lutaai.com.caddy:/etc/caddy/Caddyfile:ro" \
             caddy:2.8.4 \
             caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
