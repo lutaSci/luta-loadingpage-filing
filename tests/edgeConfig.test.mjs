@@ -36,6 +36,7 @@ test('APK delivery route logs only opaque aggregate-delivery fields', () => {
     assert.match(downloadCaddy, /roll_keep_for 840h/)
     assert.match(downloadCaddy, /request delete/)
     assert.match(downloadCaddy, /resp_headers delete/)
+    assert.match(downloadCaddy, /status rename http_status/)
     assert.match(downloadCaddy, /size rename bytes_written/)
     assert.match(downloadCaddy, /map \{header\.User-Agent\} \{known_bot\}/)
     assert.match(downloadCaddy, /production\|qa\|smoke\|internal\|development/)

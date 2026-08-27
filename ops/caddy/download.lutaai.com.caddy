@@ -34,6 +34,7 @@ download.lutaai.com {
 			wrap json
 			request delete
 			resp_headers delete
+			status rename http_status
 			size rename bytes_written
 			bytes_read delete
 		}
