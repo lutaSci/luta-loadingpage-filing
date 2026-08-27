@@ -18,20 +18,23 @@ download.lutaai.com {
 	log apk_delivery {
 		no_hostname
 		output file {$APK_DELIVERY_LOG_PATH:/var/log/caddy/apk-delivery.json} {
-			# The host binds this file to a dedicated writer/reader group.
-			# Caddy writes; the reporting identity receives group-read only.
-			mode 0640
+			# Production is pinned to Caddy 2.8.4. Its file writer does not
+			# support a mode subdirective and creates private 0600 files. The
+			# host directory must remain root-owned 0700 until a separately
+			# approved read-only reporting broker is deployed.
 			roll_size 50mb
 			roll_at 00:00
-			# Count-based retention would lose 35-day coverage whenever a
-			# busy day creates multiple size rolls. Age is the authority.
-			roll_keep 0
+			# In Caddy 2.8.4, zero is replaced by the default count cap of 10.
+			# A negative count reaches lumberjack as "no count cap", leaving
+			# the 35-day age policy authoritative. Disk use must be monitored.
+			roll_keep -1
 			roll_keep_for 840h
 		}
 		format filter {
 			wrap json
 			request delete
 			resp_headers delete
+			status rename http_status
 			size rename bytes_written
 			bytes_read delete
 		}
@@ -50,18 +53,22 @@ download.lutaai.com {
 		respond 404
 	}
 
-	@qualified_apk_delivery path_regexp qualified_apk_delivery ^/dl/(?P<traffic_purpose>production|qa|smoke|internal|development)/(?P<download_id>dl_[0-9a-f]{32})/(?P<artifact_size_bytes>[1-9][0-9]*)(?P<object_path>/releases/android/china/(?P<app_version>[0-9]+(?:\.[0-9]+){2})(?:%2[Bb]|\+)(?P<build_number>[1-9][0-9]*)/(?P<artifact_id>[0-9a-f]{64})\.apk)$
+	@qualified_apk_delivery path_regexp qualified_apk_delivery ^/dl/(?P<traffic_purpose>production|qa|smoke|internal|development)/(?P<download_id>dl_[0-9a-f]{32})/(?P<artifact_size_bytes>[1-9][0-9]*)/releases/android/china/(?P<app_version>[0-9]+(?:\.[0-9]+){2})(?:%2[Bb]|\+)(?P<build_number>[1-9][0-9]*)/(?P<artifact_id>[0-9a-f]{64})\.apk$
 	handle @qualified_apk_delivery {
 		log_name apk_delivery
-		log_append <request_method {http.request.method}
-		log_append <traffic_purpose {re.qualified_apk_delivery.traffic_purpose}
-		log_append <download_id {re.qualified_apk_delivery.download_id}
-		log_append <artifact_id {re.qualified_apk_delivery.artifact_id}
-		log_append <artifact_size_bytes {re.qualified_apk_delivery.artifact_size_bytes}
-		log_append <app_version {re.qualified_apk_delivery.app_version}
-		log_append <build_number {re.qualified_apk_delivery.build_number}
-		log_append <known_bot {known_bot}
-		rewrite {re.qualified_apk_delivery.object_path}
+		# Caddy 2.8.4 treats a leading "<" as part of the JSON key. Use the
+		# version-compatible form verified against the production image.
+		log_append request_method {http.request.method}
+		log_append traffic_purpose {re.qualified_apk_delivery.traffic_purpose}
+		log_append download_id {re.qualified_apk_delivery.download_id}
+		log_append artifact_id {re.qualified_apk_delivery.artifact_id}
+		log_append artifact_size_bytes {re.qualified_apk_delivery.artifact_size_bytes}
+		log_append app_version {re.qualified_apk_delivery.app_version}
+		log_append build_number {re.qualified_apk_delivery.build_number}
+		log_append known_bot {known_bot}
+		# Prefix stripping preserves the raw %2B in the immutable object path;
+		# rewriting from a regexp capture decodes it to '+' and makes OSS 404.
+		uri strip_prefix /dl/{re.qualified_apk_delivery.traffic_purpose}/{re.qualified_apk_delivery.download_id}/{re.qualified_apk_delivery.artifact_size_bytes}
 		reverse_proxy https://luta-public.oss-cn-beijing.aliyuncs.com {
 			header_up Host static.lutaai.co
 			header_down Cache-Control "no-store, max-age=0"
