@@ -4,7 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { ArrowLeft } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext.jsx';
 
-const PaperDocument = ({ title, content }) => {
+const PaperDocument = ({ title, content, headerAction }) => {
     const { t } = useLanguage();
 
     return (
@@ -26,10 +26,11 @@ const PaperDocument = ({ title, content }) => {
                     }} />
 
                     <div className="relative px-6 md:px-10 py-8 md:py-10">
-                        <div className="mb-6">
+                        <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
                             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800">
                                 {title}
                             </h1>
+                            {headerAction}
                         </div>
 
                         <div className="prose max-w-none">

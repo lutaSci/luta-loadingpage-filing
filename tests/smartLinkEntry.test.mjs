@@ -8,6 +8,8 @@ import {
     hasSmartLinkBearer,
     parseSmartLinkEntry,
     readSmartLinkEntrySession,
+    resolveInstallDisplayLocation,
+    resolvePlatformClickId,
     resolveSmartLinkCleanupLocation,
     updateSmartLinkEntryChoice,
 } from '../src/lib/smartLinkEntry.js'
@@ -105,4 +107,36 @@ test('cleans valid and malformed bearer URLs without restoring hidden identity',
         search: '?legacy_slug=bad&click_id=bad&utm_source=private',
         hash: '#policy',
     }), '/privacy#policy')
+})
+
+test('preserves one provider click ID only after bearer cleanup', () => {
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=signed.state&choice=global&fbclid=meta_123.abc~v1',
+        homepageSurfaceEnabled: false,
+    }), '/install?choice=global&fbclid=meta_123.abc%7Ev1')
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=signed.state&fbclid=meta&gclid=google',
+        homepageSurfaceEnabled: true,
+    }), '/')
+    assert.equal(resolveSmartLinkCleanupLocation({
+        pathname: '/install',
+        search: '?state=one&state=two&fbclid=meta',
+        homepageSurfaceEnabled: false,
+    }), '/install')
+})
+
+test('provider click ID parser and later display URL fail closed on ambiguity', () => {
+    assert.deepEqual(resolvePlatformClickId('?gclid=google-1'), {
+        name: 'gclid',
+        value: 'google-1',
+    })
+    assert.equal(resolvePlatformClickId('?gclid=one&wbraid=two'), null)
+    assert.equal(resolvePlatformClickId('?fbclid=one&fbclid=two'), null)
+    assert.equal(resolvePlatformClickId('?ttclid=bad%2Fvalue'), null)
+    assert.equal(resolveInstallDisplayLocation({
+        choice: 'global',
+        search: '?choice=cn&fbclid=meta_1',
+    }), '/install?choice=global&fbclid=meta_1')
 })

@@ -5,13 +5,10 @@ import { test } from 'node:test'
 import { resolveRootHomepage } from '../src/lib/rootHomepage.js'
 import { resolvePreferredLanguage } from '../src/lib/languagePreference.js'
 
-test('root homepage uses the shared marketing experience for all five languages', () => {
+test('root homepage uses the shared marketing experience for active Chinese languages', () => {
     const expected = {
         zh: 'zh-cn',
         zhTW: 'zh-tw',
-        en: 'en',
-        ja: 'ja',
-        ko: 'ko',
     }
 
     for (const [language, locale] of Object.entries(expected)) {
@@ -27,9 +24,9 @@ test('root route uses the compatibility dispatcher and keeps explicit marketing 
     assert.match(source, /path="\/" element=\{<RootHomepage \/>\}/)
     assert.match(source, /path="\/global\/zh-cn" element=\{<MarketingLanding locale="zh-cn" \/>\}/)
     assert.match(source, /path="\/global\/zh-tw" element=\{<MarketingLanding locale="zh-tw" \/>\}/)
-    assert.match(source, /path="\/global\/en" element=\{<MarketingLanding locale="en" \/>\}/)
-    assert.match(source, /path="\/global\/ja" element=\{<MarketingLanding locale="ja" \/>\}/)
-    assert.match(source, /path="\/global\/ko" element=\{<MarketingLanding locale="ko" \/>\}/)
+    assert.match(source, /path="\/global\/en" element=\{<RetiredMarketingLocaleRedirect \/>\}/)
+    assert.match(source, /path="\/global\/ja" element=\{<RetiredMarketingLocaleRedirect \/>\}/)
+    assert.match(source, /path="\/global\/ko" element=\{<RetiredMarketingLocaleRedirect \/>\}/)
     assert.match(source, /path="\/install" element=\{<SmartLinkInstallEntry \/>\}/)
     assert.match(source, /<SmartLinkJourneyProvider>/)
     assert.match(source, /<\/SmartLinkJourneyProvider>/)
@@ -90,12 +87,62 @@ test('traditional Chinese browser detection and html language use the standard t
     const source = await readFile(new URL('../src/contexts/LanguageContext.jsx', import.meta.url), 'utf8')
 
     assert.match(source, /currentLanguage === 'zhTW' \? 'zh-TW'/)
+    assert.match(source, /navigator\.languages/)
+    assert.match(source, /Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/)
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-TW' }), 'zhTW')
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hant' }), 'zhTW')
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hant-TW' }), 'zhTW')
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-HK' }), 'zhTW')
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-MO' }), 'zhTW')
     assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hans-SG' }), 'zh')
+})
+
+test('language resolution follows explicit choice, saved choice, ordered language, region, and timezone priority', () => {
+    assert.equal(resolvePreferredLanguage({
+        explicitLanguage: 'zhTW',
+        savedLanguage: 'zh',
+        browserLanguages: ['zh-Hans-CN'],
+        timeZone: 'Asia/Shanghai',
+    }), 'zhTW')
+    assert.equal(resolvePreferredLanguage({
+        savedLanguage: 'zhTW',
+        browserLanguages: ['zh-Hans-CN'],
+    }), 'zhTW')
+
+    for (const retiredLanguage of ['en', 'ja', 'ko']) {
+        assert.equal(resolvePreferredLanguage({
+            savedLanguage: retiredLanguage,
+            browserLanguages: ['en-US', 'zh-Hant-HK'],
+        }), 'zhTW')
+    }
+
+    assert.equal(resolvePreferredLanguage({
+        browserLanguages: ['en-US', 'zh-Hant-HK'],
+        timeZone: 'America/New_York',
+    }), 'zhTW')
+    assert.equal(resolvePreferredLanguage({
+        browserLanguages: ['ja-JP', 'zh-Hans-SG'],
+        timeZone: 'Asia/Taipei',
+    }), 'zh')
+    assert.equal(resolvePreferredLanguage({
+        browserLanguages: ['zh', 'en-HK'],
+        timeZone: 'America/New_York',
+    }), 'zhTW')
+    assert.equal(resolvePreferredLanguage({
+        browserLanguages: ['zh'],
+        timeZone: 'Asia/Taipei',
+    }), 'zhTW')
+    assert.equal(resolvePreferredLanguage({
+        browserLanguages: ['en-US'],
+        timeZone: 'America/New_York',
+    }), 'zh')
+})
+
+test('retired locale redirect preserves URL state for the active root experience', async () => {
+    const source = await readFile(new URL('../src/pages/RetiredMarketingLocaleRedirect.jsx', import.meta.url), 'utf8')
+
+    assert.match(source, /const \{ search, hash \} = useLocation\(\)/)
+    assert.match(source, /<Navigate replace to=\{`\/\$\{search\}\$\{hash\}`\} \/>/)
 })
 
 test('marketing routes persist their explicit locale and own page metadata', async () => {
@@ -125,10 +172,10 @@ test('marketing path detection accepts canonical locale routes with a trailing s
 test('static share metadata matches the released root positioning', async () => {
     const source = await readFile(new URL('../index.html', import.meta.url), 'utf8')
 
-    assert.match(source, /<title>汝塔 LUTA｜佛教经典阅读与修学辅助工具<\/title>/)
+    assert.match(source, /<title>汝塔 LUTA｜佛教经典阅读与理解工具<\/title>/)
     assert.match(source, /name="luta-homepage-experience" content="marketing-v1"/)
-    assert.match(source, /property="og:title" content="汝塔 LUTA｜佛教经典阅读与修学辅助工具"/)
-    assert.match(source, /name="twitter:title" content="汝塔 LUTA｜佛教经典阅读与修学辅助工具"/)
+    assert.match(source, /property="og:title" content="汝塔 LUTA｜佛教经典阅读与理解工具"/)
+    assert.match(source, /name="twitter:title" content="汝塔 LUTA｜佛教经典阅读与理解工具"/)
 })
 
 test('production deploy smoke verifies the root marketing shell', async () => {
@@ -141,17 +188,17 @@ test('production deploy smoke verifies the root marketing shell', async () => {
     assert.match(source, /必须再用真实浏览器验证/)
 })
 
-test('marketing header preserves access to all five existing languages', async () => {
+test('marketing header exposes only Simplified and Traditional Chinese', async () => {
     const source = await readFile(new URL('../src/components/marketing/LocaleSwitcher.jsx', import.meta.url), 'utf8')
     const registry = await import('../src/lib/marketingLocales.js')
 
     assert.deepEqual(
         registry.MARKETING_LOCALE_REGISTRY.map(locale => locale.languageKey),
-        ['zh', 'zhTW', 'en', 'ja', 'ko'],
+        ['zh', 'zhTW'],
     )
     assert.deepEqual(
         registry.MARKETING_LOCALE_REGISTRY.map(locale => locale.path),
-        ['/global/zh-cn', '/global/zh-tw', '/global/en', '/global/ja', '/global/ko'],
+        ['/global/zh-cn', '/global/zh-tw'],
     )
     assert.match(source, /MARKETING_LOCALE_REGISTRY/)
     assert.match(source, /const currentValue = content\.languageKey/)

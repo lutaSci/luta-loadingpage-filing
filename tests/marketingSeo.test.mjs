@@ -23,7 +23,7 @@ test('every explicit locale has self-referencing canonical and localized Open Gr
 })
 
 test('root metadata remains x-default while preserving the rendered language', () => {
-    const content = MARKETING_CONTENT.en
+    const content = MARKETING_CONTENT['zh-cn']
     const seo = getMarketingSeoModel(content, '/')
 
     assert.equal(seo.canonicalUrl, 'https://lutaai.com/')
@@ -32,7 +32,7 @@ test('root metadata remains x-default while preserving the rendered language', (
     assert.equal(MARKETING_HREFLANG_LINKS.at(-1).href, 'https://lutaai.com/')
 })
 
-test('the document shell contains absolute social assets and the complete hreflang cluster', async () => {
+test('the document shell contains absolute social assets and only active-language alternates', async () => {
     const source = await readFile(new URL('../index.html', import.meta.url), 'utf8')
 
     assert.match(source, /property="og:image" content="https:\/\/lutaai\.com\/twitter_meta_img\.png"/)
@@ -40,17 +40,27 @@ test('the document shell contains absolute social assets and the complete hrefla
     for (const { hreflang, href } of MARKETING_HREFLANG_LINKS) {
         assert.ok(source.includes(`hreflang="${hreflang}" href="${href}"`))
     }
+    for (const retiredLocale of ['en', 'ja', 'ko']) {
+        assert.equal(source.includes(`/global/${retiredLocale}`), false)
+    }
+    for (const retiredOgLocale of ['en_US', 'ja_JP', 'ko_KR']) {
+        assert.equal(source.includes(`content="${retiredOgLocale}"`), false)
+    }
 })
 
-test('production server maps all localized routes to prerendered HTML', async () => {
+test('production server prerenders active routes and temporarily redirects retired routes', async () => {
     const source = await readFile(new URL('../nginx.conf', import.meta.url), 'utf8')
 
-    assert.match(source, /location ~ \^\/global\/\(zh-cn\|zh-tw\|en\|ja\|ko\)\/\?\$/)
+    assert.match(source, /location ~ \^\/global\/\(zh-cn\|zh-tw\)\/\?\$/)
     assert.match(
         source,
-        /location ~ \^\/global\/\(zh-cn\|zh-tw\|en\|ja\|ko\)\/\?\$ \{[\s\S]{0,400}add_header Cache-Control \$luta_html_cache_control always;/,
+        /location ~ \^\/global\/\(zh-cn\|zh-tw\)\/\?\$ \{[\s\S]{0,400}add_header Cache-Control \$luta_html_cache_control always;/,
     )
     assert.match(source, /try_files \/global\/\$1\.html =404;/)
+    assert.match(
+        source,
+        /location ~ \^\/global\/\(en\|ja\|ko\)\/\?\$ \{[\s\S]{0,350}absolute_redirect off;[\s\S]{0,350}Cache-Control "no-store, max-age=0"[\s\S]{0,350}return 302 \/\$is_args\$args;/,
+    )
 })
 
 test('crawler discovery files expose the canonical marketing routes and protect install ingress', async () => {
@@ -65,5 +75,8 @@ test('crawler discovery files expose the canonical marketing routes and protect 
 
     for (const href of new Set(MARKETING_HREFLANG_LINKS.map(link => link.href))) {
         assert.ok(sitemap.includes(`<loc>${href}</loc>`), `missing sitemap URL: ${href}`)
+    }
+    for (const retiredLocale of ['en', 'ja', 'ko']) {
+        assert.equal(sitemap.includes(`/global/${retiredLocale}`), false)
     }
 })

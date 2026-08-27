@@ -1,9 +1,17 @@
 import englishContent from './marketing/en.js'
 import japaneseContent from './marketing/ja.js'
 import koreanContent from './marketing/ko.js'
-import { MARKETING_LOCALE_KEYS } from '../lib/marketingLocales.js'
+import {
+    MARKETING_LOCALE_KEYS,
+    RETIRED_MARKETING_LOCALE_KEYS,
+} from '../lib/marketingLocales.js'
 
 export const MARKETING_LOCALES = MARKETING_LOCALE_KEYS
+export const RETIRED_MARKETING_LOCALES = RETIRED_MARKETING_LOCALE_KEYS
+export const ALL_MARKETING_LOCALES = Object.freeze([
+    ...MARKETING_LOCALES,
+    ...RETIRED_MARKETING_LOCALES,
+])
 
 const sharedPaths = Object.freeze({
     'zh-cn': '/global/zh-cn',
@@ -17,9 +25,9 @@ const content = {
         languageKey: 'zh',
         path: sharedPaths['zh-cn'],
         metadata: {
-            title: '汝塔 LUTA｜佛教经典阅读与修学辅助工具',
-            description: '从佛教经典原文开始，在需要时获得 AI 辅助理解，并通过计划与记录建立可以持续的个人修学历程。',
-            keywords: '汝塔,LUTA,佛教经典,经典阅读,AI辅助理解,修学计划,个人修学',
+            title: '汝塔 LUTA｜佛教经典阅读与理解工具',
+            description: '阅读佛教经典原文与白话译文，在需要时获得 AI 辅助理解，并记录自己的阅读、思考与修学历程。',
+            keywords: '汝塔,LUTA,佛教经典,经典阅读,白话译文,AI辅助理解,修学记录',
         },
         brand: { name: '汝塔', latin: 'LUTA' },
         navigation: {
@@ -28,7 +36,7 @@ const content = {
             why: '为什么选择汝塔',
             capabilities: '汝塔能做什么',
             principles: '我们的原则',
-            getApp: '下载汝塔',
+            getApp: '免费开始阅读',
         },
         localeSwitcher: {
             label: '切换到繁体中文',
@@ -36,12 +44,16 @@ const content = {
             menuLabel: '选择页面语言',
         },
         hero: {
-            eyebrow: '面向全球中文读者的佛教经典阅读与修学辅助工具',
-            desktopTitle: ['从经典原文开始，', '建立自己的', '长期修学路径。'],
-            mobileTitle: ['从经典原文开始，', '建立自己的修学路径。'],
-            accessibleTitle: '从经典原文开始，建立自己的长期修学路径。',
-            lead: '阅读佛教经典原文，在需要时获得 AI 辅助理解，并通过计划、进度与记录，让每一次阅读、思考与实践逐渐连接成可回望、可继续的个人历程。',
-            mobileLead: '从经典原文开始，AI 辅助理解。记录每一次阅读、思考与实践。',
+            eyebrow: '面向全球中文读者的佛教经典阅读与理解工具',
+            desktopTitle: ['从阅读经典开始', '理解经文中的智慧', '让修学融入日常'],
+            mobileTitle: ['从阅读经典开始', '理解经文中的智慧', '让修学融入日常'],
+            accessibleTitle: '从阅读经典开始，理解经文中的智慧，让修学融入日常。',
+            lead: '经典浩瀚，不知从哪里开始；经义深奥，理解并不容易。汝塔帮助您阅读经典原文、查看白话译文，在需要时获得 AI 辅助理解，并记录自己的阅读、思考与修学历程。',
+            mobileLead: '阅读经典原文与白话译文，在需要时获得 AI 辅助理解，并记录每一次阅读与思考。',
+            primaryCta: {
+                label: '免费开始阅读',
+                description: '基础阅读持续免费 · 将前往适合您的官方安装方式',
+            },
             caption: '经典阅读 · 塔宝辅助 · 计划与记录',
             carouselLabel: '汝塔产品界面',
             carouselInstructions: '左右滑动、拖动，或使用左右方向键切换中间展示的界面。',
@@ -189,6 +201,7 @@ const content = {
             privacy: '隐私政策',
             terms: '使用协议',
             contact: '联系我们',
+            measurementSettings: '广告测量设置',
             help: '帮助中心',
             copyrightOwner: '深圳市师利千秋文化科技有限公司',
             copyrightRights: '保留所有权利。',
@@ -201,9 +214,9 @@ const content = {
         languageKey: 'zhTW',
         path: sharedPaths['zh-tw'],
         metadata: {
-            title: '汝塔 LUTA｜佛教經典閱讀與修學輔助工具',
-            description: '從佛教經典原文開始，在需要時獲得 AI 輔助理解，並透過計畫與記錄建立可以持續的個人修學歷程。',
-            keywords: '汝塔,LUTA,佛教經典,經典閱讀,AI輔助理解,修學計畫,個人修學',
+            title: '汝塔 LUTA｜佛教經典閱讀與理解工具',
+            description: '閱讀佛教經典原文與白話譯文，在需要時獲得 AI 輔助理解，並記錄自己的閱讀、思考與修學歷程。',
+            keywords: '汝塔,LUTA,佛教經典,經典閱讀,白話譯文,AI輔助理解,修學記錄',
         },
         brand: { name: '汝塔', latin: 'LUTA' },
         navigation: {
@@ -212,7 +225,7 @@ const content = {
             why: '為什麼選擇汝塔',
             capabilities: '汝塔能做什麼',
             principles: '我們的原則',
-            getApp: '下載汝塔',
+            getApp: '免費開始閱讀',
         },
         localeSwitcher: {
             label: '切換到簡體中文',
@@ -220,12 +233,16 @@ const content = {
             menuLabel: '選擇頁面語言',
         },
         hero: {
-            eyebrow: '面向全球中文讀者的佛教經典閱讀與修學輔助工具',
-            desktopTitle: ['從經典原文開始，', '建立自己的', '長期修學路徑。'],
-            mobileTitle: ['從經典原文開始，', '建立自己的修學路徑。'],
-            accessibleTitle: '從經典原文開始，建立自己的長期修學路徑。',
-            lead: '閱讀佛教經典原文，在需要時獲得 AI 輔助理解，並透過計畫、進度與記錄，讓每一次閱讀、思考與實踐逐漸連接成可回望、可繼續的個人歷程。',
-            mobileLead: '從經典原文開始，AI 輔助理解。記錄每一次閱讀、思考與實踐。',
+            eyebrow: '面向全球中文讀者的佛教經典閱讀與理解工具',
+            desktopTitle: ['從閱讀經典開始', '理解經文中的智慧', '讓修學融入日常'],
+            mobileTitle: ['從閱讀經典開始', '理解經文中的智慧', '讓修學融入日常'],
+            accessibleTitle: '從閱讀經典開始，理解經文中的智慧，讓修學融入日常。',
+            lead: '經典浩瀚，不知從哪裡開始；經義深奧，理解並不容易。汝塔幫助您閱讀經典原文、查看白話譯文，在需要時獲得 AI 輔助理解，並記錄自己的閱讀、思考與修學歷程。',
+            mobileLead: '閱讀經典原文與白話譯文，在需要時獲得 AI 輔助理解，並記錄每一次閱讀與思考。',
+            primaryCta: {
+                label: '免費開始閱讀',
+                description: '基礎閱讀持續免費 · 將前往適合您的官方安裝方式',
+            },
             caption: '經典閱讀 · 塔寶輔助 · 計畫與記錄',
             carouselLabel: '汝塔產品介面',
             carouselInstructions: '左右滑動、拖動，或使用左右方向鍵切換中央顯示的介面。',
@@ -373,6 +390,7 @@ const content = {
             privacy: '隱私政策',
             terms: '使用協議',
             contact: '聯絡我們',
+            measurementSettings: '廣告衡量設定',
             help: '幫助中心',
             copyrightOwner: '深圳市师利千秋文化科技有限公司',
             copyrightRights: '保留所有權利。',

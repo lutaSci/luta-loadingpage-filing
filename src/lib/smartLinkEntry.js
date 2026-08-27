@@ -5,6 +5,14 @@ import {
 
 export const SMART_LINK_ENTRY_SESSION_KEY = 'luta-smart-link-homepage-entry-v1'
 export const SMART_LINK_ENTRY_MAX_AGE_MS = 30 * 60 * 1000
+export const PLATFORM_CLICK_ID_NAMES = Object.freeze([
+    'fbclid',
+    'gclid',
+    'gbraid',
+    'wbraid',
+    'ttclid',
+])
+const PLATFORM_CLICK_ID_MAX_LENGTH = 512
 
 function defaultSessionStorage() {
     try {
@@ -178,6 +186,42 @@ export function hasSmartLinkBearer(search = '') {
     }
 }
 
+export function resolvePlatformClickId(search = '') {
+    try {
+        const params = new URLSearchParams(search)
+        let candidate = null
+        for (const name of PLATFORM_CLICK_ID_NAMES) {
+            const values = params.getAll(name)
+            if (values.length > 1) return null
+            if (values.length === 0) continue
+            const value = values[0]
+            if (
+                !value
+                || value.length > PLATFORM_CLICK_ID_MAX_LENGTH
+                || !/^[A-Za-z0-9._~-]+$/.test(value)
+            ) continue
+            if (candidate) return null
+            candidate = { name, value }
+        }
+        return candidate
+    } catch {
+        return null
+    }
+}
+
+function safeDisplayQuery({ choice, search }) {
+    const params = new URLSearchParams()
+    if (choice === 'cn' || choice === 'global') params.set('choice', choice)
+    const platformClickId = resolvePlatformClickId(search)
+    if (platformClickId) params.set(platformClickId.name, platformClickId.value)
+    const query = params.toString()
+    return query ? `?${query}` : ''
+}
+
+export function resolveInstallDisplayLocation({ choice, search = '' }) {
+    return `/install${safeDisplayQuery({ choice, search })}`
+}
+
 export function resolveSmartLinkCleanupLocation({
     pathname,
     search = '',
@@ -189,10 +233,13 @@ export function resolveSmartLinkCleanupLocation({
     const inbound = parseSmartLinkEntry(search)
     if (pathname === '/install') {
         const usesHomepageSurface = homepageSurfaceEnabled && Boolean(inbound)
-        const safeChoice = !usesHomepageSurface && inbound?.choice
-            ? `?choice=${encodeURIComponent(inbound.choice)}`
+        const safeQuery = inbound
+            ? safeDisplayQuery({
+                choice: usesHomepageSurface ? null : inbound.choice,
+                search,
+            })
             : ''
-        return `${usesHomepageSurface ? '/' : '/install'}${safeChoice}${hash}`
+        return `${usesHomepageSurface ? '/' : '/install'}${safeQuery}${hash}`
     }
 
     // Bearer-shaped query parameters are never retained on non-install routes,

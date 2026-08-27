@@ -17,11 +17,14 @@ import {
     buildInstallContinuationUrl,
     buildLegacyControlledOutUrl,
     buildLegacyInstallContextUrl,
+    isInstallPlatformSelectable,
     normalizeInstallContext,
     resolveDeviceOs,
+    resolveInstallPlatformPresentation,
     resolveMarketChoiceRelation,
     selectDirectInstallChoices,
 } from '../lib/installFlow.js'
+import { resolveInstallDisplayLocation } from '../lib/smartLinkEntry.js'
 
 const HANDOFF_SESSION_KEY = 'luta-install-handoff-pending-at'
 const HANDOFF_MAX_AGE_MS = 30 * 60 * 1000
@@ -64,7 +67,7 @@ export function useInstallJourneyController({
 
     const [selectedRegion, setSelectedRegion] = useState(entry?.choice || null)
     const [activePlatform, setActivePlatform] = useState(() => (
-        deviceOs === 'android' ? 'android' : 'ios'
+        resolveInstallPlatformPresentation(deviceOs)
     ))
     const [loadStatus, setLoadStatus] = useState(() => (
         hasEntry ? 'loading' : missingStateIsTerminal ? 'missing_state' : 'idle'
@@ -80,7 +83,12 @@ export function useInstallJourneyController({
     const viewTrackedKeyRef = useRef(null)
     const recoveryReasonRef = useRef('unknown')
 
-    const displayOs = deviceOs === 'desktop' ? activePlatform : deviceOs
+    const platformSelectable = isInstallPlatformSelectable(deviceOs)
+    const displayOs = platformSelectable
+        ? (surface === 'official_homepage' || deviceOs === 'desktop')
+            ? activePlatform
+            : deviceOs
+        : deviceOs
     const isTerminalState = ['missing_state', 'failed', 'no_options'].includes(loadStatus)
 
     useEffect(() => {
@@ -287,13 +295,13 @@ export function useInstallJourneyController({
     const replaceVisibleUrl = useCallback(region => {
         onChoiceChange?.(region)
         if (surface === 'official_homepage') return
-        const safeChoice = region === 'cn' || region === 'global'
-            ? `?choice=${encodeURIComponent(region)}`
-            : ''
         // The signed state and legacy click tuple remain in memory/session only.
-        // A copy action can construct a continuation URL explicitly, but normal
-        // UI state must never put bearer identity back into browser history.
-        window.history.replaceState({}, '', `/install${safeChoice}`)
+        // The one validated provider click ID can remain on the safe URL for
+        // the corresponding consented SDK, but it never enters Luta events.
+        window.history.replaceState({}, '', resolveInstallDisplayLocation({
+            choice: region,
+            search: window.location.search,
+        }))
     }, [
         onChoiceChange,
         surface,
@@ -460,13 +468,17 @@ export function useInstallJourneyController({
     }, [handleRecoveryAction, onExitJourney])
 
     const switchPlatform = useCallback(platform => {
-        if (!['ios', 'android'].includes(platform) || platform === activePlatform) return
+        if (
+            !platformSelectable
+            || !['ios', 'android'].includes(platform)
+            || platform === activePlatform
+        ) return
         setActivePlatform(platform)
         setSelectedRegion(null)
         setRecoveryOpen(false)
         setWechatEmphasis(false)
         replaceVisibleUrl(null)
-    }, [activePlatform, replaceVisibleUrl])
+    }, [activePlatform, platformSelectable, replaceVisibleUrl])
 
     return {
         activePlatform,
@@ -489,6 +501,7 @@ export function useInstallJourneyController({
         loadStatus,
         openAppUrl,
         openInstalledApp,
+        platformSelectable,
         recoveryOpen,
         reloadOptions,
         selectChoice,

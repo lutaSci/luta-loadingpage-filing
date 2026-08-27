@@ -11,8 +11,12 @@ ENV CI=true
 # explicit so Docker and static previews use the same HTTPS backend contract.
 ARG VITE_LUTA_API_BASE=https://api.lutaai.com
 ARG VITE_SMART_LINK_HOMEPAGE_SURFACE=false
+ARG VITE_META_PIXEL_ENABLED=false
+ARG VITE_META_PIXEL_ID=
 ENV VITE_LUTA_API_BASE=${VITE_LUTA_API_BASE}
 ENV VITE_SMART_LINK_HOMEPAGE_SURFACE=${VITE_SMART_LINK_HOMEPAGE_SURFACE}
+ENV VITE_META_PIXEL_ENABLED=${VITE_META_PIXEL_ENABLED}
+ENV VITE_META_PIXEL_ID=${VITE_META_PIXEL_ID}
 
 # Install dependencies using lockfile for reproducibility
 COPY package*.json ./

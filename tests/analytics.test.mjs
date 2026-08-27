@@ -5,13 +5,23 @@ import { test } from 'node:test'
 import {
     buildGoogleCtaPayload,
     buildGooglePageViewPayload,
+    buildMetaCtaPayload,
     GOOGLE_ANALYTICS_ID,
     GOOGLE_CTA_EVENT_NAME,
+    META_CTA_EVENT_NAME,
     sanitizeGoogleCampaignValue,
     sanitizePosthogCapture,
     sanitizeWebsiteProperties,
+    shouldCaptureAdvertisingMeasurement,
     shouldCaptureGoogleAnalytics,
 } from '../src/lib/analytics.js'
+import {
+    MEASUREMENT_CONSENT_STORAGE_KEY,
+    readMeasurementConsent,
+    requestMeasurementConsentSettings,
+    subscribeMeasurementConsentSettings,
+    writeMeasurementConsent,
+} from '../src/lib/measurementConsent.js'
 
 function productionWindow(search = '') {
     return {
@@ -73,6 +83,8 @@ test('website allowlist rejects unknown properties and likely personal data', ()
         utm_campaign: 'person@example.com',
         operator: '+86 138 0013 8000',
         click_id: 'lclk_0123456789abcdef0123456789abcdef',
+        experiment_key: 'marketing_cta_copy_v1',
+        experiment_variant: 'treatment_platform',
         arbitrary_secret: 'must-not-pass',
     })
 
@@ -82,6 +94,17 @@ test('website allowlist rejects unknown properties and likely personal data', ()
     assert.equal('operator' in safe, false)
     assert.equal('arbitrary_secret' in safe, false)
     assert.equal(safe.click_id, 'lclk_0123456789abcdef0123456789abcdef')
+    assert.equal(safe.experiment_key, 'marketing_cta_copy_v1')
+    assert.equal(safe.experiment_variant, 'treatment_platform')
+})
+
+test('experiment fields reject free-form or personal values', () => {
+    const safe = sanitizeWebsiteProperties({
+        experiment_key: 'person@example.com',
+        experiment_variant: 'treatment platform',
+    })
+
+    assert.deepEqual(safe, {})
 })
 
 test('manual GA page view contains a canonical path and approved campaign fields only', () => {
@@ -129,6 +152,8 @@ test('GA CTA projection excludes attribution identity and free-form properties',
         option_id: 'option-secret',
         utm_campaign: 'free-form-campaign',
         operator: 'ops_internal',
+        experiment_key: 'marketing_cta_copy_v1',
+        experiment_variant: 'treatment_platform',
     }, { runtimeWindow: productionWindow('?state=never-copy') })
 
     assert.deepEqual(payload, {
@@ -142,6 +167,87 @@ test('GA CTA projection excludes attribution identity and free-form properties',
         locale: 'zh-CN',
         page_path: '/install',
     })
+})
+
+test('Meta measurement requires explicit consent and uses the same production/bearer gate', () => {
+    assert.equal(shouldCaptureAdvertisingMeasurement(
+        { traffic_purpose: 'production' },
+        productionWindow(),
+        'granted',
+    ), true)
+    assert.equal(shouldCaptureAdvertisingMeasurement(
+        { traffic_purpose: 'production' },
+        productionWindow(),
+        'denied',
+    ), false)
+    assert.equal(shouldCaptureAdvertisingMeasurement(
+        { traffic_purpose: 'production' },
+        productionWindow('?state=signed-bearer'),
+        'granted',
+    ), false)
+})
+
+test('Meta CTA projection excludes Luta identity and campaign free text', () => {
+    assert.deepEqual(buildMetaCtaPayload({
+        page_path: '/install?state=signed',
+        entry_type: 'shortlink',
+        route_market: 'global',
+        device_os: 'android',
+        locale: 'zh-CN',
+        cta_target: 'google_play',
+        placement: 'install_gate',
+        click_id: 'internal-click',
+        link_id: 'internal-link',
+        utm_campaign: 'free-form-campaign',
+    }), {
+        cta_target: 'google_play',
+        placement: 'install_gate',
+        entry_type: 'shortlink',
+        route_market: 'global',
+        device_os: 'android',
+        locale: 'zh-CN',
+        page_path: '/install',
+    })
+    assert.equal(META_CTA_EVENT_NAME, 'WebsiteDownloadCtaClicked')
+})
+
+test('advertising measurement consent is explicit and persisted without a default grant', () => {
+    const values = new Map()
+    const storage = {
+        getItem: key => values.get(key) || null,
+        setItem: (key, value) => values.set(key, String(value)),
+    }
+    assert.equal(readMeasurementConsent(storage), 'unknown')
+    assert.equal(writeMeasurementConsent('granted', storage), 'granted')
+    assert.equal(values.get(MEASUREMENT_CONSENT_STORAGE_KEY), 'granted')
+    assert.equal(readMeasurementConsent(storage), 'granted')
+    assert.equal(writeMeasurementConsent('invalid', storage), 'unknown')
+})
+
+test('advertising measurement settings reopen through an explicit shared event', () => {
+    const listeners = new Map()
+    class RuntimeCustomEvent {
+        constructor(type) {
+            this.type = type
+        }
+    }
+    const runtimeWindow = {
+        CustomEvent: RuntimeCustomEvent,
+        addEventListener: (type, listener) => listeners.set(type, listener),
+        removeEventListener: type => listeners.delete(type),
+        dispatchEvent: event => listeners.get(event.type)?.(event),
+    }
+    let requests = 0
+    const unsubscribe = subscribeMeasurementConsentSettings(
+        () => { requests += 1 },
+        runtimeWindow,
+    )
+
+    assert.equal(requestMeasurementConsentSettings(runtimeWindow), true)
+    assert.equal(requests, 1)
+    unsubscribe()
+    assert.equal(requestMeasurementConsentSettings(runtimeWindow), true)
+    assert.equal(requests, 1)
 })
 
 test('PostHog send boundary removes query strings and identity-shaped attribution', () => {
@@ -182,7 +288,7 @@ test('GA campaign sanitizer permits controlled tokens and rejects identity-shape
 test('Google provider uses manual page views and a single approved CTA event', async () => {
     const source = await readFile(new URL('../src/lib/analytics.js', import.meta.url), 'utf8')
     assert.match(source, /send_page_view: false/)
-    assert.match(source, /ad_storage: 'denied'/)
+    assert.match(source, /ad_storage: googleAdStorageConsent\(\)/)
     assert.match(source, /ad_user_data: 'denied'/)
     assert.match(source, /ad_personalization: 'denied'/)
     assert.match(source, /window\.gtag\('event', 'page_view', payload\)/)
@@ -191,12 +297,22 @@ test('Google provider uses manual page views and a single approved CTA event', a
     assert.equal(source.includes("export const trackEvent"), false)
 })
 
+test('Meta provider is config-gated, consent-gated and emits only approved events', async () => {
+    const source = await readFile(new URL('../src/lib/analytics.js', import.meta.url), 'utf8')
+    assert.match(source, /config\.analytics\.metaPixelEnabled/)
+    assert.match(source, /shouldCaptureAdvertisingMeasurement/)
+    assert.match(source, /connect\.facebook\.net\/en_US\/fbevents\.js/)
+    assert.match(source, /window\.fbq\('track', 'PageView'\)/)
+    assert.match(source, /window\.fbq\('trackCustom', META_CTA_EVENT_NAME/)
+    assert.doesNotMatch(source, /advancedMatching/i)
+})
+
 test('install display state never restores bearer identity to browser history', async () => {
     const source = await readFile(
         new URL('../src/hooks/useInstallJourneyController.js', import.meta.url),
         'utf8',
     )
-    assert.match(source, /window\.history\.replaceState\(\{\}, '', `\/install\$\{safeChoice\}`\)/)
+    assert.match(source, /resolveInstallDisplayLocation/)
     assert.doesNotMatch(
         source,
         /window\.history\.replaceState\([^)]*continuationUrl/,

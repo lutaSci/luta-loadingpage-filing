@@ -12,10 +12,12 @@ import {
     detectIsMainlandChina,
     detectIsWeChat,
 } from '../../lib/deviceDetection.js'
+import { isInstallPlatformSelectable } from '../../lib/installFlow.js'
 import {
     getMarketingStoreActionStates,
     MARKETING_ACTION_KEYS,
     MARKETING_CTA_TARGETS,
+    resolvePrimaryMarketingAction,
     resolveMarketingDevice,
 } from '../../lib/marketingStoreActions.js'
 
@@ -24,9 +26,12 @@ function openExternal(url) {
     window.open(url, '_blank', 'noopener,noreferrer')
 }
 
+const EMPTY_ANALYTICS_CONTEXT = Object.freeze({})
+
 export function useStoreActionAdapter({
     locale,
     placement,
+    analyticsContext = EMPTY_ANALYTICS_CONTEXT,
     desktopTab: controlledDesktopTab,
     onDesktopTabChange,
     testflightExpanded: controlledTestflightExpanded,
@@ -46,6 +51,9 @@ export function useStoreActionAdapter({
 
     const [internalDesktopTab, setInternalDesktopTab] = useState('ios')
     const desktopTab = controlledDesktopTab ?? internalDesktopTab
+    const selectedPlatform = desktopTab === 'android' ? 'android' : 'ios'
+    const platformSelectable = isInstallPlatformSelectable(deviceKey)
+    const presentedDeviceKey = platformSelectable ? selectedPlatform : deviceKey
     const [internalTestflightExpanded, setInternalTestflightExpanded] = useState(false)
     const testflightExpanded = controlledTestflightExpanded ?? internalTestflightExpanded
     const [testflightConfirmVisible, setTestflightConfirmVisible] = useState(false)
@@ -69,7 +77,7 @@ export function useStoreActionAdapter({
         () => getMarketingStoreActionStates({
             locale,
             market: route.market,
-            device: deviceKey,
+            device: presentedDeviceKey,
             placement,
             isWeChat,
             desktopTab,
@@ -79,10 +87,10 @@ export function useStoreActionAdapter({
         [
             apkEntryUrl,
             desktopTab,
-            deviceKey,
             isWeChat,
             locale,
             placement,
+            presentedDeviceKey,
             route.market,
             testflightExpanded,
         ],
@@ -95,21 +103,23 @@ export function useStoreActionAdapter({
         if (viewedOptions.current.has(signature)) return
         viewedOptions.current.add(signature)
         trackWebsiteEvent('website_download_option_viewed', {
+            ...analyticsContext,
             locale: state.locale,
             cta_target: ctaTarget,
             placement: state.placement,
         })
-    }, [])
+    }, [analyticsContext])
 
     const trackCta = useCallback((state) => {
         const ctaTarget = MARKETING_CTA_TARGETS[state.actionKey]
         if (!ctaTarget) return
         trackWebsiteEvent('website_download_cta_clicked', {
+            ...analyticsContext,
             locale,
             cta_target: ctaTarget,
             placement: state.placement,
         })
-    }, [locale])
+    }, [analyticsContext, locale])
 
     const activate = useCallback((actionKey) => {
         const state = states.find(candidate => candidate.actionKey === actionKey)
@@ -168,6 +178,17 @@ export function useStoreActionAdapter({
         trackCta,
     ])
 
+    const primaryAction = useMemo(
+        () => resolvePrimaryMarketingAction(states),
+        [states],
+    )
+
+    const activatePrimary = useCallback(() => {
+        if (!primaryAction) return false
+        activate(primaryAction.actionKey)
+        return true
+    }, [activate, primaryAction])
+
     const confirmTestflightApp = useCallback(() => {
         const state = states.find(
             candidate => candidate.actionKey === MARKETING_ACTION_KEYS.TESTFLIGHT_APP,
@@ -180,10 +201,11 @@ export function useStoreActionAdapter({
 
     const changeDesktopTab = useCallback((nextTab) => {
         if (!['ios', 'android'].includes(nextTab)) return
+        if (!platformSelectable) return
         if (nextTab === desktopTab) return
         if (controlledDesktopTab === undefined) setInternalDesktopTab(nextTab)
         onDesktopTabChange?.(nextTab)
-    }, [controlledDesktopTab, desktopTab, onDesktopTabChange])
+    }, [controlledDesktopTab, desktopTab, onDesktopTabChange, platformSelectable])
 
     const openSupport = useCallback(() => {
         trackWebsiteEvent('website_download_cta_clicked', {
@@ -199,11 +221,15 @@ export function useStoreActionAdapter({
         device: deviceKey,
         isDesktop: deviceKey === 'desktop',
         market: route.market,
+        platformSelectable,
+        primaryAction,
+        selectedPlatform,
         states,
         testflightConfirmVisible,
         testflightExpanded,
         wechatGuideVisible,
         activate,
+        activatePrimary,
         changeDesktopTab,
         closeTestflightConfirm: () => setTestflightConfirmVisible(false),
         closeWechatGuide: () => setWechatGuideVisible(false),

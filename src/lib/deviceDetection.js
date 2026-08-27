@@ -3,25 +3,60 @@
 // ============================================
 
 /**
- * 检测用户设备类型
- * @returns {{ isIOS: boolean, isAndroid: boolean, isHarmonyOS: boolean, isHarmonyOSNext: boolean, isMobile: boolean, isDesktop: boolean }}
+ * Classify a browser User-Agent without coupling the result to a page or entry source.
+ * OpenHarmony's documented UA uses the `OpenHarmony` OS token rather than `HarmonyOS`.
+ *
+ * @param {string} userAgent
+ * @returns {{ isIOS: boolean, isAndroid: boolean, isOpenHarmony: boolean, isHarmonyOS: boolean, isHarmonyOSNext: boolean, isMobile: boolean, isDesktop: boolean }}
  */
-export const detectDevice = () => {
-    const ua = navigator.userAgent || '';
+export const detectDeviceFromUserAgent = (userAgent = '') => {
+    const ua = typeof userAgent === 'string' ? userAgent : '';
 
     const isIOS = /iPhone|iPad|iPod/i.test(ua);
     const isAndroid = /Android/i.test(ua);
-    const isHarmonyOS = /HarmonyOS/i.test(ua);
-    // Android-based Huawei devices can still use Android-compatible channels.
-    // Pure HarmonyOS NEXT must stay on the unverified/recovery path until its
-    // catalog entry is explicitly verified.
-    const isHarmonyOSNext = isHarmonyOS && !isAndroid;
+    const isOpenHarmony = /\bOpenHarmony\b/i.test(ua);
+    const isLegacyHarmonyOS = /\bHarmonyOS\b/i.test(ua);
+    const isHarmonyOS = isOpenHarmony || isLegacyHarmonyOS;
 
-    const isMobile = isIOS || isAndroid || isHarmonyOS;
+    // OpenHarmony is the positive signal for the non-Android NEXT platform.
+    // Legacy HarmonyOS UAs that explicitly include Android remain compatible
+    // with the Android distribution path.
+    const isHarmonyOSNext = isOpenHarmony || (isLegacyHarmonyOS && !isAndroid);
+
+    // OpenHarmony documents Phone, Tablet and PC as device types. Prefer that
+    // explicit field over the generic Mobile compatibility token so 2-in-1
+    // devices retain desktop layout while still using NEXT-safe distribution.
+    const openHarmonyDeviceType = isOpenHarmony
+        ? ua.match(/\(\s*(Phone|Tablet|PC)(?=;|\))/i)?.[1]?.toLowerCase() || null
+        : null;
+    const isOpenHarmonyMobile = isOpenHarmony && (
+        openHarmonyDeviceType
+            ? openHarmonyDeviceType !== 'pc'
+            : /\bMobile\b/i.test(ua)
+    );
+
+    const isMobile = isIOS
+        || isAndroid
+        || isOpenHarmonyMobile
+        || (isLegacyHarmonyOS && !isOpenHarmony);
     const isDesktop = !isMobile;
 
-    return { isIOS, isAndroid, isHarmonyOS, isHarmonyOSNext, isMobile, isDesktop };
+    return {
+        isIOS,
+        isAndroid,
+        isOpenHarmony,
+        isHarmonyOS,
+        isHarmonyOSNext,
+        isMobile,
+        isDesktop,
+    };
 };
+
+/**
+ * 检测用户设备类型
+ * @returns {{ isIOS: boolean, isAndroid: boolean, isOpenHarmony: boolean, isHarmonyOS: boolean, isHarmonyOSNext: boolean, isMobile: boolean, isDesktop: boolean }}
+ */
+export const detectDevice = () => detectDeviceFromUserAgent(navigator.userAgent || '');
 
 /**
  * 检测是否在微信内置浏览器中

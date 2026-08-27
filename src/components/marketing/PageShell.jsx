@@ -4,7 +4,14 @@ import SmartLinkRecoveryNotice from '../SmartLinkRecoveryNotice.jsx'
 import MarketingFooter from './MarketingFooter.jsx'
 import MarketingHeader from './MarketingHeader.jsx'
 
-export default function PageShell({ content, headerInstallHref, onSupport, children }) {
+export default function PageShell({
+    content,
+    headerInstallHref,
+    onHeaderInstall,
+    onSupport,
+    floatingActions,
+    children,
+}) {
     const pageRef = useRef(null)
 
     useLayoutEffect(() => {
@@ -51,9 +58,21 @@ export default function PageShell({ content, headerInstallHref, onSupport, child
                 {content.navigation.skipToMain}
             </a>
             <SmartLinkRecoveryNotice copy={content.recovery} />
-            <MarketingHeader content={content} installHref={headerInstallHref} />
+            <MarketingHeader
+                content={content}
+                installHref={headerInstallHref}
+                onInstall={onHeaderInstall}
+            />
             <main id="marketing-main" tabIndex="-1">{children}</main>
             <MarketingFooter content={content} onSupport={onSupport} />
+            {floatingActions && (
+                <div
+                    className="luta-marketing-floating-actions"
+                    data-slot="persistent-install-actions"
+                >
+                    {floatingActions}
+                </div>
+            )}
         </div>
     )
 }

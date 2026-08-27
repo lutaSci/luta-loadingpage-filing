@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import './index.css'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { SmartLinkJourneyProvider } from './contexts/SmartLinkJourneyContext.jsx'
+import MeasurementConsentBanner from './components/MeasurementConsentBanner.jsx'
 
 const RootHomepage = lazy(() => import('./pages/RootHomepage.jsx'))
 const Privacy = lazy(() => import('./pages/Privacy.jsx'))
@@ -11,6 +12,7 @@ const Terms = lazy(() => import('./pages/Terms.jsx'))
 const Contact = lazy(() => import('./pages/Contact.jsx'))
 const SmartLinkInstallEntry = lazy(() => import('./pages/SmartLinkInstallEntry.jsx'))
 const MarketingLanding = lazy(() => import('./pages/MarketingLanding.jsx'))
+const RetiredMarketingLocaleRedirect = lazy(() => import('./pages/RetiredMarketingLocaleRedirect.jsx'))
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -26,10 +28,11 @@ createRoot(document.getElementById('root')).render(
               <Route path="/install" element={<SmartLinkInstallEntry />} />
               <Route path="/global/zh-cn" element={<MarketingLanding locale="zh-cn" />} />
               <Route path="/global/zh-tw" element={<MarketingLanding locale="zh-tw" />} />
-              <Route path="/global/en" element={<MarketingLanding locale="en" />} />
-              <Route path="/global/ja" element={<MarketingLanding locale="ja" />} />
-              <Route path="/global/ko" element={<MarketingLanding locale="ko" />} />
+              <Route path="/global/en" element={<RetiredMarketingLocaleRedirect />} />
+              <Route path="/global/ja" element={<RetiredMarketingLocaleRedirect />} />
+              <Route path="/global/ko" element={<RetiredMarketingLocaleRedirect />} />
             </Routes>
+            <MeasurementConsentBanner />
           </Suspense>
         </SmartLinkJourneyProvider>
       </Router>

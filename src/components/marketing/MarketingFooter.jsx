@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 
 import { config } from '../../config/index.js'
 import { formatMarketingCopyright } from '../../content/marketingLanding.js'
+import { requestMeasurementConsentSettings } from '../../lib/measurementConsent.js'
 import { Wordmark } from './MarketingHeader.jsx'
 
 export default function MarketingFooter({ content, onSupport }) {
@@ -14,6 +15,9 @@ export default function MarketingFooter({ content, onSupport }) {
                         <Link to={config.pages.privacy}>{content.footer.privacy}</Link>
                         <Link to={config.pages.terms}>{content.footer.terms}</Link>
                         <Link to={config.pages.contact}>{content.footer.contact}</Link>
+                        <button type="button" onClick={() => requestMeasurementConsentSettings()}>
+                            {content.footer.measurementSettings}
+                        </button>
                         <button type="button" onClick={onSupport}>{content.footer.help}</button>
                     </nav>
                     <a

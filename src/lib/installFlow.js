@@ -551,9 +551,25 @@ export function formatBytes(bytes, locale = 'zh-CN') {
 }
 
 export function resolveDeviceOs(device) {
-    if (device?.isIOS) return 'ios'
     if (device?.isHarmonyOSNext) return 'harmonyos_next'
+    if (device?.isIOS) return 'ios'
     if (device?.isAndroid) return 'android'
     if (device?.isHarmonyOS) return 'harmonyos_next'
     return 'desktop'
+}
+
+/**
+ * Maps device classification to the two-option platform presentation. This is
+ * presentation only: HarmonyOS NEXT continues to use its own fail-closed
+ * compatibility rules and must never inherit an Android package route.
+ */
+export function resolveInstallPlatformPresentation(deviceOs) {
+    return ['android', 'harmonyos', 'harmonyos_next'].includes(deviceOs)
+        ? 'android'
+        : 'ios'
+}
+
+/** A positively identified incompatible platform cannot be user-overridden. */
+export function isInstallPlatformSelectable(deviceOs) {
+    return deviceOs !== 'harmonyos_next'
 }

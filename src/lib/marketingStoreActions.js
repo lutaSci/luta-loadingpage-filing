@@ -212,3 +212,16 @@ export function getMarketingStoreActionStates({
 
     return iosActions(context, { testflightExpanded })
 }
+
+export function resolvePrimaryMarketingAction(states = []) {
+    const readyAction = states.find(state => (
+        state.status === 'ready'
+        && state.actionKey !== MARKETING_ACTION_KEYS.EXPAND_TESTFLIGHT
+    ))
+    if (readyAction) return readyAction
+
+    return states.find(state => (
+        state.status === 'recovery'
+        && !String(state.actionKey).startsWith('smart_link_retry:')
+    )) || null
+}

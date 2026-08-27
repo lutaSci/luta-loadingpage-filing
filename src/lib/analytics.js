@@ -7,15 +7,25 @@ import {
 } from './attributionState.js'
 import { detectDevice, detectIsMainlandChina } from './deviceDetection.js'
 import { hasSmartLinkBearer } from './smartLinkEntry.js'
+import {
+    MEASUREMENT_CONSENT_VALUES,
+    readMeasurementConsent,
+    subscribeMeasurementConsent,
+} from './measurementConsent.js'
 
 export const GOOGLE_ANALYTICS_ID = 'G-5QE6T3L0LD'
 export const GOOGLE_CTA_EVENT_NAME = 'website_download_cta_clicked'
+export const META_CTA_EVENT_NAME = 'WebsiteDownloadCtaClicked'
 
 let posthogClientPromise = null
 let googleAnalyticsInitialized = false
 let lastPosthogPageViewSignature = null
 let lastGooglePageViewLocation = null
 let previousGooglePageLocation = null
+let metaPixelInitialized = false
+let lastMetaPageViewLocation = null
+let latestAdvertisingPageProperties = null
+let measurementConsentUnsubscribe = null
 
 export const WEBSITE_EVENT_NAMES = Object.freeze([
     'website_page_viewed',
@@ -85,6 +95,8 @@ const WEBSITE_PROPERTY_KEYS = new Set([
     'acquisition_platform',
     'cta_target',
     'placement',
+    'experiment_key',
+    'experiment_variant',
 ])
 
 const INSTALL_PROPERTY_KEYS = new Set([
@@ -174,7 +186,13 @@ function sanitizeApprovedWebsiteValue(key, value) {
     if (key === 'locale') return sanitizeLocale(value)
     if (key === 'slug') return sanitizeToken(value, 80)
     if (['click_id', 'link_id', 'option_id'].includes(key)) return sanitizeToken(value, 128)
-    if (['cta_target', 'placement', 'acquisition_platform'].includes(key)) {
+    if ([
+        'cta_target',
+        'placement',
+        'acquisition_platform',
+        'experiment_key',
+        'experiment_variant',
+    ].includes(key)) {
         return sanitizeToken(value, 80)
     }
     if (['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].includes(key)) {
@@ -309,6 +327,15 @@ export function shouldCaptureGoogleAnalytics(
     return properties?.traffic_purpose === 'production'
 }
 
+export function shouldCaptureAdvertisingMeasurement(
+    properties,
+    runtimeWindow = globalThis.window,
+    consent = readMeasurementConsent(),
+) {
+    return consent === MEASUREMENT_CONSENT_VALUES.granted
+        && shouldCaptureGoogleAnalytics(properties, runtimeWindow)
+}
+
 export function buildGooglePageViewPayload(
     properties,
     {
@@ -366,6 +393,29 @@ export function buildGoogleCtaPayload(
     return payload
 }
 
+export function buildMetaCtaPayload(properties) {
+    const safe = sanitizeWebsiteProperties(properties)
+    const payload = {}
+    for (const key of [
+        'cta_target',
+        'placement',
+        'entry_type',
+        'route_market',
+        'device_os',
+        'locale',
+        'page_path',
+    ]) {
+        if (safe[key] !== undefined) payload[key] = safe[key]
+    }
+    return payload
+}
+
+function googleAdStorageConsent() {
+    return readMeasurementConsent() === MEASUREMENT_CONSENT_VALUES.granted
+        ? 'granted'
+        : 'denied'
+}
+
 function initializeGoogleAnalytics(properties) {
     if (!shouldCaptureGoogleAnalytics(properties)) return false
     if (googleAnalyticsInitialized) return true
@@ -375,7 +425,7 @@ function initializeGoogleAnalytics(properties) {
         window.dataLayer.push(arguments)
     }
     window.gtag('consent', 'default', {
-        ad_storage: 'denied',
+        ad_storage: googleAdStorageConsent(),
         ad_user_data: 'denied',
         ad_personalization: 'denied',
     })
@@ -397,6 +447,75 @@ function initializeGoogleAnalytics(properties) {
     document.head.appendChild(script)
     googleAnalyticsInitialized = true
     return true
+}
+
+function updateGoogleAdvertisingConsent(value) {
+    if (!googleAnalyticsInitialized || typeof globalThis.window?.gtag !== 'function') return false
+    globalThis.window.gtag('consent', 'update', {
+        ad_storage: value === MEASUREMENT_CONSENT_VALUES.granted ? 'granted' : 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+    })
+    return true
+}
+
+function initializeMetaPixel(properties) {
+    if (
+        !config.analytics.metaPixelEnabled
+        || !config.analytics.metaPixelId
+        || !shouldCaptureAdvertisingMeasurement(properties)
+    ) return false
+    if (metaPixelInitialized) return true
+
+    const fbq = window.fbq || function fbq() {
+        if (fbq.callMethod) fbq.callMethod.apply(fbq, arguments)
+        else fbq.queue.push(arguments)
+    }
+    if (!window.fbq) {
+        window.fbq = fbq
+        window._fbq = fbq
+        fbq.push = fbq
+        fbq.loaded = true
+        fbq.version = '2.0'
+        fbq.queue = []
+    }
+    window.fbq('init', config.analytics.metaPixelId)
+
+    const script = document.createElement('script')
+    script.async = true
+    script.dataset.lutaAnalyticsProvider = 'meta'
+    script.src = 'https://connect.facebook.net/en_US/fbevents.js'
+    document.head.appendChild(script)
+    metaPixelInitialized = true
+    return true
+}
+
+function trackMetaPageView(properties) {
+    if (!shouldCaptureAdvertisingMeasurement(properties)) return false
+    const pageLocation = safePageLocation(properties.page_path)
+    if (!pageLocation || pageLocation === lastMetaPageViewLocation) return false
+    if (!initializeMetaPixel(properties)) return false
+    window.fbq('track', 'PageView')
+    lastMetaPageViewLocation = pageLocation
+    return true
+}
+
+function trackMetaCta(properties) {
+    if (!shouldCaptureAdvertisingMeasurement(properties)) return false
+    if (!initializeMetaPixel(properties)) return false
+    window.fbq('trackCustom', META_CTA_EVENT_NAME, buildMetaCtaPayload(properties))
+    return true
+}
+
+function ensureMeasurementConsentListener() {
+    if (measurementConsentUnsubscribe || typeof window === 'undefined') return
+    measurementConsentUnsubscribe = subscribeMeasurementConsent(value => {
+        updateGoogleAdvertisingConsent(value)
+        if (
+            value === MEASUREMENT_CONSENT_VALUES.granted
+            && latestAdvertisingPageProperties
+        ) trackMetaPageView(latestAdvertisingPageProperties)
+    })
 }
 
 export const initializeAnalytics = () => {
@@ -514,7 +633,10 @@ export const trackWebsiteEvent = (eventName, params = {}) => {
         ...params,
     })
     const captured = capturePosthogEvent(eventName, properties)
-    if (eventName === GOOGLE_CTA_EVENT_NAME) trackGoogleCta(properties)
+    if (eventName === GOOGLE_CTA_EVENT_NAME) {
+        trackGoogleCta(properties)
+        trackMetaCta(properties)
+    }
     return captured
 }
 
@@ -524,6 +646,8 @@ export const trackWebsitePageView = (params = {}) => {
         ...websiteContext(),
         ...params,
     })
+    latestAdvertisingPageProperties = properties
+    ensureMeasurementConsentListener()
     const signature = [
         properties.page_path,
         properties.locale,
@@ -535,6 +659,7 @@ export const trackWebsitePageView = (params = {}) => {
     const captured = capturePosthogEvent('website_page_viewed', properties)
     if (captured) lastPosthogPageViewSignature = signature
     trackGooglePageView(properties)
+    trackMetaPageView(properties)
     return captured
 }
 

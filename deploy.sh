@@ -14,6 +14,7 @@ CORS_SMOKE_ORIGIN="${CORS_SMOKE_ORIGIN-${PUBLIC_SMOKE_BASE_URL:-https://lutaai.c
 ADMIN_CORS_SMOKE_ORIGIN="${ADMIN_CORS_SMOKE_ORIGIN:-https://admin.lutaai.com}"
 CADDY_NETWORK_NAME="${CADDY_NETWORK_NAME:-caddy_default}"
 smart_link_surface_state_file=".smart-link-homepage-surface.local"
+meta_pixel_state_file=".meta-pixel.local"
 
 if [[ -z "${VITE_SMART_LINK_HOMEPAGE_SURFACE+x}" \
   && -f "$smart_link_surface_state_file" ]]; then
@@ -27,6 +28,24 @@ if [[ "$VITE_SMART_LINK_HOMEPAGE_SURFACE" != "true" \
 fi
 export VITE_SMART_LINK_HOMEPAGE_SURFACE
 
+if [[ -z "${VITE_META_PIXEL_ENABLED+x}" && -f "$meta_pixel_state_file" ]]; then
+  VITE_META_PIXEL_ENABLED="$(awk -F= '$1 == "enabled" {print $2}' "$meta_pixel_state_file" | tail -1 | tr -d '[:space:]')"
+fi
+if [[ -z "${VITE_META_PIXEL_ID+x}" && -f "$meta_pixel_state_file" ]]; then
+  VITE_META_PIXEL_ID="$(awk -F= '$1 == "pixel_id" {print $2}' "$meta_pixel_state_file" | tail -1 | tr -d '[:space:]')"
+fi
+VITE_META_PIXEL_ENABLED="${VITE_META_PIXEL_ENABLED:-false}"
+VITE_META_PIXEL_ID="${VITE_META_PIXEL_ID:-}"
+if [[ "$VITE_META_PIXEL_ENABLED" != "true" && "$VITE_META_PIXEL_ENABLED" != "false" ]]; then
+  echo "[error] VITE_META_PIXEL_ENABLED 只能是 true 或 false"
+  exit 1
+fi
+if [[ "$VITE_META_PIXEL_ENABLED" == "true" && ! "$VITE_META_PIXEL_ID" =~ ^[0-9]{5,32}$ ]]; then
+  echo "[error] Meta Pixel 启用时 VITE_META_PIXEL_ID 必须是 5-32 位数字"
+  exit 1
+fi
+export VITE_META_PIXEL_ENABLED VITE_META_PIXEL_ID
+
 if [[ -n "$(git status --porcelain --untracked-files=all)" ]]; then
   echo "[error] 发布目录存在未提交或未跟踪文件；请从干净的 release commit 发布"
   exit 1
@@ -34,6 +53,7 @@ fi
 
 echo "[info] release commit：$(git rev-parse HEAD)"
 echo "[info] Smart Link 官网承接：${VITE_SMART_LINK_HOMEPAGE_SURFACE}"
+echo "[info] Meta Pixel：${VITE_META_PIXEL_ENABLED}（ID 仅校验格式，不打印）"
 
 if ! docker compose version >/dev/null 2>&1; then
   echo "[error] docker compose 不可用，请安装 Docker Desktop 或 Compose v2"

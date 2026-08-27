@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useState, useEffect } from 'react';
 import { resolvePreferredLanguage } from '../lib/languagePreference.js';
-import { isMarketingPath } from '../lib/marketingLocales.js';
+import {
+    getMarketingLocaleByPath,
+    isActiveMarketingLanguage,
+    isMarketingPath,
+    MARKETING_LANGUAGE_KEYS,
+} from '../lib/marketingLocales.js';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
@@ -547,9 +552,19 @@ const translations = {
 
 // 语言检测函数
 const detectLanguage = () => {
+    let timeZone;
+    try {
+        timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch {
+        timeZone = undefined;
+    }
+
     return resolvePreferredLanguage({
+        explicitLanguage: getMarketingLocaleByPath(window.location.pathname)?.languageKey,
         savedLanguage: localStorage.getItem('preferred-language'),
+        browserLanguages: navigator.languages,
         browserLanguage: navigator.language || navigator.userLanguage,
+        timeZone,
     });
 };
 
@@ -579,11 +594,7 @@ export const LanguageProvider = ({ children }) => {
         const isInstallGate = window.location.pathname === '/install';
         const isMarketingLanding = isMarketingPath(window.location.pathname);
         if (!isMarketingLanding) {
-            document.documentElement.lang =
-                currentLanguage === 'zh' ? 'zh-CN' :
-                currentLanguage === 'zhTW' ? 'zh-TW' :
-                currentLanguage === 'en' ? 'en-US' :
-                currentLanguage === 'ja' ? 'ja-JP' : 'ko-KR';
+            document.documentElement.lang = currentLanguage === 'zhTW' ? 'zh-TW' : 'zh-CN';
         }
         if (!isInstallGate && !isMarketingLanding) {
             // 首页同时承载多个平台，标题只表达品牌；版本信息由安装页按渠道展示。
@@ -604,7 +615,7 @@ export const LanguageProvider = ({ children }) => {
     }, [currentLanguage]);
 
     const changeLanguage = useCallback((language) => {
-        if (translations[language]) {
+        if (isActiveMarketingLanguage(language)) {
             localStorage.setItem('preferred-language', language);
             setCurrentLanguage(language);
         }
@@ -626,7 +637,7 @@ export const LanguageProvider = ({ children }) => {
         changeLanguage,
         t,
         translations: translations[currentLanguage],
-        availableLanguages: Object.keys(translations)
+        availableLanguages: MARKETING_LANGUAGE_KEYS
     };
 
     return (

@@ -5,9 +5,17 @@ function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
 }
 
-export default function MarketingHero({ content, storeAdapter, storeActions }) {
+export default function MarketingHero({
+    content,
+    storeAdapter,
+    storeActions,
+    valueCtaCopy,
+}) {
     return (
-        <section className="luta-marketing-hero" aria-labelledby="marketing-hero-title">
+        <section
+            className="luta-marketing-hero"
+            aria-labelledby="marketing-hero-title"
+        >
             <div className="luta-marketing-container luta-marketing-hero-layout">
                 <div className="luta-marketing-hero-copy">
                     <p className="luta-marketing-eyebrow">{content.hero.eyebrow}</p>
@@ -43,6 +51,7 @@ export default function MarketingHero({ content, storeAdapter, storeActions }) {
                             anchorId="download-options"
                             adapter={storeAdapter}
                             showSupport={false}
+                            valueCtaCopy={valueCtaCopy}
                         />
                     )}
                 </div>

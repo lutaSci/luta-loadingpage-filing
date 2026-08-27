@@ -10,6 +10,7 @@ import {
     MARKETING_CTA_TARGETS,
     persistTestflightExpansion,
     readTestflightExpansion,
+    resolvePrimaryMarketingAction,
     resolveMarketingDevice,
     TESTFLIGHT_EXPANSION_SESSION_KEY,
 } from '../src/lib/marketingStoreActions.js'
@@ -58,6 +59,28 @@ test('available marketing actions use the standardized ready status', () => {
         getMarketingStoreActionStates({ ...base, market: 'global' })[0].status,
         'ready',
     )
+})
+
+test('primary marketing action chooses the first actionable route without promoting disclosure or stale retry', () => {
+    const chinaIos = getMarketingStoreActionStates(base)
+    assert.equal(
+        resolvePrimaryMarketingAction(chinaIos)?.actionKey,
+        MARKETING_ACTION_KEYS.APPLE_STORE,
+    )
+
+    const recovery = getMarketingStoreActionStates({
+        ...base,
+        device: 'harmonyos_next',
+    })
+    assert.equal(
+        resolvePrimaryMarketingAction(recovery)?.actionKey,
+        MARKETING_ACTION_KEYS.INSTALL_DOCUMENTATION,
+    )
+
+    assert.equal(resolvePrimaryMarketingAction([{
+        actionKey: 'smart_link_retry:marketing_hero',
+        status: 'recovery',
+    }]), null)
 })
 
 test('desktop tabs change platform presentation without rewriting market', () => {
@@ -304,24 +327,33 @@ test('header get-app preserves direct journey creation but reuses the stateful h
     ])
 
     assert.match(header, /href=\{installHref\}/)
+    assert.match(header, /onClick=\{onInstall\}/)
     assert.doesNotMatch(header, /href="#download-options"/)
     assert.doesNotMatch(header, /go\.lutaai\.com|\/install(?:\W|$)/)
     assert.match(pageShell, /installHref=\{headerInstallHref\}/)
+    assert.match(pageShell, /onInstall=\{onHeaderInstall\}/)
     assert.match(landing, /buildInstallEntryUrl\('marketing_header'\)/)
     assert.match(
         landing,
         /const headerInstallHref = usesHomepageSurface[\s\S]{0,120}\? '#download-options'[\s\S]{0,120}: buildInstallEntryUrl\('marketing_header'\)/,
     )
+    assert.match(landing, /placement: 'marketing_header'/)
+    assert.match(landing, /const headerStore = usesHomepageSurface \? headerSmartLinkStore : headerDirectStore/)
+    assert.match(landing, /if \(!headerStore\.primaryAction\) return/)
+    assert.match(landing, /headerStore\.activatePrimary\(\)/)
 })
 
-test('stateful Hero and final CTA consume one shared journey controller', async () => {
+test('stateful Header, Hero and final CTA consume one shared journey controller', async () => {
     const [landing, provider] = await Promise.all([
         readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8'),
         readFile(new URL('../src/contexts/SmartLinkJourneyContext.jsx', import.meta.url), 'utf8'),
     ])
 
-    assert.equal(landing.match(/<SmartLinkStoreActionGroup/g)?.length, 2)
-    assert.equal(landing.match(/controller=\{controller\}/g)?.length, 2)
+    assert.equal(landing.match(/<SmartLinkStoreActionGroup/g)?.length, 3)
+    assert.equal(landing.match(/controller=\{controller\}/g)?.length, 3)
+    assert.equal(landing.match(/useSmartLinkStoreActionAdapter\(\{/g)?.length, 3)
+    assert.match(landing, /adapter=\{heroSmartLinkStore\}/)
+    assert.match(landing, /adapter=\{finalSmartLinkStore\}/)
     assert.equal(provider.match(/useInstallJourneyController\(\{/g)?.length, 1)
     assert.match(provider, /surface: usesHomepageSurface \? 'official_homepage' : 'install_gate'/)
     assert.match(provider, /pagePath: usesHomepageSurface \? '\/' : '\/install'/)
@@ -360,20 +392,36 @@ test('StoreActionGroup records option views only after viewport evidence', async
     assert.doesNotMatch(source, /recordVisibleOptions/)
 })
 
-test('hero and final CTA share one controlled desktop platform tab', async () => {
+test('header, hero and final CTA share one controlled desktop platform tab', async () => {
     const source = await readFile(
         new URL('../src/pages/MarketingLanding.jsx', import.meta.url),
         'utf8',
     )
-    assert.match(source, /const \[desktopTab, setDesktopTab\] = useState\('ios'\)/)
+    assert.match(source, /const \[desktopTab, setDesktopTab\] = useState\(getInitialStorePlatform\)/)
     assert.equal(
         source.match(/\n\s+desktopTab,\n\s+onDesktopTabChange: setDesktopTab/g)?.length,
-        2,
+        3,
     )
-    assert.equal(source.match(/onDesktopTabChange: setDesktopTab/g)?.length, 2)
+    assert.equal(source.match(/onDesktopTabChange: setDesktopTab/g)?.length, 3)
 })
 
-test('hero and final CTA share TestFlight state without manufacturing page history', async () => {
+test('persistent homepage platform selection can override mobile device presentation safely', async () => {
+    const [landing, adapter, controller] = await Promise.all([
+        readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8'),
+        readFile(new URL('../src/components/marketing/useStoreActionAdapter.js', import.meta.url), 'utf8'),
+        readFile(new URL('../src/hooks/useInstallJourneyController.js', import.meta.url), 'utf8'),
+    ])
+
+    assert.match(landing, /resolveInstallPlatformPresentation\(device\)/)
+    assert.match(adapter, /const platformSelectable = isInstallPlatformSelectable\(deviceKey\)/)
+    assert.match(adapter, /const presentedDeviceKey = platformSelectable \? selectedPlatform : deviceKey/)
+    assert.match(adapter, /device:\s*presentedDeviceKey/)
+    assert.match(adapter, /platformSelectable,/)
+    assert.match(controller, /const platformSelectable = isInstallPlatformSelectable\(deviceOs\)/)
+    assert.match(controller, /const displayOs = platformSelectable/)
+})
+
+test('header, hero and final CTA share TestFlight state without manufacturing page history', async () => {
     const source = await readFile(
         new URL('../src/pages/MarketingLanding.jsx', import.meta.url),
         'utf8',
@@ -384,8 +432,8 @@ test('hero and final CTA share TestFlight state without manufacturing page histo
     assert.match(source, /persistTestflightExpansion\(window\.location\.pathname, testflightExpanded\)/)
     assert.doesNotMatch(source, /buildTestflightExpansionUrl\(window\.location\.href, testflightExpanded\)/)
     assert.doesNotMatch(source, /history\.replaceState/)
-    assert.equal(source.match(/onTestflightExpandedChange: setTestflightExpanded/g)?.length, 2)
-    assert.equal(source.match(/\n\s+testflightExpanded,\n/g)?.length, 2)
+    assert.equal(source.match(/onTestflightExpandedChange: setTestflightExpanded/g)?.length, 3)
+    assert.equal(source.match(/\n\s+testflightExpanded,\n/g)?.length, 3)
 })
 
 test('desktop platform state ignores repeated activation of the selected tab', async () => {

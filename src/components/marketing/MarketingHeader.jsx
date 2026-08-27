@@ -21,7 +21,7 @@ function Wordmark({ content }) {
     )
 }
 
-export default function MarketingHeader({ content, installHref }) {
+export default function MarketingHeader({ content, installHref, onInstall }) {
     return (
         <header className="luta-marketing-header">
             <Wordmark content={content} />
@@ -32,7 +32,7 @@ export default function MarketingHeader({ content, installHref }) {
             </nav>
             <div className="luta-marketing-header-actions">
                 <LocaleSwitcher content={content} />
-                <a className="luta-marketing-header-cta" href={installHref}>
+                <a className="luta-marketing-header-cta" href={installHref} onClick={onInstall}>
                     {content.navigation.getApp}
                 </a>
             </div>

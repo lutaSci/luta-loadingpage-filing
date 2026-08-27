@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import MarketingHero from '../components/marketing/MarketingHero.jsx'
 import PageShell from '../components/marketing/PageShell.jsx'
@@ -7,20 +7,33 @@ import ProductStory from '../components/marketing/ProductStory.jsx'
 import SmartLinkStoreActionGroup from '../components/marketing/SmartLinkStoreActionGroup.jsx'
 import StoreActionGroup from '../components/marketing/StoreActionGroup.jsx'
 import { useStoreActionAdapter } from '../components/marketing/useStoreActionAdapter.js'
+import { useSmartLinkStoreActionAdapter } from '../components/marketing/useSmartLinkStoreActionAdapter.js'
 import { getMarketingContent } from '../content/marketingLanding.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
-import { buildInstallEntryUrl } from '../lib/attributionState.js'
+import { buildInstallEntryUrl, getTrafficPurpose } from '../lib/attributionState.js'
+import { detectDevice } from '../lib/deviceDetection.js'
+import { resolveInstallPlatformPresentation } from '../lib/installFlow.js'
 import {
     hasExplicitTestflightParam,
     persistTestflightExpansion,
     readTestflightExpansion,
+    resolveMarketingDevice,
 } from '../lib/marketingStoreActions.js'
+import {
+    marketingCtaExperimentProperties,
+    resolveMarketingCtaCopyExperiment,
+} from '../lib/marketingCtaExperiment.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
 import '../components/marketing/marketing.css'
 
 function LineTitle({ lines }) {
     return lines.map(line => <span key={line}>{line}</span>)
+}
+
+function getInitialStorePlatform() {
+    const device = resolveMarketingDevice(detectDevice())
+    return resolveInstallPlatformPresentation(device)
 }
 
 function WhyLuta({ content }) {
@@ -76,11 +89,25 @@ function FinalCallToAction({ content, adapter, storeActions }) {
 export default function MarketingLanding({ locale }) {
     const content = getMarketingContent(locale)
     const { controller, usesHomepageSurface } = useSmartLinkJourney()
+    const trafficPurpose = usesHomepageSurface
+        ? controller.installContext?.trafficPurpose || 'unknown'
+        : getTrafficPurpose()
+    const ctaExperiment = useMemo(
+        () => resolveMarketingCtaCopyExperiment({ trafficPurpose }),
+        [trafficPurpose],
+    )
+    const heroAnalyticsContext = useMemo(
+        () => marketingCtaExperimentProperties(ctaExperiment),
+        [ctaExperiment],
+    )
+    const heroValueCtaCopy = ctaExperiment.useValueCopy
+        ? content.hero.primaryCta
+        : undefined
     const headerInstallHref = usesHomepageSurface
         ? '#download-options'
         : buildInstallEntryUrl('marketing_header')
     const { changeLanguage } = useLanguage()
-    const [desktopTab, setDesktopTab] = useState('ios')
+    const [desktopTab, setDesktopTab] = useState(getInitialStorePlatform)
     const [testflightExpanded, setTestflightExpanded] = useState(
         () => typeof window !== 'undefined'
             && (
@@ -88,7 +115,16 @@ export default function MarketingLanding({ locale }) {
                 || readTestflightExpansion(window.location.pathname)
             ),
     )
+    const headerDirectStore = useStoreActionAdapter({
+        locale: content.locale,
+        placement: 'marketing_header',
+        desktopTab,
+        onDesktopTabChange: setDesktopTab,
+        testflightExpanded,
+        onTestflightExpandedChange: setTestflightExpanded,
+    })
     const heroStore = useStoreActionAdapter({
+        analyticsContext: heroAnalyticsContext,
         locale: content.locale,
         placement: 'marketing_hero',
         desktopTab,
@@ -104,6 +140,29 @@ export default function MarketingLanding({ locale }) {
         testflightExpanded,
         onTestflightExpandedChange: setTestflightExpanded,
     })
+    const headerSmartLinkStore = useSmartLinkStoreActionAdapter({
+        controller,
+        locale: content.locale,
+        placement: 'marketing_header',
+    })
+    const heroSmartLinkStore = useSmartLinkStoreActionAdapter({
+        analyticsContext: heroAnalyticsContext,
+        controller,
+        locale: content.locale,
+        placement: 'marketing_hero',
+    })
+    const finalSmartLinkStore = useSmartLinkStoreActionAdapter({
+        controller,
+        locale: content.locale,
+        placement: 'marketing_final',
+    })
+    const headerStore = usesHomepageSurface ? headerSmartLinkStore : headerDirectStore
+
+    const handleHeaderInstall = (event) => {
+        if (!headerStore.primaryAction) return
+        event.preventDefault()
+        headerStore.activatePrimary()
+    }
 
     useEffect(() => {
         persistTestflightExpansion(window.location.pathname, testflightExpanded)
@@ -127,18 +186,37 @@ export default function MarketingLanding({ locale }) {
 
     const heroSmartLinkActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup
+            adapter={heroSmartLinkStore}
             anchorId="download-options"
             content={content}
             controller={controller}
-            placement="marketing_hero"
             showSupport={false}
+            valueCtaCopy={heroValueCtaCopy}
         />
     ) : null
-    const finalSmartLinkActions = usesHomepageSurface ? (
+    const floatingActions = usesHomepageSurface ? (
         <SmartLinkStoreActionGroup
+            adapter={heroSmartLinkStore}
             content={content}
             controller={controller}
-            placement="marketing_final"
+            showSupport={false}
+            presentation="persistent-mobile"
+            valueCtaCopy={heroValueCtaCopy}
+        />
+    ) : (
+        <StoreActionGroup
+            content={content.store}
+            adapter={heroStore}
+            showSupport={false}
+            presentation="persistent-mobile"
+            valueCtaCopy={heroValueCtaCopy}
+        />
+    )
+    const finalSmartLinkActions = usesHomepageSurface ? (
+        <SmartLinkStoreActionGroup
+            adapter={finalSmartLinkStore}
+            content={content}
+            controller={controller}
         />
     ) : null
 
@@ -146,12 +224,15 @@ export default function MarketingLanding({ locale }) {
         <PageShell
             content={content}
             headerInstallHref={headerInstallHref}
+            onHeaderInstall={handleHeaderInstall}
             onSupport={finalStore.openSupport}
+            floatingActions={floatingActions}
         >
             <MarketingHero
                 content={content}
                 storeAdapter={heroStore}
                 storeActions={heroSmartLinkActions}
+                valueCtaCopy={heroValueCtaCopy}
             />
             <WhyLuta content={content.why} />
             {content.stories.map(story => <ProductStory key={story.id} story={story} />)}
