@@ -38,6 +38,10 @@ download.lutaai.com {
 			wrap json
 			request delete
 			resp_headers delete
+			# Caddy 2.8.4 emits an empty standard user_id field even though this
+			# public route has no account identity. Remove the field at source so
+			# the private delivery log contains only the approved technical facts.
+			user_id delete
 			status rename http_status
 			size rename bytes_written
 			bytes_read delete
