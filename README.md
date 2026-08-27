@@ -245,7 +245,7 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
 生产 `/home/caddy/Caddyfile` 是 Docker 单文件 bind mount。若通过原子替换改变宿主机 inode，运行中的容器仍可能读取旧 inode；此时不能只执行 reload。应先验证候选配置，再重建 `caddy` 单个容器使挂载持久生效，并立即 smoke 官网、旧 APK URL 和新的不可变 APK URL。
 
-生产绑定前必须确认`/var/log/caddy`由宿主机持久目录挂载，并为 Caddy writer 与正式报表 reader 配置独立共享组：目录禁止 other 访问，日志为`0640`，报表账号只得 group-read，不得写入。轮转按时间保留 35 天，`roll_keep=0`防止同日多次 size roll 提前删除。部署后必须用`traffic_purpose=smoke`签发的真实 token 请求不可变对象的 Range 小段，验证日志只有上述字段且`response_content_range`来自实际响应；随后恢复部署前 Caddyfile 并重建单个 Caddy 容器完成回滚演练，再重新应用候选。不得用 production token 制造验收量，不得把 smoke 计入经营数据。
+生产当前固定使用 Caddy 2.8.4。该版本的 file writer 不支持`mode`子指令，实际创建的 active/rotated log 为`0600`；宿主机持久目录应保持`root:root 0700`。因此日志采集可以先上线，但在经过批准的只读报表 broker/导出机制完成之前，不得创建`binding.json`，日报必须继续报告`unknown`，不能把 root-only 日志解释成工作台已经接通。轮转以`roll_keep_for=840h`保留 35 天；Caddy 2.8.4 会把`roll_keep=0`恢复成默认 10，故使用`roll_keep=-1`禁用数量上限并让年龄规则成为唯一删除条件，同时必须监控磁盘容量。部署后必须用`traffic_purpose=smoke`签发的真实 token 请求不可变对象的 Range 小段，验证日志只有上述字段且`response_content_range`来自实际响应；随后恢复部署前 Caddyfile 并重建单个 Caddy 容器完成回滚演练，再重新应用候选。不得用 production token 制造验收量，不得把 smoke 计入经营数据。
 
 APK 路由验收除真实对象 200 外，还要用同一个不存在路径连续请求两次：两次响应都应来自 `AliyunOSS`、OSS Request ID 应不同、响应不得出现 `CF-Cache-Status: HIT`。这项测试用于证明 404 没有重新进入 CDN 负缓存。
 
