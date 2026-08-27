@@ -239,13 +239,13 @@ docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfi
 docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
-`download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀通过 HTTPS 直连 `luta-public` OSS endpoint，同时保留已绑定的 `Host: static.lutaai.co`。受控出站接口签发`/dl/{traffic_purpose}/{download_id}/{artifact_size}/releases/android/china/{version+build}/{sha256}.apk`；Caddy在回源前移除受控前缀，并仅把用途、不透明`download_id`、`artifact_id`、预期大小、Range、粗粒度机器人标记、版本构建、HTTP状态、响应字节和耗时写入0600滚动日志。请求URI、IP、User-Agent原文和其他请求头不得进入该日志。不要把该回源改成 `https://static.lutaai.co`：它会再次经过Cloudflare，并可能把上传前的OSS `NoSuchKey`缓存为长期404。历史路径继续回源`luta-app`。
+`download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀通过 HTTPS 直连 `luta-public` OSS endpoint，同时保留已绑定的 `Host: static.lutaai.co`。受控出站接口签发`/dl/{traffic_purpose}/{download_id}/{artifact_size}/releases/android/china/{version+build}/{sha256}.apk`；Caddy 在回源前移除受控前缀，并仅把用途、不透明`download_id`、`artifact_id`、预期大小、粗粒度机器人标记、版本、构建、HTTP 状态、实际响应`Content-Range`和实际写出字节写入专用滚动日志。请求 URI、IP、User-Agent 原文、请求 Range、完整响应头和其他请求头不得进入该日志。不要把该回源改成 `https://static.lutaai.co`：它会再次经过 Cloudflare，并可能把上传前的 OSS `NoSuchKey` 缓存为长期 404。历史路径继续回源 `luta-app`。
 
 `admin.lutaai.com` 的期望生产站点块记录在 [`ops/caddy/admin.lutaai.com.caddy`](ops/caddy/admin.lutaai.com.caddy)：HTML 与 SPA fallback 必须 `no-store`，带 hash 的静态资源保持一年 immutable。这样浏览器每次导航都会取得当前入口文件，同时历史 bundle 在兼容窗口内仍可完成迁移。
 
 生产 `/home/caddy/Caddyfile` 是 Docker 单文件 bind mount。若通过原子替换改变宿主机 inode，运行中的容器仍可能读取旧 inode；此时不能只执行 reload。应先验证候选配置，再重建 `caddy` 单个容器使挂载持久生效，并立即 smoke 官网、旧 APK URL 和新的不可变 APK URL。
 
-生产绑定前必须确认`/var/log/caddy`由宿主机持久目录挂载，且宿主机目录仅管理员可读。部署后以不存在的合成`download_id`请求真实不可变对象的Range小段，验证日志只含上述字段；随后恢复部署前Caddyfile并重建单个Caddy容器完成回滚演练，再重新应用候选。不得用完整APK下载制造交付量，不得把smoke计入经营数据。
+生产绑定前必须确认`/var/log/caddy`由宿主机持久目录挂载，并为 Caddy writer 与正式报表 reader 配置独立共享组：目录禁止 other 访问，日志为`0640`，报表账号只得 group-read，不得写入。轮转按时间保留 35 天，`roll_keep=0`防止同日多次 size roll 提前删除。部署后必须用`traffic_purpose=smoke`签发的真实 token 请求不可变对象的 Range 小段，验证日志只有上述字段且`response_content_range`来自实际响应；随后恢复部署前 Caddyfile 并重建单个 Caddy 容器完成回滚演练，再重新应用候选。不得用 production token 制造验收量，不得把 smoke 计入经营数据。
 
 APK 路由验收除真实对象 200 外，还要用同一个不存在路径连续请求两次：两次响应都应来自 `AliyunOSS`、OSS Request ID 应不同、响应不得出现 `CF-Cache-Status: HIT`。这项测试用于证明 404 没有重新进入 CDN 负缓存。
 
