@@ -247,6 +247,8 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
 生产当前固定使用 Caddy 2.8.4。该版本的 file writer 不支持`mode`子指令，实际创建的 active/rotated log 为`0600`；宿主机持久目录应保持`root:root 0700`。组织读取链使用 [`ops/apk_delivery/apk_delivery_reader.py`](ops/apk_delivery/apk_delivery_reader.py) 作为 root-owned 最小投影器：它只发送合同白名单字段，以 inode/offset 和 batch chain 做幂等与连续性校验，不向 Web 主机放置数据库凭据。轮转必须设置 `roll_uncompressed`，以便保留可重放的 JSONL 字节水位；`roll_keep_for=840h`保留 35 天，`roll_keep=-1`禁用数量上限，同时必须监控磁盘容量。服务单元只从 `/etc/luta/apk-delivery-reader.env` 读取独立 ingest key 与 source ID；该文件、运行 state、binding 和原始日志均不得提交 Git。API binding 未激活或读取链未完成验收前，日报仍必须报告`unknown`。部署后必须用`traffic_purpose=smoke`签发的真实 token 请求不可变对象的 Range 小段，验证日志只有上述字段且`response_content_range`来自实际响应；随后恢复部署前 Caddyfile并重建单个 Caddy 容器完成回滚演练，再重新应用候选。不得用 production token 制造验收量，不得把 smoke 计入经营数据。
 
+若 PR #19 之前的 site-scoped named logger 已把普通访问写入专用日志，不得直接删除这些行、放宽 API offset 连续性或手工把 reader state 跳到文件末尾。先停止 reader timer 与 Caddy writer，对 [`recover_unqualified_access_logs.py`](ops/apk_delivery/recover_unqualified_access_logs.py) 执行只读计划；确认只出现“完整资格 envelope”与“完整无资格 envelope”两类记录后，再用 `--apply` 将未读合格记录逐字节压入新的 root-only transport file。原文件和 state 备份进入同级 `0700` rollback 目录，并继续受 35 日保留与磁盘监控约束。恢复后的 reader 必须从新文件 offset 0 成功 ingest，且普通请求不得再增加专用日志；任何部分资格 envelope、JSON 损坏、写入增长或 API 拒绝都必须失败关闭并恢复原文件/state。
+
 APK 路由验收除真实对象 200 外，还要用同一个不存在路径连续请求两次：两次响应都应来自 `AliyunOSS`、OSS Request ID 应不同、响应不得出现 `CF-Cache-Status: HIT`。这项测试用于证明 404 没有重新进入 CDN 负缓存。
 
 ### 构建参数
