@@ -46,7 +46,28 @@ class SourceRecord:
     file_id: str
     offset_start: int
     offset_end: int
-    projected: dict[str, Any]
+    projected: dict[str, Any] | None
+
+
+# Caddy's named access logger is site-scoped. Releases before the explicit
+# non-qualified-route log_skip fix can therefore contain ordinary site access
+# records with none of the delivery-contract fields. Those records are safe to
+# advance past only when the complete qualification envelope is absent. A
+# partially populated envelope remains a fail-closed projection error.
+QUALIFICATION_FIELDS = {
+    "download_id",
+    "artifact_id",
+    "artifact_size_bytes",
+    "app_version",
+    "build_number",
+    "request_method",
+    "traffic_purpose",
+    "known_bot",
+}
+
+
+def is_unqualified_access_record(raw: dict[str, Any]) -> bool:
+    return not any(field in raw for field in QUALIFICATION_FIELDS)
 
 
 def _canonical_json(value: Any) -> bytes:
@@ -211,12 +232,13 @@ def read_records(paths: Iterable[Path], offsets: dict[str, int]) -> list[SourceR
                     raw = json.loads(line)
                 except json.JSONDecodeError as exc:
                     raise ReaderError("source_json_invalid") from exc
+                projected = None if is_unqualified_access_record(raw) else project_caddy_record(raw)
                 records.append(
                     SourceRecord(
                         file_id=file_id,
                         offset_start=offset_start,
                         offset_end=offset_end,
-                        projected=project_caddy_record(raw),
+                        projected=projected,
                     )
                 )
     return records
@@ -232,6 +254,8 @@ def build_batch(
 ) -> dict[str, Any]:
     events = []
     for record in records:
+        if record.projected is None:
+            continue
         event = dict(record.projected)
         event.update(
             {

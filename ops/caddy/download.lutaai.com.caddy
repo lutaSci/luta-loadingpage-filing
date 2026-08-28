@@ -58,6 +58,10 @@ download.lutaai.com {
 
 	@private_android_rollback path /releases/android/china/_rollback/*
 	handle @private_android_rollback {
+		# The named access logger is site-scoped in Caddy 2.8.4. Explicitly
+		# suppress every non-qualified route so ordinary download traffic never
+		# enters the delivery reader's source file.
+		log_skip
 		respond 404
 	}
 
@@ -96,11 +100,13 @@ download.lutaai.com {
 	# checked by exact issuance-ledger reconciliation; delivery stays fail-open.
 	@invalid_apk_delivery path /dl/*
 	handle @invalid_apk_delivery {
+		log_skip
 		respond 404
 	}
 
 	@immutable_china_android path /releases/android/china/*
 	handle @immutable_china_android {
+		log_skip
 		# Reach the OSS endpoint directly while keeping the bound custom Host.
 		# Going through static.lutaai.co here would cross its Cloudflare cache,
 		# where a pre-upload NoSuchKey response can otherwise outlive the upload.
@@ -119,6 +125,7 @@ download.lutaai.com {
 	}
 
 	handle {
+		log_skip
 		reverse_proxy https://luta-app.oss-cn-beijing.aliyuncs.com {
 			header_up Host download.lutaai.com
 			transport http {
