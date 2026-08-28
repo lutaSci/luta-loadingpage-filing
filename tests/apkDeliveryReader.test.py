@@ -58,6 +58,33 @@ class ApkDeliveryReaderTest(unittest.TestCase):
             self.assertEqual(len(records), 1)
             self.assertEqual(records[0].offset_end, len(first))
 
+    def test_unqualified_site_access_advances_without_becoming_an_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "apk-delivery.json"
+            raw = {"ts": 1787836800.5, "http_status": 200, "bytes_written": 90112}
+            line = json.dumps(raw).encode() + b"\n"
+            path.write_bytes(line)
+            records = MODULE.read_records([path], {})
+            self.assertEqual(len(records), 1)
+            self.assertIsNone(records[0].projected)
+            self.assertEqual(records[0].offset_end, len(line))
+            batch = MODULE.build_batch(
+                source_id="d" * 64,
+                previous_batch_id=None,
+                records=records,
+                coverage_through=None,
+            )
+            self.assertEqual(batch["events"], [])
+
+    def test_partial_delivery_envelope_still_fails_closed(self):
+        raw = valid_record()
+        raw.pop("artifact_size_bytes")
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "apk-delivery.json"
+            path.write_text(json.dumps(raw) + "\n")
+            with self.assertRaisesRegex(MODULE.ReaderError, "invalid_numeric_field"):
+                MODULE.read_records([path], {})
+
     def test_legacy_gzip_rotation_is_read_with_stable_logical_offsets(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "apk-delivery.json-legacy.gz"

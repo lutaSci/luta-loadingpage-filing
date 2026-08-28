@@ -56,6 +56,10 @@ test('APK delivery route logs only opaque aggregate-delivery fields', () => {
     assert.match(downloadCaddy, /uri strip_prefix \/dl\/\{re\.qualified_apk_delivery\.traffic_purpose\}\/\{re\.qualified_apk_delivery\.download_id\}\/\{re\.qualified_apk_delivery\.artifact_size_bytes\}/)
     assert.doesNotMatch(downloadCaddy, /rewrite \{re\.qualified_apk_delivery\.object_path\}/)
     assert.match(downloadCaddy, /@invalid_apk_delivery path \/dl\/\*/)
+    assert.equal(downloadCaddy.match(/\blog_skip\b/g)?.length, 4)
+    const qualifiedHandle = downloadCaddy.match(/handle @qualified_apk_delivery \{[\s\S]*?\n\t\}/)?.[0]
+    assert.ok(qualifiedHandle, 'qualified APK delivery handle must exist')
+    assert.doesNotMatch(qualifiedHandle, /\blog_skip\b/)
     assert.doesNotMatch(downloadCaddy, /X-Forwarded-For/)
     assert.doesNotMatch(downloadCaddy, /log_append <?range_header/)
     assert.doesNotMatch(downloadCaddy, /log_append upstream_uri/)
