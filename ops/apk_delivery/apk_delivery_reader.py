@@ -253,7 +253,16 @@ def build_batch(
     source_gap: bool = False,
 ) -> dict[str, Any]:
     events = []
+    source_records = []
     for record in records:
+        source_records.append(
+            {
+                "sourceFileId": record.file_id,
+                "sourceOffsetStart": record.offset_start,
+                "sourceOffsetEnd": record.offset_end,
+                "eventIncluded": record.projected is not None,
+            }
+        )
         if record.projected is None:
             continue
         event = dict(record.projected)
@@ -273,6 +282,7 @@ def build_batch(
         "sourceGap": source_gap,
         "schemaVersion": SCHEMA_VERSION,
         "projectionVersion": PROJECTION_VERSION,
+        "sourceRecords": source_records,
         "events": events,
     }
     payload["batchId"] = hashlib.sha256(_canonical_json(payload)).hexdigest()
