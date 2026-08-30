@@ -75,6 +75,17 @@ class ApkDeliveryReaderTest(unittest.TestCase):
                 coverage_through=None,
             )
             self.assertEqual(batch["events"], [])
+            self.assertEqual(
+                batch["sourceRecords"],
+                [
+                    {
+                        "sourceFileId": records[0].file_id,
+                        "sourceOffsetStart": 0,
+                        "sourceOffsetEnd": len(line),
+                        "eventIncluded": False,
+                    }
+                ],
+            )
 
     def test_partial_delivery_envelope_still_fails_closed(self):
         raw = valid_record()
@@ -103,6 +114,44 @@ class ApkDeliveryReaderTest(unittest.TestCase):
         self.assertEqual(one["batchId"], two["batchId"])
         self.assertEqual(one["events"][0]["sourceOffsetStart"], 10)
         self.assertEqual(one["events"][0]["sourceOffsetEnd"], 20)
+        self.assertEqual(
+            one["sourceRecords"],
+            [
+                {
+                    "sourceFileId": "c" * 64,
+                    "sourceOffsetStart": 10,
+                    "sourceOffsetEnd": 20,
+                    "eventIncluded": True,
+                }
+            ],
+        )
+
+    def test_interleaved_unqualified_and_qualified_records_keep_full_source_continuity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "apk-delivery.json"
+            unqualified = (
+                json.dumps({"ts": 1787836800.5, "http_status": 200, "bytes_written": 42}).encode()
+                + b"\n"
+            )
+            qualified = json.dumps(valid_record()).encode() + b"\n"
+            path.write_bytes(unqualified + qualified)
+
+            records = MODULE.read_records([path], {})
+            batch = MODULE.build_batch(
+                source_id="d" * 64,
+                previous_batch_id=None,
+                records=records,
+                coverage_through=None,
+            )
+
+            self.assertEqual(len(batch["events"]), 1)
+            self.assertEqual(
+                [
+                    (item["sourceOffsetStart"], item["sourceOffsetEnd"], item["eventIncluded"])
+                    for item in batch["sourceRecords"]
+                ],
+                [(0, len(unqualified), False), (len(unqualified), len(unqualified) + len(qualified), True)],
+            )
 
     def test_source_gap_is_part_of_the_signed_batch_contract(self):
         batch = MODULE.build_batch(
