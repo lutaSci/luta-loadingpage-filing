@@ -132,6 +132,11 @@ if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/insta
   echo "[error] /install 未返回预期的 SPA 入口"
   exit 1
 fi
+if ! curl --fail --silent --show-error --max-time 10 http://127.0.0.1:8000/data-deletion/ \
+  | grep 'com.luta.reader' >/dev/null; then
+  echo "[error] /data-deletion/ 未返回账号与数据删除说明"
+  exit 1
+fi
 
 if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
   echo "[step] 执行公网 Caddy smoke check：${PUBLIC_SMOKE_BASE_URL}"
@@ -144,6 +149,11 @@ if [[ -n "$PUBLIC_SMOKE_BASE_URL" ]]; then
   if ! curl --fail --silent --show-error --max-time 15 "${PUBLIC_SMOKE_BASE_URL}/install" \
     | grep 'id="root"' >/dev/null; then
     echo "[error] 公网 /install 未返回预期的 SPA 入口"
+    exit 1
+  fi
+  if ! curl --fail --silent --show-error --max-time 15 "${PUBLIC_SMOKE_BASE_URL}/data-deletion/" \
+    | grep 'com.luta.reader' >/dev/null; then
+    echo "[error] 公网 /data-deletion/ 未返回账号与数据删除说明"
     exit 1
   fi
 
