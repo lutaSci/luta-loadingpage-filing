@@ -5,6 +5,9 @@ import { SplitText as GSAPSplitText } from "gsap/SplitText";
 
 gsap.registerPlugin(ScrollTrigger, GSAPSplitText);
 
+const DEFAULT_FROM = Object.freeze({ opacity: 0, y: 40 });
+const DEFAULT_TO = Object.freeze({ opacity: 1, y: 0 });
+
 const SplitText = ({
     text,
     className = "",
@@ -12,8 +15,8 @@ const SplitText = ({
     duration = 0.6,
     ease = "power3.out",
     splitType = "chars",
-    from = { opacity: 0, y: 40 },
-    to = { opacity: 1, y: 0 },
+    from = DEFAULT_FROM,
+    to = DEFAULT_TO,
     threshold = 0.1,
     rootMargin = "-100px",
     textAlign = "center",
@@ -119,8 +122,8 @@ const SplitText = ({
         duration,
         ease,
         splitType,
-        JSON.stringify(from),
-        JSON.stringify(to),
+        from,
+        to,
         threshold,
         rootMargin,
         onLetterAnimationComplete,
@@ -140,4 +143,4 @@ const SplitText = ({
     );
 };
 
-export default SplitText; 
+export default SplitText;

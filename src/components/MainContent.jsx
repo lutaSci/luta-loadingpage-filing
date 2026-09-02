@@ -14,6 +14,8 @@ const isMobile = device.isMobile
 
 const SILK_COLOR = `rgb(${Colors.background.silk.join(',')})` // rgb(52,152,118)
 const SILK_COLOR_DARK = `rgb(${Colors.background.silk.map(c => Math.round(c * 0.75)).join(',')})` // 暗一档用于渐变
+const TITLE_ANIMATION_FROM = Object.freeze({ opacity: 0, y: 60, rotationY: 90 })
+const TITLE_ANIMATION_TO = Object.freeze({ opacity: 1, y: 0, rotationY: 0 })
 
 const MainContent = memo(() => {
     const { t, currentLanguage } = useLanguage()
@@ -61,8 +63,8 @@ const MainContent = memo(() => {
                             delay={120}
                             duration={0.8}
                             splitType="chars"
-                            from={{ opacity: 0, y: 60, rotationY: 90 }}
-                            to={{ opacity: 1, y: 0, rotationY: 0 }}
+                            from={TITLE_ANIMATION_FROM}
+                            to={TITLE_ANIMATION_TO}
                             threshold={0}
                             textAlign="center"
                         />

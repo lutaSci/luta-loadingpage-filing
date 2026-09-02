@@ -2,11 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { memo, useEffect, useState, useCallback } from 'react'
 import { CheckCircle } from 'lucide-react'
 
-let showToastFn = null
-
-export const toast = (message, duration = 3500) => {
-    showToastFn?.(message, duration)
-}
+import { registerToastHandler } from '../lib/toast.js'
 
 const Toast = memo(() => {
     const [toasts, setToasts] = useState([])
@@ -20,8 +16,7 @@ const Toast = memo(() => {
     }, [])
 
     useEffect(() => {
-        showToastFn = addToast
-        return () => { showToastFn = null }
+        return registerToastHandler(addToast)
     }, [addToast])
 
     return (
