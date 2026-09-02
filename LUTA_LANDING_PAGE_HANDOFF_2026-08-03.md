@@ -293,8 +293,8 @@
 
 - `og:title`、`og:description`、`og:url`、`og:locale`、`og:image:alt` 按页面语言生成。
 - `twitter:title`、`twitter:description`、`twitter:image:alt` 按页面语言生成。
-- `og:image` 与 `twitter:image` 均为绝对地址：`https://lutaai.com/twitter_meta_img.png`。
-- 图片已核验为 1200 × 630 PNG。
+- `og:image` 与 `twitter:image` 均为绝对地址：`https://lutaai.com/luta-social-card-v1.jpg`；历史 `twitter_meta_img.png` 仅保留为兼容回退，不再由活动元数据引用。
+- 活动图片已核验为 1200 × 630 JPEG，历史兼容回退为同尺寸 PNG。
 - `og:site_name` 固定为 `LUTA 汝塔`。
 
 ### 预渲染要求
@@ -395,7 +395,7 @@
 4. **根路由语言**：`/` 是 `x-default`，运行时按偏好语言切换；严肃的语言 SEO 投放应始终使用显式 `/global/{locale}`。
 5. **日韩语言质量**：按要求未重写主体；原审查指出的日韩宗教化与母语自然度风险仍存在，后续应由母语佛教内容编辑单独复核。
 6. **Meta keywords**：已保留现有字段以兼容代码契约，但主流搜索引擎基本不依赖它；不得将其视为 SEO 成效来源。
-7. **既有全仓 lint 债务**：全仓 `npm run lint` 仍被基线中的 6 个既有错误与 4 个警告阻断，位于 `GlitchText.jsx`、`ParticleSystem.jsx`、`Silk.jsx`、`SplitText.jsx`、`Toast.jsx`、`ui/badge.jsx`、`ui/button.jsx`；本次改动文件定向 lint 已全部通过。
+7. **既有全仓 lint 债务**：2026-09-03 复核时，全仓 `npm run lint` 仍被未触碰文件中的 5 个错误与 4 个警告阻断，位于 `ParticleSystem.jsx`、`Silk.jsx`、`SplitText.jsx`、`Toast.jsx`、`ui/badge.jsx`、`ui/button.jsx`；本轮社交分享图改动文件定向 lint 已全部通过。
 8. **依赖风险**：`npm ci` 报告 3 个 high severity advisories；本次未改依赖版本或 lockfile。应另建依赖治理任务评估，禁止在本次文案交付中直接执行破坏性 `npm audit fix --force`。
 9. **Bundle 体积**：生产构建保留既有大 chunk 警告（最大约 863 kB，gzip 约 234 kB）；非本次文案变更引入，后续可独立做代码分割。
 10. **真实设备剩余验证**：2026-08-06 已完成生产构建与 390 × 844 浏览器视口验证，但当前自动化浏览器不是 iPhone Safari，未替代真实中国区 Apple ID、TestFlight 安装、邀请接受和新版 App 首次打开的端到端验收。

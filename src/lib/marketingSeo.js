@@ -1,7 +1,13 @@
 import { MARKETING_LOCALE_REGISTRY } from './marketingLocales.js'
 
 export const MARKETING_ORIGIN = 'https://lutaai.com'
-export const MARKETING_SOCIAL_IMAGE_URL = `${MARKETING_ORIGIN}/twitter_meta_img.png`
+export const MARKETING_SOCIAL_IMAGE = Object.freeze({
+    url: `${MARKETING_ORIGIN}/luta-social-card-v1.jpg`,
+    type: 'image/jpeg',
+    width: 1200,
+    height: 630,
+})
+export const MARKETING_SOCIAL_IMAGE_URL = MARKETING_SOCIAL_IMAGE.url
 
 const OPEN_GRAPH_LOCALES = Object.freeze({
     'zh-cn': 'zh_CN',
@@ -25,6 +31,9 @@ export function getMarketingSeoModel(content, pathname = content.path) {
         description: content.metadata.description,
         imageAlt: content.metadata.title,
         imageUrl: MARKETING_SOCIAL_IMAGE_URL,
+        imageType: MARKETING_SOCIAL_IMAGE.type,
+        imageWidth: MARKETING_SOCIAL_IMAGE.width,
+        imageHeight: MARKETING_SOCIAL_IMAGE.height,
         keywords: content.metadata.keywords,
         ogLocale,
         ogLocaleAlternates: Object.entries(OPEN_GRAPH_LOCALES)
@@ -57,6 +66,10 @@ export function applyMarketingMetadata(
     setMeta(documentRef, 'meta[property="og:title"]', 'content', seo.title)
     setMeta(documentRef, 'meta[property="og:description"]', 'content', seo.description)
     setMeta(documentRef, 'meta[property="og:image"]', 'content', seo.imageUrl)
+    setMeta(documentRef, 'meta[property="og:image:secure_url"]', 'content', seo.imageUrl)
+    setMeta(documentRef, 'meta[property="og:image:type"]', 'content', seo.imageType)
+    setMeta(documentRef, 'meta[property="og:image:width"]', 'content', String(seo.imageWidth))
+    setMeta(documentRef, 'meta[property="og:image:height"]', 'content', String(seo.imageHeight))
     setMeta(documentRef, 'meta[property="og:image:alt"]', 'content', seo.imageAlt)
     setMeta(documentRef, 'meta[property="og:url"]', 'content', seo.canonicalUrl)
     setMeta(documentRef, 'meta[property="og:locale"]', 'content', seo.ogLocale)

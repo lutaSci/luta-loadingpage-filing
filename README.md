@@ -1,147 +1,52 @@
-# 🚀 AppLanding - 现代化应用落地页开发框架
+# LUTA Loading Page
 
-```
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
-║   ▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄▄▄▄▄ ▄▄▄     ▄▄▄▄▄▄▄ ▄▄    ▄ ▄▄▄▄▄▄  ▄▄▄▄▄▄▄ ▄▄    ▄  ║
-║   █       █       █       █   █   █       █  █  █ █      ██       █  █  █ █ ║
-║   █   ▄   █    ▄  █    ▄  █   █   █   ▄   █   █▄█ █  ▄    █   ▄   █   █▄█ █ ║
-║   █  █▄█  █   █▄█ █   █▄█ █   █   █  █▄█  █       █ █ █   █  █ █  █       █ ║
-║   █       █    ▄▄▄█    ▄▄▄█   █▄▄▄█       █  ▄    █ █▄█   █  █▄█  █  ▄    █ ║
-║   █   ▄   █   █   █   █   █       █   ▄   █ █ █   █       █       █ █ █   █ ║
-║   █▄▄█ █▄▄█▄▄▄█   █▄▄▄█   █▄▄▄▄▄▄▄█▄▄█ █▄▄█▄█  █▄▄█▄▄▄▄▄▄█▄▄▄▄▄▄▄█▄█  █▄▄█ ║
-║                                                                               ║
-║   🎯 专业级应用落地页开发框架 | 极致性能 | 现代化设计 | 开箱即用            ║
-║                                                                               ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-```
+汝塔官网与安装入口，服务 `lutaai.com`、Smart Link 落地、简繁中文营销页面、搜索/社交元数据以及中国 Android 下载交付入口。
 
-[![React](https://img.shields.io/badge/React-19.1.0-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.1.11-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![Caddy](https://img.shields.io/badge/Caddy-1F88C0?style=for-the-badge&logo=caddy&logoColor=white)](https://caddyserver.com/)
+## 当前能力
 
-## 📖 项目简介
+- `lutaai.com` 官网与 `zh-CN` / `zh-TW` 预渲染营销页面
+- `/install` Smart Link 安装旅程与失败恢复
+- Open Graph、Twitter Card、canonical、hreflang、sitemap 与 robots 合同
+- Docker + Nginx 应用容器，经共享 Caddy 网络对外服务
+- 中国 Android 不可变 APK 路径及最小化交付日志读取链
 
-**AppLanding** 是一个高性能、现代化的应用落地页开发框架，专为移动应用推广而设计。基于 React + Vite 构建，集成了丰富的视觉效果和交互动画，提供开箱即用的解决方案。
+## 相关入口
 
-### 🎨 核心特性
+- 官网：<https://lutaai.com>
+- 代码仓：<https://github.com/lutaSci/luta-loadingpage-filing>
+- 社交分享图规范与来源：[docs/social-preview-asset.md](docs/social-preview-asset.md)
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                                                                             │
-│  🎪 视觉效果          🌐 多语言支持          📱 响应式设计                   │
-│  ├─ 3D丝绸背景        ├─ 动态语言切换        ├─ 移动端优先                   │
-│  ├─ 粒子系统          ├─ 上下文状态管理      ├─ 断点适配                     │
-│  ├─ 弹幕效果          └─ 本地化内容          └─ 触摸优化                     │
-│  └─ 点赞动画                                                               │
-│                                                                             │
-│  🚀 性能优化          🔧 开发体验          📦 部署方案                       │
-│  ├─ 懒加载组件        ├─ 热模块替换        ├─ Docker + Nginx                │
-│  ├─ 代码分割          ├─ ESLint规范        ├─ Caddy HTTPS 入口               │
-│  ├─ 资源压缩          ├─ 路径别名          └─ 健康检查与 smoke gate          │
-│  └─ Tree Shaking     └─ 开发服务器                                        │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+## 技术栈
 
-## 🔗 相关链接
+React 19、Vite 7、React Router 7、Tailwind CSS 4、Nginx、Docker 与 Caddy。精确版本以 `package-lock.json` 和镜像构建文件为准。
 
-- [项目主页](https://github.com/liseami/applanding-open)
-- [在线演示](https://koudai.chunxiang.space)
-- [问题反馈](https://github.com/liseami/applanding-open/issues)
+## 本地开发
 
-
-## 🛠️ 技术栈
-
-### 核心框架
-- **React 19.1.0** - 最新版本的React，支持并发特性
-- **Vite 7.0.0** - 下一代前端构建工具，极速开发体验
-- **React Router 7.6.3** - 现代化路由解决方案
-
-### 样式与动画
-- **Tailwind CSS 4.1.11** - 原子化CSS框架
-- **Framer Motion 12.19.2** - 高性能动画库
-- **GSAP 3.13.0** - 专业级动画引擎
-- **Three.js 0.177.0** - 3D图形渲染
-
-### UI组件
-- **Radix UI** - 无样式的可访问UI组件
-- **Lucide React** - 现代化图标库
-- **Class Variance Authority** - 样式变体管理
-
-## 🚀 快速开始
-
-### 环境要求
 ```bash
-# Node.js 版本要求
-node >= 18.0.0
-npm >= 8.0.0
-```
-
-### 安装与启动
-```bash
-# 1. 克隆项目
 git clone git@github.com:lutaSci/luta-loadingpage-filing.git
 cd luta-loadingpage-filing
-
-# 2. 安装依赖
-npm install
-
-# 3. 启动开发服务器
+npm ci
 npm run dev
+```
 
-# 4. 构建生产版本
+完整校验：
+
+```bash
+npm run test:attribution
 npm run build
-
-# 5. 预览生产版本
-npm run preview
+npm run lint
 ```
 
-## 🏗️ 项目结构
+## 主要目录
 
-```
-applanding-open/
-├── 📁 src/
-│   ├── 📁 components/          # 🎨 UI组件库
-│   │   ├── DanmakuEffect.jsx   # 弹幕效果组件
-│   │   ├── LikeEffect.jsx      # 点赞动画组件
-│   │   ├── ParticleSystem.jsx  # 粒子系统
-│   │   ├── Silk.jsx            # 3D丝绸背景
-│   │   ├── LanguageSwitch.jsx  # 语言切换器
-│   │   ├── MainContent.jsx     # 主要内容区
-│   │   ├── Footer.jsx          # 页脚组件
-│   │   └── 📁 ui/              # 基础UI组件
-│   │       ├── button.jsx      # 按钮组件
-│   │       ├── card.jsx        # 卡片组件
-│   │       └── badge.jsx       # 徽章组件
-│   ├── 📁 contexts/            # 🔄 React上下文
-│   │   └── LanguageContext.jsx # 语言上下文
-│   ├── 📁 design/              # 🎨 设计系统
-│   │   ├── colors.js           # 颜色规范
-│   │   └── designSystem.js     # 设计令牌
-│   ├── 📁 config/              # ⚙️ 配置文件
-│   │   └── index.js            # 应用配置
-│   ├── 📁 content/             # 📄 内容文件
-│   │   ├── privacy.md          # 隐私政策
-│   │   └── terms.md            # 使用条款
-│   ├── 📁 pages/               # 📱 页面组件
-│   │   ├── Contact.jsx         # 联系页面
-│   │   ├── Privacy.jsx         # 隐私页面
-│   │   └── Terms.jsx           # 条款页面
-│   ├── 📁 lib/                 # 🔧 工具函数
-│   │   └── utils.js            # 通用工具
-│   └── 📁 assets/              # 🖼️ 静态资源
-│       └── *.png               # 图片资源
-├── 📁 public/                  # 🌐 公共资源
-│   ├── _redirects              # 重定向规则
-│   └── *.png                   # 公共图片
-└── 📄 配置文件
-    ├── vite.config.js          # Vite配置
-    ├── tailwind.config.js      # Tailwind配置
-    ├── package.json            # 项目依赖
-    └── eslint.config.js        # 代码规范
+```text
+src/components/marketing/  官网营销页面组件
+src/content/marketing/     简繁中文营销内容
+src/lib/                   Smart Link、安装、SEO 与分析合同
+public/                    公共静态资源和 crawler discovery 文件
+scripts/                   营销页面预渲染
+ops/                       Caddy 与 APK 交付运维资产
+tests/                     Node 与 Python 合同测试
 ```
 
 ## ⚙️ 配置指南
@@ -475,19 +380,4 @@ git commit -m "feat: 添加3D背景效果组件"
 
 MIT License - 详见 [LICENSE](LICENSE) 文件
 
-
----
-
-```
-╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                                                               ║
-║   🎉 感谢您选择 AppLanding！                                                 ║
-║                                                                               ║
-║   如果这个项目对您有帮助，请给我们一个 ⭐️                                    ║
-║   您的支持是我们持续改进的动力！                                              ║
-║                                                                               ║
-║   📧 联系我们：liseami@qq.com                                                ║
-║   🐦 关注我们：@liseami1                                                     ║
-║                                                                               ║
-╚═══════════════════════════════════════════════════════════════════════════════╝
-```
+本项目最初基于 [`liseami/applanding-open`](https://github.com/liseami/applanding-open) 的 MIT 版本演进；上游版权与许可声明保留在 [LICENSE](LICENSE) 中。该上游链接只用于来源归属，不是当前 LUTA 产品、发布或问题反馈入口。
