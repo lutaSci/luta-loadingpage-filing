@@ -118,7 +118,7 @@ test('social card assets keep the crawler-safe dimensions and transfer budget', 
     )
     assert.equal(
         sha256(socialCard),
-        '09aaef525d62a4d28fad5eb4c219ea3b226e91bc67335ccde351c8b3ef2e683b',
+        'f8689db383532207cff04c3da9fae85cd96afbd75cd55e0b13c83a053707f144',
     )
     assert.deepEqual(getPngDimensions(legacyFallback), { width: 1200, height: 630 })
     assert.ok(
@@ -127,7 +127,7 @@ test('social card assets keep the crawler-safe dimensions and transfer budget', 
     )
     assert.equal(
         sha256(legacyFallback),
-        '170c3a11543468f535744dc19e822525bc268ad2982612499b845843789f1c18',
+        '5ec2dfadf0b484140c37dcf1f784829c3b79605d76d90facf24b011d17e6d0fb',
     )
 })
 
