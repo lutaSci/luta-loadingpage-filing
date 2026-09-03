@@ -112,6 +112,7 @@ export const ParticleSystem = memo(() => {
 
     // 使用 Intersection Observer 优化性能
     useEffect(() => {
+        const observedElement = containerRef.current
         const observer = new IntersectionObserver(
             ([entry]) => {
                 setIsVisible(entry.isIntersecting)
@@ -119,14 +120,15 @@ export const ParticleSystem = memo(() => {
             { threshold: 0 }
         )
 
-        if (containerRef.current) {
-            observer.observe(containerRef.current)
+        if (observedElement) {
+            observer.observe(observedElement)
         }
 
         return () => {
-            if (containerRef.current) {
-                observer.unobserve(containerRef.current)
+            if (observedElement) {
+                observer.unobserve(observedElement)
             }
+            observer.disconnect()
         }
     }, [])
 
@@ -154,4 +156,4 @@ export const ParticleSystem = memo(() => {
     )
 })
 
-ParticleSystem.displayName = 'ParticleSystem' 
+ParticleSystem.displayName = 'ParticleSystem'

@@ -8,6 +8,11 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: {
+    // The legacy WebGL homepage is lazy-loaded and currently 863 kB raw / 233 kB gzip.
+    // Keep a tight explicit ceiling until that compatibility route is retired.
+    chunkSizeWarningLimit: 880,
+  },
   plugins: [
     react(),
     tailwindcss({

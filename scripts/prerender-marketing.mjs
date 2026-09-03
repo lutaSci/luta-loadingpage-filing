@@ -43,8 +43,10 @@ ${alternateLinks}
     <meta property="og:title" content="${escapeHtml(seo.title)}" />
     <meta property="og:description" content="${escapeHtml(seo.description)}" />
     <meta property="og:image" content="${escapeHtml(seo.imageUrl)}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:secure_url" content="${escapeHtml(seo.imageUrl)}" />
+    <meta property="og:image:type" content="${escapeHtml(seo.imageType)}" />
+    <meta property="og:image:width" content="${escapeHtml(seo.imageWidth)}" />
+    <meta property="og:image:height" content="${escapeHtml(seo.imageHeight)}" />
     <meta property="og:image:alt" content="${escapeHtml(seo.imageAlt)}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${escapeHtml(seo.canonicalUrl)}" />

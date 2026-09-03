@@ -1,16 +1,8 @@
-/* eslint-disable react/no-unknown-property */
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { forwardRef, useRef, useMemo, useLayoutEffect } from "react";
 import { Color } from "three";
 
-const hexToNormalizedRGB = (hex) => {
-    hex = hex.replace("#", "");
-    return [
-        parseInt(hex.slice(0, 2), 16) / 255,
-        parseInt(hex.slice(2, 4), 16) / 255,
-        parseInt(hex.slice(4, 6), 16) / 255,
-    ];
-};
+const DEFAULT_SILK_COLOR = Object.freeze([229, 42, 132]);
 
 const rgbToNormalized = (r, g, b) => {
     return [r / 255, g / 255, b / 255];
@@ -102,7 +94,7 @@ SilkPlane.displayName = "SilkPlane";
 const Silk = ({
     speed = 5,
     scale = 1,
-    color = [229, 42, 132], // RGB 229, 42, 132
+    color = DEFAULT_SILK_COLOR,
     noiseIntensity = 1.5,
     rotation = 0,
 }) => {
@@ -127,4 +119,4 @@ const Silk = ({
     );
 };
 
-export default Silk; 
+export default Silk;

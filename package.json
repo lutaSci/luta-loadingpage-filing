@@ -1,5 +1,5 @@
 {
-  "name": "fakelive-web",
+  "name": "luta-loadingpage-filing",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,10 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@radix-ui/react-slot": "^1.2.3",
     "@react-three/fiber": "^9.1.2",
     "@tailwindcss/vite": "^4.1.11",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.19.2",
     "gsap": "^3.13.0",
