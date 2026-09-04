@@ -333,6 +333,29 @@ test('manual PostHog page view marks a missing browser referrer as direct', () =
     assert.equal(payload.$referring_domain, '$direct')
 })
 
+test('PostHog send boundary keeps native page views independent from Smart Link identity', () => {
+    const capture = sanitizePosthogCapture({
+        event: '$pageview',
+        properties: {
+            $current_url: 'https://lutaai.com/?state=signed',
+            $referring_domain: 'M.FACEBOOK.COM',
+            $pathname: '/?state=signed',
+            utm_source: 'fb',
+            click_id: 'internal-click-id',
+            link_id: 'internal-link-id',
+            operator: 'ops-internal',
+            route_market_source: 'smart_link_context',
+        },
+    })
+
+    assert.deepEqual(capture.properties, {
+        $current_url: 'https://lutaai.com/',
+        $referring_domain: 'm.facebook.com',
+        $pathname: '/',
+        utm_source: 'fb',
+    })
+})
+
 test('GA campaign sanitizer permits controlled tokens and rejects identity-shaped values', () => {
     assert.equal(sanitizeGoogleCampaignValue('launch_2026'), 'launch_2026')
     assert.equal(sanitizeGoogleCampaignValue('person@example.com'), null)

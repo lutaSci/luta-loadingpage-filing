@@ -318,6 +318,17 @@ const POSTHOG_DOMAIN_PROPERTIES = new Set([
     '$session_entry_referring_domain',
 ])
 const POSTHOG_PATH_PROPERTIES = new Set(['$pathname'])
+const POSTHOG_PAGEVIEW_FORBIDDEN_PROPERTIES = new Set([
+    'slug',
+    'click_id',
+    'link_id',
+    'operator',
+    'content_id',
+    'acquisition_platform',
+    'entry_type',
+    'route_market',
+    'route_market_source',
+])
 
 const POSTHOG_CAMPAIGN_PROPERTY_RE = /^(?:\$initial_|\$session_entry_)?utm_(?:source|medium|campaign|content|term)$/
 const POSTHOG_SENSITIVE_ATTRIBUTION_RE = /^(?:\$initial_|\$session_entry_)?(?:state|legacy_slug|invite_code|gclid|dclid|fbclid|msclkid|ttclid|twclid|li_fat_id)$/i
@@ -327,6 +338,10 @@ export function sanitizePosthogCapture(data) {
 
     const properties = { ...data.properties }
     for (const [key, value] of Object.entries(properties)) {
+        if (data.event === '$pageview' && POSTHOG_PAGEVIEW_FORBIDDEN_PROPERTIES.has(key)) {
+            delete properties[key]
+            continue
+        }
         if (POSTHOG_URL_PROPERTIES.has(key)) {
             const safe = safeUrlProperty(value)
             if (safe) properties[key] = safe
