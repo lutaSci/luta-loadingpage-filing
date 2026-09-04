@@ -20,6 +20,8 @@ export const META_CTA_EVENT_NAME = 'WebsiteDownloadCtaClicked'
 let posthogClientPromise = null
 let googleAnalyticsInitialized = false
 let lastPosthogPageViewSignature = null
+let lastPosthogNativePageViewLocation = null
+let previousPosthogPageLocation = null
 let lastGooglePageViewLocation = null
 let previousGooglePageLocation = null
 let metaPixelInitialized = false
@@ -267,6 +269,29 @@ function safeReferrer(value) {
     }
 }
 
+function safeDomainProperty(value) {
+    if (value === '$direct') return value
+    const normalized = sanitizeText(value, 253)?.toLowerCase()
+    if (
+        !normalized
+        || normalized.includes('/')
+        || normalized.includes('?')
+        || normalized.includes('#')
+        || normalized.includes('@')
+    ) return null
+    return normalized
+}
+
+function safeReferringDomain(value) {
+    const referrer = safeReferrer(value)
+    if (!referrer) return '$direct'
+    try {
+        return safeDomainProperty(new URL(referrer).hostname) || '$direct'
+    } catch {
+        return '$direct'
+    }
+}
+
 function safeUrlProperty(value) {
     if (!value || value === '$direct') return value || null
     try {
@@ -286,6 +311,13 @@ const POSTHOG_URL_PROPERTIES = new Set([
     '$session_entry_url',
     '$session_entry_referrer',
 ])
+const POSTHOG_DOMAIN_PROPERTIES = new Set([
+    '$host',
+    '$referring_domain',
+    '$initial_referring_domain',
+    '$session_entry_referring_domain',
+])
+const POSTHOG_PATH_PROPERTIES = new Set(['$pathname'])
 
 const POSTHOG_CAMPAIGN_PROPERTY_RE = /^(?:\$initial_|\$session_entry_)?utm_(?:source|medium|campaign|content|term)$/
 const POSTHOG_SENSITIVE_ATTRIBUTION_RE = /^(?:\$initial_|\$session_entry_)?(?:state|legacy_slug|invite_code|gclid|dclid|fbclid|msclkid|ttclid|twclid|li_fat_id)$/i
@@ -301,6 +333,16 @@ export function sanitizePosthogCapture(data) {
             else delete properties[key]
             continue
         }
+        if (POSTHOG_DOMAIN_PROPERTIES.has(key)) {
+            const safe = safeDomainProperty(value)
+            if (safe) properties[key] = safe
+            else delete properties[key]
+            continue
+        }
+        if (POSTHOG_PATH_PROPERTIES.has(key)) {
+            properties[key] = sanitizePagePath(value)
+            continue
+        }
         if (POSTHOG_CAMPAIGN_PROPERTY_RE.test(key)) {
             const safe = sanitizeText(value, 128)
             if (safe && !containsLikelyPersonalData(safe)) properties[key] = safe
@@ -311,6 +353,49 @@ export function sanitizePosthogCapture(data) {
     }
 
     return { ...data, properties }
+}
+
+const POSTHOG_PAGEVIEW_CONTEXT_KEYS = [
+    'surface',
+    'page_path',
+    'traffic_purpose',
+    'device_os',
+    'locale',
+    'utm_source',
+    'utm_medium',
+    'utm_campaign',
+    'utm_content',
+    'utm_term',
+]
+
+export function buildPosthogPageViewPayload(
+    properties,
+    {
+        documentReferrer = globalThis.document?.referrer || '',
+        previousPageLocation = null,
+        runtimeWindow = globalThis.window,
+    } = {},
+) {
+    const safe = sanitizeWebsiteProperties(properties)
+    const pageLocation = safePageLocation(safe.page_path, runtimeWindow)
+    const host = safeDomainProperty(runtimeWindow?.location?.hostname)
+    if (!pageLocation || !host) return null
+
+    const payload = {}
+    for (const key of POSTHOG_PAGEVIEW_CONTEXT_KEYS) {
+        if (safe[key] !== undefined) payload[key] = safe[key]
+    }
+    const referrer = safeReferrer(previousPageLocation || documentReferrer)
+    return {
+        ...payload,
+        $current_url: pageLocation,
+        $host: host,
+        $pathname: safe.page_path || '/',
+        $referrer: referrer && referrer !== pageLocation ? referrer : '$direct',
+        $referring_domain: referrer && referrer !== pageLocation
+            ? safeReferringDomain(referrer)
+            : '$direct',
+    }
 }
 
 function hasAnalyticsBearer(runtimeWindow = globalThis.window) {
@@ -606,6 +691,35 @@ function capturePosthogEvent(eventName, properties) {
     return true
 }
 
+function capturePosthogPageView(properties) {
+    if (hasAnalyticsBearer(window)) return false
+    const pageViewPayload = buildPosthogPageViewPayload(properties, {
+        previousPageLocation: previousPosthogPageLocation,
+    })
+    if (!pageViewPayload) return false
+
+    const pageLocation = pageViewPayload.$current_url
+    const shouldCaptureNativePageView = pageLocation !== lastPosthogNativePageViewLocation
+    initializeAnalytics()
+        .then(posthog => {
+            if (!posthog) return
+            // Keep the native web-analytics fact separate from Luta's richer
+            // Smart Link journey event. Ordering lets the standard page view
+            // establish the PostHog session before the custom event arrives.
+            if (shouldCaptureNativePageView) posthog.capture('$pageview', pageViewPayload)
+            posthog.capture('website_page_viewed', {
+                ...properties,
+                $current_url: pageLocation,
+            })
+        })
+        .catch(() => {})
+    if (shouldCaptureNativePageView) {
+        lastPosthogNativePageViewLocation = pageLocation
+        previousPosthogPageLocation = pageLocation
+    }
+    return true
+}
+
 function trackGooglePageView(properties) {
     if (!shouldCaptureGoogleAnalytics(properties)) return false
     const payload = buildGooglePageViewPayload(properties, {
@@ -656,7 +770,7 @@ export const trackWebsitePageView = (params = {}) => {
     ].join(':')
     if (signature === lastPosthogPageViewSignature) return false
 
-    const captured = capturePosthogEvent('website_page_viewed', properties)
+    const captured = capturePosthogPageView(properties)
     if (captured) lastPosthogPageViewSignature = signature
     trackGooglePageView(properties)
     trackMetaPageView(properties)

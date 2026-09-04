@@ -6,6 +6,7 @@ import {
     buildGoogleCtaPayload,
     buildGooglePageViewPayload,
     buildMetaCtaPayload,
+    buildPosthogPageViewPayload,
     GOOGLE_ANALYTICS_ID,
     GOOGLE_CTA_EVENT_NAME,
     META_CTA_EVENT_NAME,
@@ -278,6 +279,60 @@ test('PostHog send boundary removes query strings and identity-shaped attributio
     })
 })
 
+test('manual PostHog page view carries raw browser source without Smart Link identity', () => {
+    const payload = buildPosthogPageViewPayload({
+        surface: 'official_website',
+        page_path: '/?state=signed-bearer',
+        traffic_purpose: 'production',
+        route_market: 'global',
+        route_market_source: 'smart_link_context',
+        device_os: 'ios',
+        locale: 'zh-TW',
+        utm_source: 'fb',
+        utm_medium: 'paid',
+        click_id: 'internal-click-id',
+        link_id: 'internal-link-id',
+        operator: 'ops-internal',
+    }, {
+        documentReferrer: 'https://M.Facebook.com/story.php?fbclid=secret#fragment',
+        runtimeWindow: productionWindow('?state=never-copy'),
+    })
+
+    assert.deepEqual(payload, {
+        surface: 'official_website',
+        page_path: '/',
+        traffic_purpose: 'production',
+        device_os: 'ios',
+        locale: 'zh-TW',
+        utm_source: 'fb',
+        utm_medium: 'paid',
+        $current_url: 'https://lutaai.com/',
+        $host: 'lutaai.com',
+        $pathname: '/',
+        $referrer: 'https://m.facebook.com/story.php',
+        $referring_domain: 'm.facebook.com',
+    })
+    assert.equal(JSON.stringify(payload).includes('click_id'), false)
+    assert.equal(JSON.stringify(payload).includes('link_id'), false)
+    assert.equal(JSON.stringify(payload).includes('operator'), false)
+    assert.equal(JSON.stringify(payload).includes('fbclid'), false)
+    assert.equal(JSON.stringify(payload).includes('state'), false)
+})
+
+test('manual PostHog page view marks a missing browser referrer as direct', () => {
+    const payload = buildPosthogPageViewPayload({
+        surface: 'official_website',
+        page_path: '/global/zh-tw',
+        traffic_purpose: 'production',
+    }, {
+        documentReferrer: '',
+        runtimeWindow: productionWindow(),
+    })
+
+    assert.equal(payload.$referrer, '$direct')
+    assert.equal(payload.$referring_domain, '$direct')
+})
+
 test('GA campaign sanitizer permits controlled tokens and rejects identity-shaped values', () => {
     assert.equal(sanitizeGoogleCampaignValue('launch_2026'), 'launch_2026')
     assert.equal(sanitizeGoogleCampaignValue('person@example.com'), null)
@@ -295,6 +350,13 @@ test('Google provider uses manual page views and a single approved CTA event', a
     assert.match(source, /window\.gtag\('event', GOOGLE_CTA_EVENT_NAME/)
     assert.equal(GOOGLE_CTA_EVENT_NAME, 'website_download_cta_clicked')
     assert.equal(source.includes("export const trackEvent"), false)
+})
+
+test('PostHog provider keeps auto-capture off and emits native then custom page views', async () => {
+    const source = await readFile(new URL('../src/lib/analytics.js', import.meta.url), 'utf8')
+    assert.match(source, /capture_pageview: false/)
+    assert.match(source, /if \(shouldCaptureNativePageView\) posthog\.capture\('\$pageview', pageViewPayload\)/)
+    assert.match(source, /posthog\.capture\('website_page_viewed'/)
 })
 
 test('Meta provider is config-gated, consent-gated and emits only approved events', async () => {
