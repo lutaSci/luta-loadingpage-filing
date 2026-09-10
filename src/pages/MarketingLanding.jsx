@@ -9,10 +9,12 @@ import StoreActionGroup from '../components/marketing/StoreActionGroup.jsx'
 import { useStoreActionAdapter } from '../components/marketing/useStoreActionAdapter.js'
 import { useSmartLinkStoreActionAdapter } from '../components/marketing/useSmartLinkStoreActionAdapter.js'
 import { getMarketingContent } from '../content/marketingLanding.js'
+import { config } from '../config/index.js'
 import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
-import { buildInstallEntryUrl, getTrafficPurpose } from '../lib/attributionState.js'
-import { detectDevice } from '../lib/deviceDetection.js'
+import { buildInstallEntryUrl, getTrafficPurpose, resolveRouteContext } from '../lib/attributionState.js'
+import { detectDevice, detectIsMainlandChina } from '../lib/deviceDetection.js'
+import { resolveMobileHandoff } from '../lib/mobileAppHandoff.js'
 import { resolveInstallPlatformPresentation } from '../lib/installFlow.js'
 import {
     hasExplicitTestflightParam,
@@ -92,9 +94,15 @@ export default function MarketingLanding({ locale }) {
     const trafficPurpose = usesHomepageSurface
         ? controller.installContext?.trafficPurpose || 'unknown'
         : getTrafficPurpose()
+    const mobileHandoffEligible = resolveMobileHandoff({
+        enabled: config.mobileHandoff.enabled, pathname: window.location.pathname,
+        market: usesHomepageSurface ? controller.installContext?.campaignTargetMarket
+            : resolveRouteContext(detectIsMainlandChina()).market,
+        userAgent: navigator.userAgent,
+    }).eligible
     const ctaExperiment = useMemo(
-        () => resolveMarketingCtaCopyExperiment({ trafficPurpose }),
-        [trafficPurpose],
+        () => resolveMarketingCtaCopyExperiment({ trafficPurpose, mobileHandoffEligible }),
+        [trafficPurpose, mobileHandoffEligible],
     )
     const heroAnalyticsContext = useMemo(
         () => marketingCtaExperimentProperties(ctaExperiment),

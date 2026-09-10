@@ -7,6 +7,7 @@ import {
 } from './attributionState.js'
 import { detectDevice, detectIsMainlandChina } from './deviceDetection.js'
 import { hasSmartLinkBearer } from './smartLinkEntry.js'
+import { MOBILE_HANDOFF_POLICY } from './mobileAppHandoff.js'
 import {
     MEASUREMENT_CONSENT_VALUES,
     readMeasurementConsent,
@@ -40,6 +41,22 @@ export const INSTALL_WEB_EVENT_NAMES = Object.freeze([
     'install_recovery_action_clicked',
 ])
 const INSTALL_EVENT_NAMES = new Set(INSTALL_WEB_EVENT_NAMES)
+export const MOBILE_HANDOFF_ACTIONS = Object.freeze([
+    'automatic_attempt', 'continue_clicked', 'store_clicked', 'browser_fallback', 'browse_clicked',
+])
+
+export function sanitizeMobileHandoffProperties(action, params) {
+    if (!MOBILE_HANDOFF_ACTIONS.includes(action)) return null
+    return { ...sanitizeWebsiteProperties(params), handoff_action: action,
+        handoff_policy: MOBILE_HANDOFF_POLICY, installation_state: 'unknown' }
+}
+
+// This event never calls the existing GA/Meta download-click conversion path.
+export function trackMobileHandoffEvent(action, params = {}) {
+    if (typeof window === 'undefined') return false
+    const properties = sanitizeMobileHandoffProperties(action, { ...websiteContext(), ...params })
+    return properties ? capturePosthogEvent('website_app_handoff', properties) : false
+}
 // deep_link_handled is part of the approved dictionary but is emitted only by
 // the mobile client after it receives and resolves the link.
 
@@ -73,6 +90,7 @@ const TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]*$/
 const CAMPAIGN_TOKEN_RE = /^[A-Za-z0-9][A-Za-z0-9._~+:/-]*$/
 
 const WEBSITE_PROPERTY_KEYS = new Set([
+    'handoff_policy',
     'surface',
     'page_path',
     'entry_type',
@@ -176,6 +194,7 @@ function sanitizeLocale(value) {
 }
 
 function sanitizeApprovedWebsiteValue(key, value) {
+    if (key === 'handoff_policy') return ['manual_v1', MOBILE_HANDOFF_POLICY].includes(value) ? value : null
     if (key === 'surface') return value === 'official_website' ? value : null
     if (key === 'page_path') return sanitizePagePath(value)
     if (key === 'entry_type') return normalizeEnum(value, ENTRY_TYPES)
@@ -571,6 +590,7 @@ function websiteContext() {
     const device = detectDevice()
 
     return sanitizeWebsiteProperties({
+        handoff_policy: config.mobileHandoff.enabled ? MOBILE_HANDOFF_POLICY : 'manual_v1',
         surface: 'official_website',
         page_path: window.location.pathname,
         entry_type: getAttributionEntryType(),

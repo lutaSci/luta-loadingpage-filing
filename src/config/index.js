@@ -60,6 +60,10 @@ export const config = {
             'global-store': 'global',
         },
     },
+    mobileHandoff: {
+        // Enable only after the API fallback and device matrix are verified.
+        enabled: import.meta.env?.VITE_GLOBAL_MOBILE_HANDOFF === 'true',
+    },
     smartLink: {
         installContextBase: `${lutaApiBase}/api/v1/public/attribution/install-context`,
         legacyInstallContextBase: `${lutaApiBase}/api/v1/public/attribution/legacy-install-context`,
