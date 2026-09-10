@@ -1,11 +1,6 @@
-.mobile-handoff { box-sizing: border-box; width: min(92vw, 420px); max-height: 90dvh; overflow: auto; margin: auto; padding: 28px 24px; border: 1px solid #dbe5dd; border-radius: 24px; color: #183b2c; background: #fafbf6; box-shadow: 0 24px 80px #142c2733; }
-.mobile-handoff::backdrop { background: #142c2766; }
-.mobile-handoff-brand { font-size: 19px; font-weight: 700; }
-.mobile-handoff h2 { margin: 24px 0 12px; font-size: 26px; line-height: 1.35; }
-.mobile-handoff p { color: #516358; line-height: 1.65; margin-bottom: 24px; }
-.mobile-handoff button { display: block; width: 100%; min-height: 48px; padding: 12px; margin: 10px 0; border: 1px solid #c3d0c6; border-radius: 12px; font: inherit; cursor: pointer; background: white; color: #183b2c; }
-.mobile-handoff button.mobile-handoff-primary { color: white; background: #286c4a; border-color: #286c4a; font-weight: 600; }
-.mobile-handoff button.mobile-handoff-browse { border: 0; background: transparent; text-decoration: underline; }
-.mobile-handoff :focus-visible { outline: 3px solid #689d35; outline-offset: 3px; }
-.mobile-handoff nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding-top: 12px; font-size: 12px; }
-.mobile-handoff nav a { color: #516358; text-decoration: underline; padding: 6px 0; }
+.mobile-handoff-recovery { box-sizing: border-box; padding: 20px max(20px, calc((100vw - 1080px) / 2)); color: #183b2c; background: #fafbf6; border-bottom: 1px solid #dbe5dd; }
+.mobile-handoff-recovery h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.4; }
+.mobile-handoff-recovery p { margin: 0 0 12px; color: #516358; line-height: 1.6; }
+.mobile-handoff-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.mobile-handoff-actions button { min-height: 44px; padding: 10px 14px; border: 1px solid #c3d0c6; border-radius: 10px; font: inherit; cursor: pointer; background: white; color: #183b2c; }
+.mobile-handoff-recovery :focus-visible { outline: 3px solid #689d35; outline-offset: 3px; }

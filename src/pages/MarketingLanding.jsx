@@ -14,7 +14,7 @@ import { useLanguage } from '../contexts/LanguageContext.jsx'
 import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { buildInstallEntryUrl, getTrafficPurpose, resolveRouteContext } from '../lib/attributionState.js'
 import { detectDevice, detectIsMainlandChina } from '../lib/deviceDetection.js'
-import { resolveMobileHandoff } from '../lib/mobileAppHandoff.js'
+import { resolveHandoffMarket, resolveMobileHandoff } from '../lib/mobileAppHandoff.js'
 import { resolveInstallPlatformPresentation } from '../lib/installFlow.js'
 import {
     hasExplicitTestflightParam,
@@ -90,14 +90,18 @@ function FinalCallToAction({ content, adapter, storeActions }) {
 
 export default function MarketingLanding({ locale }) {
     const content = getMarketingContent(locale)
-    const { controller, usesHomepageSurface } = useSmartLinkJourney()
+    const { controller, entry, usesHomepageSurface } = useSmartLinkJourney()
     const trafficPurpose = usesHomepageSurface
         ? controller.installContext?.trafficPurpose || 'unknown'
         : getTrafficPurpose()
     const mobileHandoffEligible = resolveMobileHandoff({
         enabled: config.mobileHandoff.enabled, pathname: window.location.pathname,
-        market: usesHomepageSurface ? controller.installContext?.campaignTargetMarket
-            : resolveRouteContext(detectIsMainlandChina()).market,
+        market: resolveHandoffMarket({
+            entryChoice: entry?.choice,
+            campaignTargetMarket: usesHomepageSurface ? controller.installContext?.campaignTargetMarket : null,
+            recommendedRegion: usesHomepageSurface ? controller.installContext?.recommendedRegion : null,
+            defaultMarket: resolveRouteContext(detectIsMainlandChina()).market,
+        }),
         userAgent: navigator.userAgent,
     }).eligible
     const ctaExperiment = useMemo(

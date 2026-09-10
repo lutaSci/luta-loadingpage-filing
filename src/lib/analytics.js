@@ -43,6 +43,7 @@ export const INSTALL_WEB_EVENT_NAMES = Object.freeze([
 const INSTALL_EVENT_NAMES = new Set(INSTALL_WEB_EVENT_NAMES)
 export const MOBILE_HANDOFF_ACTIONS = Object.freeze([
     'automatic_attempt', 'continue_clicked', 'store_clicked', 'browser_fallback', 'browse_clicked',
+    'automatic_store_attempt', 'retry_clicked',
 ])
 
 export function sanitizeMobileHandoffProperties(action, params) {
