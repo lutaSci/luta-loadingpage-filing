@@ -1,19 +1,49 @@
 import { detectDeviceFromUserAgent } from './deviceDetection.js'
 import { isMarketingPath } from './marketingLocales.js'
-import { isInstallOptionActionable, isOptionAvailable } from './installFlow.js'
+import { isInstallOptionActionable, isOptionAvailable, sortInstallOptions } from './installFlow.js'
 
 export const MOBILE_HANDOFF_KEY = 'luta-mobile-app-handoff-v1'
-export const MOBILE_HANDOFF_POLICY = 'global_mobile_v1'
+export const MOBILE_HANDOFF_POLICY = 'global_mobile_v2'
 export const WEBSITE_APP_OPEN_URL = 'https://link.lutaai.com/l/open/app'
-const PHASES = new Set(['attempted', 'continue_pending', 'store', 'browse'])
+export const HANDOFF_FALLBACK_DELAY_MS = 1800
+const PHASES = new Set(['attempted', 'continue_pending', 'store', 'browse', 'returned'])
+const HISTORY_KEY = 'lutaMobileHandoff'
+const validRecord = value => PHASES.has(value?.phase) && Number.isFinite(value.at)
+    && typeof value.journey === 'string' && value.journey.length <= 256
 
 export function readHandoff(storage) {
     try {
         const value = JSON.parse(storage.getItem(MOBILE_HANDOFF_KEY))
-        return PHASES.has(value?.phase) && Number.isFinite(value.at) ? value : null
+        return validRecord(value) ? value : null
     } catch {
         return null
     }
+}
+
+export function readHistoryHandoff(state) {
+    return validRecord(state?.[HISTORY_KEY]) ? state[HISTORY_KEY] : null
+}
+
+export function latestHandoffRecord(session, history) {
+    if (session?.phase === 'browse') return session
+    if (!session) return history
+    if (!history) return session
+    return history.at > session.at ? history : session
+}
+
+export function writeHistoryHandoff(history, phase, journey, now = Date.now()) {
+    try {
+        // Preserve React Router's key/index/user state. This receipt contains no bearer.
+        history.replaceState({ ...history.state, [HISTORY_KEY]: { phase, journey, at: now } }, '')
+        return Boolean(readHistoryHandoff(history.state))
+    } catch { return false }
+}
+
+export function resolveHandoffMarket({ entryChoice, campaignTargetMarket, recommendedRegion, defaultMarket }) {
+    // Explicit visitor choice and trusted link configuration outrank website heuristics.
+    // Advertising-source parameters are deliberately not inputs to this decision.
+    return [entryChoice, campaignTargetMarket, recommendedRegion, defaultMarket]
+        .find(value => value === 'cn' || value === 'global') || null
 }
 
 export function writeHandoff(storage, phase, journey = 'direct', now = Date.now()) {
@@ -37,7 +67,8 @@ export function resolveMobileHandoff({ enabled, pathname, market, userAgent, has
 
 export function selectGlobalHandoffOption(options = [], platform) {
     const channel = platform === 'ios' ? 'apple_app_store' : platform === 'android' ? 'google_play' : null
-    return options.find(option => option.region === 'global'
+    return sortInstallOptions(options, { deviceOs: platform, campaignTargetMarket: 'global' })
+        .find(option => option.region === 'global'
         && option.channel === channel && isOptionAvailable(option)
         && isInstallOptionActionable(option, platform)) || null
 }
@@ -65,8 +96,21 @@ export function buildHandoffAppUrl(appUrl = WEBSITE_APP_OPEN_URL, trigger = 'aut
 }
 
 export function canContinueToStore({ record, returnedByResolver, journey, now = Date.now() }) {
-    // A timer, reload or browser visibility change is never installation proof.
-    // Only an explicit Continue followed by our HTTP fallback permits this exit.
-    return Boolean(returnedByResolver && record?.phase === 'continue_pending'
+    // A bounded resolver return after the automatic attempt can continue directly.
+    // It proves a web fallback, never an installation state.
+    return Boolean(returnedByResolver && ['attempted', 'continue_pending'].includes(record?.phase)
         && record.journey === journey && now >= record.at && now - record.at < 60_000)
+}
+
+export function resolveHandoffAction({ record, journey, returnedByResolver, historyReturn,
+    requiresBrowser, canOpenApp, canOpenStore, now = Date.now() }) {
+    if (record?.phase === 'browse') return 'browse'
+    if (historyReturn) return 'recover'
+    if (returnedByResolver) {
+        return canOpenStore && canContinueToStore({ record, returnedByResolver, journey, now })
+            ? 'store' : 'recover'
+    }
+    if (record?.journey === journey) return 'recover'
+    if (canOpenApp && !requiresBrowser) return 'app'
+    return canOpenStore ? 'store' : 'recover'
 }

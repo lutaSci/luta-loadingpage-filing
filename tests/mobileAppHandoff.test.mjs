@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildHandoffAppUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
-    resolveMobileHandoff, selectGlobalHandoffOption, writeHandoff } from '../src/lib/mobileAppHandoff.js'
+import { latestHandoffRecord, buildHandoffAppUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
+    readHistoryHandoff, resolveHandoffAction, resolveHandoffMarket,
+    resolveMobileHandoff, selectGlobalHandoffOption, writeHandoff, writeHistoryHandoff } from '../src/lib/mobileAppHandoff.js'
 import { sanitizeMobileHandoffProperties } from '../src/lib/analytics.js'
 import { resolveMarketingCtaCopyExperiment } from '../src/lib/marketingCtaExperiment.js'
 
@@ -25,7 +26,7 @@ test('covers overseas mobile home and marketing routes, preserving purpose-speci
     assert.equal(resolveMobileHandoff({ ...input, userAgent: android }).platform, 'android')
 })
 
-test('a signed/legacy entry waits for verified install context; webviews retain a gesture fallback', () => {
+test('a signed/legacy entry waits for verified install context and identifies embedded browsers', () => {
     for (const loadStatus of ['loading', 'failed', 'no_options', 'missing_state']) {
         assert.equal(resolveMobileHandoff({ ...input, hasEntry: true, loadStatus }).eligible, false)
     }
@@ -73,12 +74,13 @@ test('session opt-out survives route changes and blocked storage fails safely', 
     assert.equal(readHandoff({ getItem() { throw new Error('denied') } }), null)
 })
 
-test('only a recent explicit continue plus a resolver return can proceed to store', () => {
+test('automatic and explicit app attempts may return directly to the store once', () => {
     const record = { phase: 'continue_pending', journey: 'link:click', at: 100 }
     const args = { record, returnedByResolver: true, journey: 'link:click', now: 200 }
     assert.equal(canContinueToStore(args), true)
+    assert.equal(canContinueToStore({ ...args, record: { ...record, phase: 'attempted' } }), true)
     for (const override of [{ returnedByResolver: false }, { journey: 'direct' }, { now: 99 }, { now: 60_101 },
-        { record: { ...record, phase: 'attempted' } }, { record: { ...record, phase: 'store' } }]) {
+        { record: { ...record, phase: 'returned' } }, { record: { ...record, phase: 'store' } }]) {
         assert.equal(canContinueToStore({ ...args, ...override }), false)
     }
 })
@@ -86,8 +88,76 @@ test('only a recent explicit continue plus a resolver return can proceed to stor
 test('automatic telemetry has its own bounded semantics and does not claim installation', () => {
     assert.deepEqual(sanitizeMobileHandoffProperties('automatic_attempt', { state: 'secret', url: 'https://secret',
         page_path: '/?state=secret', installation_state: 'not_installed', handoff_action: 'store_clicked' }), {
-        page_path: '/', handoff_action: 'automatic_attempt', handoff_policy: 'global_mobile_v1', installation_state: 'unknown',
+        page_path: '/', handoff_action: 'automatic_attempt', handoff_policy: 'global_mobile_v2', installation_state: 'unknown',
     })
+    assert.equal(sanitizeMobileHandoffProperties('automatic_store_attempt', {}).handoff_action, 'automatic_store_attempt')
     assert.equal(sanitizeMobileHandoffProperties('app_opened', {}), null)
     assert.equal(resolveMarketingCtaCopyExperiment({ trafficPurpose: 'production', mobileHandoffEligible: true }).eligible, false)
+})
+
+test('trusted link routing outranks website heuristics, while explicit visitor choice stays authoritative', () => {
+    assert.equal(resolveHandoffMarket({ campaignTargetMarket: 'global', defaultMarket: 'cn' }), 'global')
+    assert.equal(resolveHandoffMarket({ campaignTargetMarket: 'cn', defaultMarket: 'global' }), 'cn')
+    assert.equal(resolveHandoffMarket({ entryChoice: 'cn', campaignTargetMarket: 'global' }), 'cn')
+    assert.equal(resolveHandoffMarket({ recommendedRegion: 'global', defaultMarket: 'cn' }), 'global')
+    assert.equal(resolveHandoffMarket({ campaignTargetMarket: 'unknown', defaultMarket: 'global', utm_source: 'cn' }), 'global')
+    assert.equal(resolveHandoffMarket({ utm_source: 'meta', defaultMarket: 'unknown' }), null)
+})
+
+test('catalog recommendations win within the compatible available official store choices', () => {
+    const product = { channel: 'apple_app_store', platform: 'ios', region: 'global', status: 'available' }
+    const options = [
+        { ...product, optionId: 'first', order: 0 },
+        { ...product, optionId: 'recommended', recommended: true, order: 20 },
+        { ...product, optionId: 'disabled', recommended: true, routeAvailable: false, order: -1 },
+        { ...product, optionId: 'wrong_device', channel: 'google_play', platform: 'android', recommended: true },
+    ]
+    assert.equal(selectGlobalHandoffOption(options, 'ios').optionId, 'recommended')
+    assert.equal(selectGlobalHandoffOption(options.slice(2, 3), 'ios'), null)
+})
+
+test('normal app-to-browser round trip goes straight to store without a confirmation step', () => {
+    const input = { journey: 'direct', canOpenApp: true, canOpenStore: true, now: 200 }
+    assert.equal(resolveHandoffAction(input), 'app')
+    const record = { phase: 'attempted', journey: 'direct', at: 100 }
+    assert.equal(resolveHandoffAction({ ...input, record, returnedByResolver: true }), 'store')
+    assert.equal(resolveHandoffAction({ ...input, requiresBrowser: true }), 'store')
+    assert.equal(resolveHandoffAction({ ...input, canOpenApp: false }), 'store')
+    assert.equal(resolveHandoffAction({ ...input, canOpenApp: false, canOpenStore: false }), 'recover')
+})
+
+test('Back, refresh, interrupted attempts, stale returns and browse opt-out never repeat automatic routing', () => {
+    const input = { journey: 'direct', canOpenApp: true, canOpenStore: true, now: 200 }
+    for (const phase of ['attempted', 'store', 'returned']) {
+        assert.equal(resolveHandoffAction({ ...input, record: { phase, journey: 'direct', at: 100 } }), 'recover')
+    }
+    assert.equal(resolveHandoffAction({ ...input, historyReturn: true }), 'recover')
+    assert.equal(resolveHandoffAction({ ...input, returnedByResolver: true }), 'recover')
+    assert.equal(resolveHandoffAction({ ...input, returnedByResolver: true,
+        record: { phase: 'attempted', journey: 'another-link', at: 100 } }), 'recover')
+    assert.equal(resolveHandoffAction({ ...input, returnedByResolver: true, now: 60_101,
+        record: { phase: 'attempted', journey: 'direct', at: 100 } }), 'recover')
+    assert.equal(resolveHandoffAction({ ...input, record: { phase: 'browse', journey: 'another-link', at: 100 } }), 'browse')
+    assert.equal(resolveHandoffAction({ ...input, record: { phase: 'store', journey: 'another-link', at: 100 } }), 'app')
+})
+
+test('history receipt supports storage-blocked browser returns without overwriting router state', () => {
+    const history = { state: { key: 'router-key', idx: 3, usr: { own: 'value' } },
+        replaceState(value) { this.state = value } }
+    assert.equal(writeHistoryHandoff(history, 'store', 'direct', 100), true)
+    assert.deepEqual(readHistoryHandoff(history.state), { phase: 'store', journey: 'direct', at: 100 })
+    assert.equal(history.state.key, 'router-key')
+    assert.equal(history.state.idx, 3)
+    assert.deepEqual(history.state.usr, { own: 'value' })
+    assert.equal(writeHistoryHandoff({ replaceState() { throw new Error('denied') } }, 'store', 'direct'), false)
+    assert.equal(readHistoryHandoff({ lutaMobileHandoff: { phase: 'store', at: 100 } }), null)
+})
+
+test('history receipt wins when a later session write fails, while browse remains respected', () => {
+    const old = { phase: 'attempted', journey: 'old', at: 10 }
+    const current = { phase: 'store', journey: 'new', at: 20 }
+    assert.equal(latestHandoffRecord(old, current), current)
+    assert.equal(latestHandoffRecord(null, current), current)
+    const browse = { phase: 'browse', journey: 'old', at: 5 }
+    assert.equal(latestHandoffRecord(browse, current), browse)
 })

@@ -559,9 +559,12 @@ const detectLanguage = () => {
         timeZone = undefined;
     }
 
+    let savedLanguage;
+    try { savedLanguage = localStorage.getItem('preferred-language'); } catch { /* Storage is optional. */ }
+
     return resolvePreferredLanguage({
         explicitLanguage: getMarketingLocaleByPath(window.location.pathname)?.languageKey,
-        savedLanguage: localStorage.getItem('preferred-language'),
+        savedLanguage,
         browserLanguages: navigator.languages,
         browserLanguage: navigator.language || navigator.userLanguage,
         timeZone,
@@ -587,7 +590,7 @@ export const LanguageProvider = ({ children }) => {
 
     useEffect(() => {
         // 保存语言设置到localStorage
-        localStorage.setItem('preferred-language', currentLanguage);
+        try { localStorage.setItem('preferred-language', currentLanguage); } catch { /* Keep the page usable without storage. */ }
 
         // 更新页面标题和meta信息
         const trans = translations[currentLanguage];
@@ -616,7 +619,7 @@ export const LanguageProvider = ({ children }) => {
 
     const changeLanguage = useCallback((language) => {
         if (isActiveMarketingLanguage(language)) {
-            localStorage.setItem('preferred-language', language);
+            try { localStorage.setItem('preferred-language', language); } catch { /* Keep the in-memory choice. */ }
             setCurrentLanguage(language);
         }
     }, []);

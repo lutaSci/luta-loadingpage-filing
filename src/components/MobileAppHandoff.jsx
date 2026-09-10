@@ -9,8 +9,9 @@ import { detectIsMainlandChina } from '../lib/deviceDetection.js'
 import { buildControlledOutUrl, buildLegacyControlledOutUrl } from '../lib/installFlow.js'
 import { hasSmartLinkBearer } from '../lib/smartLinkEntry.js'
 import {
-    buildHandoffAppUrl, canContinueToStore, readHandoff, resolveMobileHandoff,
-    selectGlobalHandoffOption, WEBSITE_APP_OPEN_URL, writeHandoff,
+    buildHandoffAppUrl, HANDOFF_FALLBACK_DELAY_MS, readHandoff, readHistoryHandoff,
+    resolveHandoffAction, resolveHandoffMarket, resolveMobileHandoff, latestHandoffRecord,
+    selectGlobalHandoffOption, WEBSITE_APP_OPEN_URL, writeHandoff, writeHistoryHandoff,
 } from '../lib/mobileAppHandoff.js'
 import './MobileAppHandoff.css'
 
@@ -18,23 +19,34 @@ function storage() {
     try { return window.sessionStorage } catch { return null }
 }
 
+function currentRecord() {
+    return latestHandoffRecord(readHandoff(storage()), readHistoryHandoff(window.history.state))
+}
+
 export default function MobileAppHandoff() {
     const location = useLocation()
-    const { language } = useLanguage()
+    const { currentLanguage: language } = useLanguage()
     const { controller, entry, handoffReturned } = useSmartLinkJourney()
-    const [phase, setPhase] = useState(() => readHandoff(storage())?.phase === 'browse' ? 'browse' : 'ready')
+    const [phase, setPhase] = useState(() => currentRecord()?.phase === 'browse' ? 'browse' : 'idle')
     const [copied, setCopied] = useState(false)
-    const dialogRef = useRef(null)
     const startedRef = useRef(false)
+    const leftPageRef = useRef(false)
+    const timerRef = useRef(null)
     const context = controller.installContext
-    const market = entry ? context?.campaignTargetMarket : resolveRouteContext(detectIsMainlandChina()).market
+    const market = resolveHandoffMarket({
+        entryChoice: entry?.choice,
+        campaignTargetMarket: entry ? context?.campaignTargetMarket : null,
+        recommendedRegion: entry ? context?.recommendedRegion : null,
+        defaultMarket: resolveRouteContext(detectIsMainlandChina()).market,
+    })
     const policy = resolveMobileHandoff({
         enabled: config.mobileHandoff.enabled, pathname: location.pathname, market,
         userAgent: navigator.userAgent, hasEntry: Boolean(entry), loadStatus: controller.loadStatus,
     })
     const option = selectGlobalHandoffOption(context?.options, policy.platform)
     const journey = entry ? `${context?.linkId || ''}:${context?.clickId || ''}` : 'direct'
-    const appUrl = entry?.mode === 'v2' ? controller.openAppUrl : WEBSITE_APP_OPEN_URL
+    // Legacy links retain their existing identity on the controlled store route.
+    const appUrl = entry?.mode === 'v2' ? controller.openAppUrl : entry ? null : WEBSITE_APP_OPEN_URL
     const storeUrl = entry ? option && (entry.mode === 'legacy'
         ? buildLegacyControlledOutUrl({ base: config.smartLink.legacyOutBase,
             legacySlug: entry.legacyEntry?.legacySlug, clickId: entry.legacyEntry?.clickId, optionId: option.optionId })
@@ -42,8 +54,7 @@ export default function MobileAppHandoff() {
             state: entry.stateToken, linkId: context?.linkId, optionId: option.optionId }))
         : buildContinueUrl(policy.platform === 'ios' ? 'apple' : 'google', 'mobile_handoff')
             || (policy.platform === 'ios' ? config.downloads.appStoreGlobal : config.downloads.googlePlay)
-    const eligible = policy.eligible && Boolean(storeUrl) && entry?.choice !== 'cn'
-        && (!entry || Boolean(option)) && phase !== 'browse'
+    const eligible = policy.eligible
     const traditional = language === 'zhTW'
     const storeName = policy.platform === 'ios' ? 'App Store' : 'Google Play'
 
@@ -52,83 +63,104 @@ export default function MobileAppHandoff() {
         ...(entry ? { entry_type: 'shortlink', link_id: context?.linkId, click_id: context?.clickId,
             traffic_purpose: context?.trafficPurpose } : {}),
     })
-
+    const clearPending = () => {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+    }
+    const remember = next => {
+        const now = Date.now()
+        const session = writeHandoff(storage(), next, journey, now)
+        const history = writeHistoryHandoff(window.history, next, journey, now)
+        return { session, history }
+    }
+    const recover = () => {
+        clearPending()
+        setPhase('recovery')
+    }
     const browse = () => {
-        writeHandoff(storage(), 'browse', journey)
+        clearPending()
+        remember('browse')
         setPhase('browse')
         report('browse_clicked')
+    }
+    const openStore = (automatic = false) => {
+        clearPending()
+        if (!storeUrl) return recover()
+        const receipt = remember('store')
+        // A history receipt is sufficient for Back/reload when sessionStorage is blocked.
+        // If neither can be written, only an explicit user action may leave this page.
+        if (automatic && !receipt.session && !receipt.history) return recover()
+        setPhase('routing')
+        report(automatic ? 'automatic_store_attempt' : 'store_clicked')
+        timerRef.current = window.setTimeout(recover, HANDOFF_FALLBACK_DELAY_MS)
+        try { window.location.assign(storeUrl) } catch { recover() }
+    }
+    const openApp = (automatic = false) => {
+        clearPending()
+        leftPageRef.current = false
+        const target = appUrl && buildHandoffAppUrl(appUrl, automatic ? 'automatic' : 'continue')
+        // The App -> API -> website round trip needs cross-document storage.
+        // Without it, go directly to the known store, guarded by browser history.
+        if (!target || !remember(automatic ? 'attempted' : 'continue_pending').session) {
+            openStore(automatic)
+            return
+        }
+        setPhase('routing')
+        report(automatic ? 'automatic_attempt' : 'retry_clicked')
+        timerRef.current = window.setTimeout(() => {
+            // This is an automatic routing policy, not an installed-app detector.
+            // A hidden/unloaded page cancels this timer; returning never restarts it.
+            if (document.visibilityState === 'visible' && !leftPageRef.current) openStore(true)
+        }, HANDOFF_FALLBACK_DELAY_MS)
+        try { window.location.assign(target) } catch { openStore(true) }
     }
 
     useEffect(() => {
         if (!eligible || hasSmartLinkBearer(location.search) || startedRef.current) return undefined
         const timer = window.setTimeout(() => {
             startedRef.current = true
-            const record = readHandoff(storage())
-            if (canContinueToStore({ record, returnedByResolver: handoffReturned, journey }) && storeUrl) {
-                writeHandoff(storage(), 'store', journey)
-                report('browser_fallback')
-                window.location.assign(storeUrl)
-                return
-            }
-            // No persistent storage means no safe way to bound a round trip.
-            // Keep the one-click fallback instead of creating a redirect loop.
-            if (record || handoffReturned || policy.requiresBrowser || entry?.mode === 'legacy') return
-            const target = buildHandoffAppUrl(appUrl)
-            if (!target || !writeHandoff(storage(), 'attempted', journey)) return
-            report('automatic_attempt')
-            setPhase('opening')
-            window.location.assign(target)
+            const action = resolveHandoffAction({
+                record: currentRecord(), journey, returnedByResolver: handoffReturned,
+                historyReturn: performance.getEntriesByType('navigation')[0]?.type === 'back_forward',
+                requiresBrowser: policy.requiresBrowser,
+                canOpenApp: Boolean(appUrl && buildHandoffAppUrl(appUrl)), canOpenStore: Boolean(storeUrl),
+            })
+            if (action === 'app') openApp(true)
+            else if (action === 'store') openStore(true)
+            else if (action === 'browse') setPhase('browse')
+            else { remember('returned'); recover() }
         }, 0)
-        return () => window.clearTimeout(timer)
-        // The effect consumes the current routing snapshot once per document.
+        return () => { window.clearTimeout(timer); clearPending() }
+        // Consume each document's resolved routing snapshot after bearer cleanup.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [eligible, location.search, journey, storeUrl, appUrl, policy.requiresBrowser, entry?.mode, handoffReturned])
+    }, [eligible, location.search, journey, storeUrl, appUrl, policy.requiresBrowser, handoffReturned])
 
     useEffect(() => {
         if (!eligible) return undefined
-        const dialog = dialogRef.current
-        if (!dialog.open) dialog.showModal()
-        return () => dialog.close()
-    }, [eligible])
-
-    useEffect(() => {
+        const hidden = () => { leftPageRef.current = true; clearPending() }
         const returned = () => {
-            if (document.visibilityState !== 'visible' || !startedRef.current) return
-            if (readHandoff(storage())?.phase === 'browse') return
-            writeHandoff(storage(), 'attempted', journey)
-            setPhase('ready')
+            if (!startedRef.current || currentRecord()?.phase === 'browse') return
+            remember('returned')
+            recover()
         }
-        window.addEventListener('pageshow', returned)
-        document.addEventListener('visibilitychange', returned)
-        // The timeout only restores controls. It never routes to a store.
-        const timer = phase === 'opening' ? window.setTimeout(() => setPhase('ready'), 1800) : null
+        const visibility = () => {
+            if (document.visibilityState === 'hidden') hidden()
+            else if (leftPageRef.current) returned()
+        }
+        const pageshow = event => { if (event.persisted) returned() }
+        window.addEventListener('pagehide', hidden)
+        window.addEventListener('pageshow', pageshow)
+        document.addEventListener('visibilitychange', visibility)
         return () => {
-            window.removeEventListener('pageshow', returned)
-            document.removeEventListener('visibilitychange', returned)
-            window.clearTimeout(timer)
+            clearPending()
+            window.removeEventListener('pagehide', hidden)
+            window.removeEventListener('pageshow', pageshow)
+            document.removeEventListener('visibilitychange', visibility)
         }
-    }, [phase, journey])
+        // Event handlers operate on the current document's journey, not UI phases.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [eligible, journey])
 
-    if (!eligible) return null
-
-    const continueToApp = () => {
-        const target = buildHandoffAppUrl(appUrl, 'continue')
-        // Without a usable app path or a durable one-shot receipt, Continue
-        // uses the explicit store fallback instead of repeating a round trip.
-        if (!target || !writeHandoff(storage(), 'continue_pending', journey)) {
-            openStore()
-            return
-        }
-        report('continue_clicked')
-        setPhase('opening')
-        window.location.assign(target)
-    }
-    const openStore = () => {
-        if (!storeUrl) return
-        writeHandoff(storage(), 'store', journey)
-        report('store_clicked')
-        window.location.assign(storeUrl)
-    }
     const copyLink = async () => {
         if (entry) return controller.copyInstallLink()
         try {
@@ -137,26 +169,21 @@ export default function MobileAppHandoff() {
         } catch { setCopied(false) }
     }
 
-    return <dialog ref={dialogRef} className="mobile-handoff" aria-labelledby="mobile-handoff-title"
-        onCancel={event => { event.preventDefault(); browse() }}>
-        <div className="mobile-handoff-brand">汝塔</div>
-        <h2 id="mobile-handoff-title">{phase === 'opening'
-            ? (traditional ? '正在開啟汝塔…' : '正在打开汝塔…')
-            : (traditional ? '在 App 中開始閱讀' : '在 App 中开始阅读')}</h2>
-        <p aria-live="polite">{policy.requiresBrowser
-            ? (traditional ? '請在 Safari 或 Chrome 中開啟此頁，繼續前往汝塔。' : '请在 Safari 或 Chrome 中打开此页，继续前往汝塔。')
-            : (traditional ? `優先開啟汝塔；未能開啟時，前往 ${storeName} 下載。` : `优先打开汝塔；未能打开时，前往 ${storeName} 下载。`)}</p>
-        <button className="mobile-handoff-primary" onClick={continueToApp}>
-            {traditional ? '繼續前往汝塔' : '继续前往汝塔'}</button>
-        <button onClick={openStore}>{traditional ? `前往 ${storeName} 下載` : `前往 ${storeName} 下载`}</button>
-        {policy.requiresBrowser && <button onClick={copyLink}>
-            {copied ? (traditional ? '已複製連結' : '已复制链接') : (traditional ? '複製連結' : '复制链接')}</button>}
-        {policy.requiresBrowser && controller.announcement && <p role="status">{controller.announcement}</p>}
-        <button className="mobile-handoff-browse" onClick={browse}>{traditional ? '繼續瀏覽官網' : '继续浏览官网'}</button>
-        <nav aria-label={traditional ? '政策與協助' : '政策与帮助'}>
-            <a href="/privacy">{traditional ? '隱私政策' : '隐私政策'}</a>
-            <a href="/terms">{traditional ? '用戶協議' : '用户协议'}</a>
-            <a href="/contact">{traditional ? '聯絡我們' : '联系我们'}</a>
-        </nav>
-    </dialog>
+    // No modal or confirmation step on the successful App/store path.
+    // A normal-flow section appears only after return, interruption or failure.
+    if (!eligible || phase !== 'recovery') return null
+    return <section className="mobile-handoff-recovery" aria-labelledby="mobile-handoff-title">
+        <h2 id="mobile-handoff-title">{traditional ? '繼續瀏覽汝塔' : '继续浏览汝塔'}</h2>
+        <p role="status">{policy.requiresBrowser
+            ? (traditional ? '如果此瀏覽器無法開啟商店，請複製連結，在 Safari 或 Chrome 中開啟。' : '如果此浏览器无法打开商店，请复制链接，在 Safari 或 Chrome 中打开。')
+            : (traditional ? '您可以繼續瀏覽官網，需要時再嘗試開啟 App 或商店。' : '您可以继续浏览官网，需要时再尝试打开 App 或商店。')}</p>
+        <div className="mobile-handoff-actions">
+            {appUrl && <button onClick={() => openApp(false)}>{traditional ? '重試開啟 App' : '重试打开 App'}</button>}
+            {storeUrl && <button onClick={() => openStore(false)}>{traditional ? `前往 ${storeName}` : `前往 ${storeName}`}</button>}
+            {policy.requiresBrowser && <button onClick={copyLink}>
+                {copied ? (traditional ? '已複製連結' : '已复制链接') : (traditional ? '複製連結' : '复制链接')}</button>}
+            <button onClick={browse}>{traditional ? '收起提示，繼續瀏覽' : '收起提示，继续浏览'}</button>
+        </div>
+        {controller.announcement && <p role="status">{controller.announcement}</p>}
+    </section>
 }

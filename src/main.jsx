@@ -20,6 +20,7 @@ createRoot(document.getElementById('root')).render(
     <LanguageProvider>
       <Router>
         <SmartLinkJourneyProvider>
+          <MobileAppHandoff />
           <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-slate-700" role="status">正在准备页面…</div>}>
             <Routes>
               <Route path="/" element={<RootHomepage />} />
@@ -34,7 +35,6 @@ createRoot(document.getElementById('root')).render(
               <Route path="/global/ko" element={<RetiredMarketingLocaleRedirect />} />
             </Routes>
             <MeasurementConsentBanner />
-            <MobileAppHandoff />
           </Suspense>
         </SmartLinkJourneyProvider>
       </Router>
