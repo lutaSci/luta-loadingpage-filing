@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { legacyHandoffReturn, latestHandoffRecord, buildHandoffAppUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
+import { legacyHandoffReturn, latestHandoffRecord, buildHandoffAppUrl, buildStoreRecoveryUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
     readHistoryHandoff, resolveHandoffAction, resolveHandoffMarket,
     resolveMobileHandoff, selectGlobalHandoffOption, writeHandoff, writeHistoryHandoff } from '../src/lib/mobileAppHandoff.js'
 import { sanitizeMobileHandoffProperties } from '../src/lib/analytics.js'
@@ -172,4 +172,24 @@ test('old API returns require a fresh matching automatic journey and forward nav
     assert.equal(legacyHandoffReturn(signed),'signed')
     assert.equal(legacyHandoffReturn({...signed,search:'?state=a&state=b'}),null)
     assert.equal(resolveHandoffAction({record:signed.record,journey:'other:click',returnedByResolver:true,canOpenStore:true,now:200}),'recover')
+})
+
+
+test('explicit Chrome iOS store recovery opens the native store and keeps controlled links intact', () => {
+    const chromeIOS = `${ios} CriOS/152.0.7977.64`
+    assert.equal(buildStoreRecoveryUrl('https://apps.apple.com/app/id6778084383', chromeIOS),
+        'itms-apps://itunes.apple.com/app/id6778084383')
+    assert.equal(buildStoreRecoveryUrl('https://apps.apple.com/us/app/luta/id6778084383?mt=8', chromeIOS),
+        'itms-apps://itunes.apple.com/us/app/luta/id6778084383?mt=8')
+    for (const url of ['https://link.lutaai.com/l/out?state=opaque',
+        'https://link.lutaai.com/r/example/continue?store=apple',
+        'https://apps.apple.com.evil.invalid/app/id6778084383',
+        'https://user@apps.apple.com/app/id6778084383',
+        'https://apps.apple.com/account', null]) {
+        assert.equal(buildStoreRecoveryUrl(url, chromeIOS), url)
+    }
+    for (const ua of [ios, android]) {
+        assert.equal(buildStoreRecoveryUrl('https://apps.apple.com/app/id6778084383', ua),
+            'https://apps.apple.com/app/id6778084383')
+    }
 })

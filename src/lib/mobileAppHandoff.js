@@ -73,6 +73,18 @@ export function selectGlobalHandoffOption(options = [], platform) {
         && isInstallOptionActionable(option, platform)) || null
 }
 
+// Explicit recovery may leave Chrome's embedded StoreKit view. Keep controlled
+// Smart Link URLs intact: their server-owned attribution must not be bypassed.
+export function buildStoreRecoveryUrl(storeUrl, userAgent) {
+    if (!/CriOS\//i.test(userAgent || '')) return storeUrl
+    try {
+        const url = new URL(storeUrl)
+        if (url.origin !== 'https://apps.apple.com' || url.username || url.password
+            || !/^\/(?:[a-z]{2}\/)?app\/(?:[^/]+\/)?id[0-9]+\/?$/.test(url.pathname)) return storeUrl
+        return `itms-apps://itunes.apple.com${url.pathname}${url.search}${url.hash}`
+    } catch { return storeUrl }
+}
+
 export function buildHandoffAppUrl(appUrl = WEBSITE_APP_OPEN_URL, trigger = 'automatic') {
     try {
         const url = new URL(appUrl)
