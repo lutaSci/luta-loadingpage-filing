@@ -95,7 +95,7 @@ export default function MobileAppHandoff() {
         timerRef.current = window.setTimeout(recover, HANDOFF_FALLBACK_DELAY_MS)
         try { window.location.assign(storeUrl) } catch { recover() }
     }
-    const openApp = (automatic = false) => {
+    const openApp = (automatic = false, nativeNavigation = false) => {
         clearPending()
         leftPageRef.current = false
         const target = appUrl && buildHandoffAppUrl(appUrl, automatic ? 'automatic' : 'continue')
@@ -103,7 +103,7 @@ export default function MobileAppHandoff() {
         // Without it, go directly to the known store, guarded by browser history.
         if (!target || !remember(automatic ? 'attempted' : 'continue_pending').session) {
             openStore(automatic)
-            return
+            return false
         }
         setPhase('routing')
         report(automatic ? 'automatic_attempt' : 'retry_clicked')
@@ -112,7 +112,12 @@ export default function MobileAppHandoff() {
             // A hidden/unloaded page cancels this timer; returning never restarts it.
             if (document.visibilityState === 'visible' && !leftPageRef.current) openStore(true)
         }, HANDOFF_FALLBACK_DELAY_MS)
-        try { window.location.assign(target) } catch { openStore(true) }
+        // Explicit retries keep the browser's native link activation instead
+        // of replacing that user gesture with a script navigation.
+        if (!nativeNavigation) {
+            try { window.location.assign(target) } catch { openStore(true) }
+        }
+        return true
     }
 
     useEffect(() => {
@@ -178,7 +183,10 @@ export default function MobileAppHandoff() {
             ? (traditional ? '如果此瀏覽器無法開啟商店，請複製連結，在 Safari 或 Chrome 中開啟。' : '如果此浏览器无法打开商店，请复制链接，在 Safari 或 Chrome 中打开。')
             : (traditional ? '您可以繼續瀏覽官網，需要時再嘗試開啟 App 或商店。' : '您可以继续浏览官网，需要时再尝试打开 App 或商店。')}</p>
         <div className="mobile-handoff-actions">
-            {appUrl && <button onClick={() => openApp(false)}>{traditional ? '重試開啟 App' : '重试打开 App'}</button>}
+            {appUrl && <a href={buildHandoffAppUrl(appUrl, 'continue')} onClick={event => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                if (!openApp(false, true)) event.preventDefault()
+            }}>{traditional ? '重試開啟 App' : '重试打开 App'}</a>}
             {storeUrl && <button onClick={() => openStore(false)}>{traditional ? `前往 ${storeName}` : `前往 ${storeName}`}</button>}
             {policy.requiresBrowser && <button onClick={copyLink}>
                 {copied ? (traditional ? '已複製連結' : '已复制链接') : (traditional ? '複製連結' : '复制链接')}</button>}

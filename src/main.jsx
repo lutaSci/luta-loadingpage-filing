@@ -20,8 +20,10 @@ createRoot(document.getElementById('root')).render(
     <LanguageProvider>
       <Router>
         <SmartLinkJourneyProvider>
-          <MobileAppHandoff />
           <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 px-6 text-center text-slate-700" role="status">正在准备页面…</div>}>
+            {/* Commit the destination page before starting a native handoff so
+                returning from a store does not restore an unloaded route. */}
+            <MobileAppHandoff />
             <Routes>
               <Route path="/" element={<RootHomepage />} />
               <Route path="/privacy" element={<Privacy />} />
