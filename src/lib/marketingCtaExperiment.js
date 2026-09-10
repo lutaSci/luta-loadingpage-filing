@@ -45,10 +45,11 @@ function chooseVariant(randomValue) {
 
 export function resolveMarketingCtaCopyExperiment({
     trafficPurpose,
+    mobileHandoffEligible = false,
     storage = defaultStorage(),
     random = Math.random,
 } = {}) {
-    if (trafficPurpose !== 'production') {
+    if (trafficPurpose !== 'production' || mobileHandoffEligible) {
         return Object.freeze({
             eligible: false,
             experimentKey: null,

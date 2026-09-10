@@ -5,6 +5,7 @@ import './index.css'
 import { LanguageProvider } from './contexts/LanguageContext.jsx'
 import { SmartLinkJourneyProvider } from './contexts/SmartLinkJourneyContext.jsx'
 import MeasurementConsentBanner from './components/MeasurementConsentBanner.jsx'
+import MobileAppHandoff from './components/MobileAppHandoff.jsx'
 
 const RootHomepage = lazy(() => import('./pages/RootHomepage.jsx'))
 const Privacy = lazy(() => import('./pages/Privacy.jsx'))
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/global/ko" element={<RetiredMarketingLocaleRedirect />} />
             </Routes>
             <MeasurementConsentBanner />
+            <MobileAppHandoff />
           </Suspense>
         </SmartLinkJourneyProvider>
       </Router>

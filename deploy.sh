@@ -28,6 +28,14 @@ if [[ "$VITE_SMART_LINK_HOMEPAGE_SURFACE" != "true" \
 fi
 export VITE_SMART_LINK_HOMEPAGE_SURFACE
 
+# Deliberately opt-in on every release until the device acceptance gate closes.
+VITE_GLOBAL_MOBILE_HANDOFF="${VITE_GLOBAL_MOBILE_HANDOFF:-false}"
+if [[ "$VITE_GLOBAL_MOBILE_HANDOFF" != "true" && "$VITE_GLOBAL_MOBILE_HANDOFF" != "false" ]]; then
+  echo "[error] VITE_GLOBAL_MOBILE_HANDOFF 只能是 true 或 false"
+  exit 1
+fi
+export VITE_GLOBAL_MOBILE_HANDOFF
+
 if [[ -z "${VITE_META_PIXEL_ENABLED+x}" && -f "$meta_pixel_state_file" ]]; then
   VITE_META_PIXEL_ENABLED="$(awk -F= '$1 == "enabled" {print $2}' "$meta_pixel_state_file" | tail -1 | tr -d '[:space:]')"
 fi
@@ -53,6 +61,7 @@ fi
 
 echo "[info] release commit：$(git rev-parse HEAD)"
 echo "[info] Smart Link 官网承接：${VITE_SMART_LINK_HOMEPAGE_SURFACE}"
+echo "[info] 海外手机官网自动承接：${VITE_GLOBAL_MOBILE_HANDOFF}"
 echo "[info] Meta Pixel：${VITE_META_PIXEL_ENABLED}（ID 仅校验格式，不打印）"
 
 if ! docker compose version >/dev/null 2>&1; then
