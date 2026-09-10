@@ -114,3 +114,19 @@ export function resolveHandoffAction({ record, journey, returnedByResolver, hist
     if (canOpenApp && !requiresBrowser) return 'app'
     return canOpenStore ? 'store' : 'recover'
 }
+
+// Compatibility with the API before web_handoff returns were introduced.
+// This is only a return candidate; resolveHandoffAction still checks the resolved journey.
+export function legacyHandoffReturn({ search, pathname, record, navigationType, now = Date.now() }) {
+    if (navigationType !== 'navigate' || !canContinueToStore({
+        record, returnedByResolver: true, journey: record?.journey, now,
+    })) return null
+    const params = new URLSearchParams(search)
+    if (params.has('app_handoff') || params.has('legacy_slug') || params.has('click_id')) return null
+    if (params.getAll('state').length === 1 && params.get('state')
+        && !params.has('smart_link_status') && record.journey !== 'direct') return 'signed'
+    if (pathname === '/' && record.journey === 'direct' && !params.has('state')
+        && params.getAll('smart_link_status').length === 1
+        && params.get('smart_link_status') === 'invalid_request') return 'neutral'
+    return null
+}

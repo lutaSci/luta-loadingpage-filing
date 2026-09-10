@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { latestHandoffRecord, buildHandoffAppUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
+import { legacyHandoffReturn, latestHandoffRecord, buildHandoffAppUrl, canContinueToStore, MOBILE_HANDOFF_KEY, readHandoff,
     readHistoryHandoff, resolveHandoffAction, resolveHandoffMarket,
     resolveMobileHandoff, selectGlobalHandoffOption, writeHandoff, writeHistoryHandoff } from '../src/lib/mobileAppHandoff.js'
 import { sanitizeMobileHandoffProperties } from '../src/lib/analytics.js'
@@ -160,4 +160,16 @@ test('history receipt wins when a later session write fails, while browse remain
     assert.equal(latestHandoffRecord(null, current), current)
     const browse = { phase: 'browse', journey: 'old', at: 5 }
     assert.equal(latestHandoffRecord(browse, current), browse)
+})
+
+test('old API returns require a fresh matching automatic journey and forward navigation', () => {
+    const neutral = { search: '?smart_link_status=invalid_request', pathname: '/', record: {phase:'attempted',journey:'direct',at:100}, navigationType:'navigate', now:200 }
+    assert.equal(legacyHandoffReturn(neutral), 'neutral')
+    for (const patch of [{record:null},{navigationType:'reload'},{navigationType:'back_forward'},{now:70000},{pathname:'/privacy'},{search:'?smart_link_status=link_expired'},{search:'?smart_link_status=invalid_request&state=bad'},{record:{phase:'store',journey:'direct',at:100}}]) {
+        assert.equal(legacyHandoffReturn({...neutral,...patch}), null)
+    }
+    const signed={...neutral,search:'?state=signed',record:{phase:'attempted',journey:'link:click',at:100}}
+    assert.equal(legacyHandoffReturn(signed),'signed')
+    assert.equal(legacyHandoffReturn({...signed,search:'?state=a&state=b'}),null)
+    assert.equal(resolveHandoffAction({record:signed.record,journey:'other:click',returnedByResolver:true,canOpenStore:true,now:200}),'recover')
 })

@@ -10,9 +10,9 @@ const RECOVERY_STATUS_GROUPS = Object.freeze({
     ]),
 })
 
-export function resolveSmartLinkRecovery(search = '') {
+export function resolveSmartLinkRecovery(search = '', { neutralHandoffReturn = false } = {}) {
     const rawStatus = new URLSearchParams(search).get('smart_link_status')?.trim()
-    if (!rawStatus) return null
+    if (!rawStatus || (neutralHandoffReturn && rawStatus === 'invalid_request')) return null
 
     for (const [group, statuses] of Object.entries(RECOVERY_STATUS_GROUPS)) {
         if (statuses.has(rawStatus)) return { group }
