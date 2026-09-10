@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { config } from '../config/index.js'
 import { useInstallJourneyController } from '../hooks/useInstallJourneyController.js'
 import { trackWebsitePageView } from '../lib/analytics.js'
+import { legacyHandoffReturn, readHandoff } from '../lib/mobileAppHandoff.js'
 import { isMarketingPath } from '../lib/marketingLocales.js'
 import {
     captureSmartLinkEntry,
@@ -85,10 +86,20 @@ function WebsiteAnalyticsObserver({ controller, entry, usesHomepageSurface }) {
 export function SmartLinkJourneyProvider({ children }) {
     const location = useLocation()
     const navigate = useNavigate()
+    const [legacyReturn] = useState(() => {
+        if (!config.mobileHandoff.enabled) return null
+        try {
+            return legacyHandoffReturn({
+                search: window.location.search, pathname: window.location.pathname,
+                record: readHandoff(window.sessionStorage),
+                navigationType: performance.getEntriesByType('navigation')[0]?.type,
+            })
+        } catch { return null }
+    })
     // Preserve the bounded fallback signal before URL cleanup or a lazy page
     // can suspend. Never retain the raw inbound URL in the handoff component.
     const [handoffReturned, setHandoffReturned] = useState(() => (
-        new URLSearchParams(window.location.search).get('app_handoff') === 'returned'
+        new URLSearchParams(window.location.search).get('app_handoff') === 'returned' || Boolean(legacyReturn)
     ))
     useEffect(() => {
         if (new URLSearchParams(location.search).get('app_handoff') === 'returned') {
@@ -124,8 +135,17 @@ export function SmartLinkJourneyProvider({ children }) {
             homepageSurfaceEnabled,
         })
         if (safeLocation) navigate(safeLocation, { replace: true })
+        else if (legacyReturn === 'neutral') {
+            const params = new URLSearchParams(location.search)
+            if (params.get('smart_link_status') === 'invalid_request') {
+                params.delete('smart_link_status')
+                const search = params.toString()
+                navigate(`${location.pathname}${search ? `?${search}` : ''}${location.hash}`, { replace: true })
+            }
+        }
     }, [
         homepageSurfaceEnabled,
+        legacyReturn,
         location.hash,
         location.pathname,
         location.search,
@@ -158,6 +178,7 @@ export function SmartLinkJourneyProvider({ children }) {
         exitJourney,
         homepageSurfaceEnabled,
         handoffReturned,
+        neutralHandoffReturn: legacyReturn === 'neutral',
         isSmartLinkEntry: Boolean(entry),
         usesHomepageSurface,
     }), [
@@ -166,6 +187,7 @@ export function SmartLinkJourneyProvider({ children }) {
         exitJourney,
         homepageSurfaceEnabled,
         handoffReturned,
+        legacyReturn,
         usesHomepageSurface,
     ])
 

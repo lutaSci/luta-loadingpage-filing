@@ -33,3 +33,9 @@ test('removes only the recovery status when the notice is dismissed', () => {
         '/?utm_source=qr#install',
     )
 })
+
+test('only a verified neutral handoff suppresses the old neutral-path invalid notice', () => {
+    assert.equal(resolveSmartLinkRecovery('?smart_link_status=invalid_request',{neutralHandoffReturn:true}),null)
+    assert.deepEqual(resolveSmartLinkRecovery('?smart_link_status=invalid_request'),{group:'unavailable'})
+    assert.deepEqual(resolveSmartLinkRecovery('?smart_link_status=link_expired',{neutralHandoffReturn:true}),{group:'unavailable'})
+})

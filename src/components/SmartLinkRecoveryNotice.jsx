@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { ArrowDown, CircleX, Info } from 'lucide-react'
 
+import { useSmartLinkJourney } from '../contexts/SmartLinkJourneyContext.jsx'
 import { useLanguage } from '../contexts/LanguageContext'
 import {
     resolveSmartLinkRecovery,
@@ -21,9 +22,10 @@ const GROUP_COPY_FIELDS = Object.freeze({
 
 export default function SmartLinkRecoveryNotice({ copy }) {
     const { t } = useLanguage()
+    const { neutralHandoffReturn } = useSmartLinkJourney()
     const recovery = useMemo(
-        () => resolveSmartLinkRecovery(window.location.search),
-        [],
+        () => resolveSmartLinkRecovery(window.location.search, { neutralHandoffReturn }),
+        [neutralHandoffReturn],
     )
     const [visible, setVisible] = useState(Boolean(recovery))
 
