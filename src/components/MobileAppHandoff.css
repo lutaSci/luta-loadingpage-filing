@@ -2,5 +2,5 @@
 .mobile-handoff-recovery h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.4; }
 .mobile-handoff-recovery p { margin: 0 0 12px; color: #516358; line-height: 1.6; }
 .mobile-handoff-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.mobile-handoff-actions button { min-height: 44px; padding: 10px 14px; border: 1px solid #c3d0c6; border-radius: 10px; font: inherit; cursor: pointer; background: white; color: #183b2c; }
+.mobile-handoff-actions button, .mobile-handoff-actions a { box-sizing: border-box; display: inline-flex; align-items: center; min-height: 44px; padding: 10px 14px; border: 1px solid #c3d0c6; border-radius: 10px; font: inherit; cursor: pointer; background: white; color: #183b2c; text-decoration: none; }
 .mobile-handoff-recovery :focus-visible { outline: 3px solid #689d35; outline-offset: 3px; }
