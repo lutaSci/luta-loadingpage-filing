@@ -9,7 +9,7 @@ import { detectIsMainlandChina } from '../lib/deviceDetection.js'
 import { buildControlledOutUrl, buildLegacyControlledOutUrl } from '../lib/installFlow.js'
 import { hasSmartLinkBearer } from '../lib/smartLinkEntry.js'
 import {
-    buildHandoffAppUrl, HANDOFF_FALLBACK_DELAY_MS, readHandoff, readHistoryHandoff,
+    buildHandoffAppUrl, buildStoreRecoveryUrl, HANDOFF_FALLBACK_DELAY_MS, readHandoff, readHistoryHandoff,
     resolveHandoffAction, resolveHandoffMarket, resolveMobileHandoff, latestHandoffRecord,
     selectGlobalHandoffOption, WEBSITE_APP_OPEN_URL, writeHandoff, writeHistoryHandoff,
 } from '../lib/mobileAppHandoff.js'
@@ -54,6 +54,7 @@ export default function MobileAppHandoff() {
             state: entry.stateToken, linkId: context?.linkId, optionId: option.optionId }))
         : buildContinueUrl(policy.platform === 'ios' ? 'apple' : 'google', 'mobile_handoff')
             || (policy.platform === 'ios' ? config.downloads.appStoreGlobal : config.downloads.googlePlay)
+    const recoveryStoreUrl = buildStoreRecoveryUrl(storeUrl, navigator.userAgent)
     const eligible = policy.eligible
     const traditional = language === 'zhTW'
     const storeName = policy.platform === 'ios' ? 'App Store' : 'Google Play'
@@ -83,9 +84,10 @@ export default function MobileAppHandoff() {
         setPhase('browse')
         report('browse_clicked')
     }
-    const openStore = (automatic = false) => {
+    const openStore = (automatic = false, nativeNavigation = false) => {
         clearPending()
-        if (!storeUrl) return recover()
+        const target = automatic ? storeUrl : recoveryStoreUrl
+        if (!target) { recover(); return false }
         const receipt = remember('store')
         // A history receipt is sufficient for Back/reload when sessionStorage is blocked.
         // If neither can be written, only an explicit user action may leave this page.
@@ -93,7 +95,10 @@ export default function MobileAppHandoff() {
         setPhase('routing')
         report(automatic ? 'automatic_store_attempt' : 'store_clicked')
         timerRef.current = window.setTimeout(recover, HANDOFF_FALLBACK_DELAY_MS)
-        try { window.location.assign(storeUrl) } catch { recover() }
+        if (!nativeNavigation) {
+            try { window.location.assign(target) } catch { recover() }
+        }
+        return true
     }
     const openApp = (automatic = false, nativeNavigation = false) => {
         clearPending()
@@ -187,7 +192,10 @@ export default function MobileAppHandoff() {
                 if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
                 if (!openApp(false, true)) event.preventDefault()
             }}>{traditional ? '重試開啟 App' : '重试打开 App'}</a>}
-            {storeUrl && <button onClick={() => openStore(false)}>{traditional ? `前往 ${storeName}` : `前往 ${storeName}`}</button>}
+            {storeUrl && <a href={recoveryStoreUrl} onClick={event => {
+                if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+                if (!openStore(false, true)) event.preventDefault()
+            }}>{traditional ? `前往 ${storeName}` : `前往 ${storeName}`}</a>}
             {policy.requiresBrowser && <button onClick={copyLink}>
                 {copied ? (traditional ? '已複製連結' : '已复制链接') : (traditional ? '複製連結' : '复制链接')}</button>}
             <button onClick={browse}>{traditional ? '收起提示，繼續瀏覽' : '收起提示，继续浏览'}</button>
