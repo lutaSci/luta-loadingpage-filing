@@ -541,7 +541,7 @@ function ensureMeasurementConsentListener() {
 export const initializeAnalytics = () => {
     if (typeof window === 'undefined' || hasAnalyticsBearer(window)) return Promise.resolve(null)
     const isLocal = isLocalHostname(window.location.hostname)
-    if (!config.analytics.posthogKey || (isLocal && !config.analytics.captureDevelopment)) {
+    if (!config.analytics.posthogEnabled || !config.analytics.posthogKey || (isLocal && !config.analytics.captureDevelopment)) {
         return Promise.resolve(null)
     }
 

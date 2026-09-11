@@ -1,3 +1,5 @@
+import { config } from '../config/index.js'
+
 const AVAILABLE_STATUSES = new Set(['available', 'active', 'ready', 'live'])
 const UNVERIFIED_STATUSES = new Set(['unverified', 'stale', 'pending_verification'])
 
@@ -453,7 +455,8 @@ export function buildControlledOutUrl({ base, state, optionId, linkId }) {
 }
 
 /** Legacy handoffs remain web-only and carry opaque identity only. */
-export function buildLegacyControlledOutUrl({ base, legacySlug, clickId, optionId }) {
+export function buildLegacyControlledOutUrl({ base, legacySlug, clickId, optionId,
+    trustedOrigin = config.attribution.continueBase }) {
     const normalizedLegacySlug = normalizeLegacySlug(legacySlug)
     const normalizedClickId = normalizeLegacyClickId(clickId)
     const normalizedOptionId = normalizeOpaqueId(optionId)
@@ -461,7 +464,7 @@ export function buildLegacyControlledOutUrl({ base, legacySlug, clickId, optionI
 
     try {
         const url = new URL(base)
-        if (url.protocol !== 'https:' || url.hostname !== 'go.lutaai.com') return null
+        if (url.protocol !== 'https:' || url.origin !== trustedOrigin || url.username || url.password) return null
         url.search = ''
         url.hash = ''
         const basePath = url.pathname.replace(/\/+$/, '')
