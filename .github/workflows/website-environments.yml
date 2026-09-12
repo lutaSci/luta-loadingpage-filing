@@ -1,0 +1,47 @@
+name: Website environments
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'ops/qa/**'
+      - 'dockerfile'
+      - 'docker-compose.qa.yml'
+      - 'vite.config.js'
+      - 'package*.json'
+      - '.github/workflows/website-environments.yml'
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run test:attribution
+      - run: npm run build
+      - name: Build production image with unchanged defaults (no publish)
+        run: docker build -f dockerfile -t luta-website-production:ci .
+      - name: Build isolated QA image (no publish)
+        env:
+          QA_WEBSITE_VERSION: ci
+          QA_NETWORK: unused-ci-network
+        run: docker compose -f docker-compose.qa.yml build website
+      - name: Smoke the QA image locally (no external QA requests)
+        run: |
+          docker run -d --name qa-website-smoke -p 127.0.0.1:18080:80 luta-website-qa:ci
+          trap 'docker logs qa-website-smoke; docker rm -f qa-website-smoke' EXIT
+          # Published port may reset connections before Nginx has started.
+          # Retry only this read-only readiness GET, with a bounded deadline.
+          curl --fail --max-time 3 --retry 10 --retry-all-errors --retry-delay 1 http://127.0.0.1:18080/healthz
+          curl --fail -sS -D /tmp/qa-headers http://127.0.0.1:18080/install -o /tmp/qa-install
+          grep -Fi 'X-Robots-Tag: noindex, nofollow' /tmp/qa-headers
+          grep -F "connect-src 'self' https://qa-api.lutaai.com" /tmp/qa-headers
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/api/v1/admin/test)" = 404
+          test "$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:18080/share/tabao/test)" = 404

@@ -1,0 +1,24 @@
+# Standalone file, not an override of the production compose.
+name: luta-website-qa
+services:
+  website:
+    image: luta-website-qa:${QA_WEBSITE_VERSION:?Set an immutable reviewed commit}
+    build:
+      context: .
+      dockerfile: dockerfile
+      args:
+        VITE_DEPLOYMENT_ENV: qa
+        VITE_LUTA_API_BASE: https://qa-api.lutaai.com
+        VITE_ATTRIBUTION_CONTINUE_BASE: https://qa-go.lutaai.com
+        VITE_POSTHOG_ENABLED: 'false'
+        VITE_SMART_LINK_HOMEPAGE_SURFACE: 'false'
+        VITE_GLOBAL_MOBILE_HANDOFF: 'false'
+        VITE_META_PIXEL_ENABLED: 'false'
+    restart: unless-stopped
+    networks:
+      qa:
+        aliases: [qa-website]
+networks:
+  qa:
+    external: true
+    name: ${QA_NETWORK:?Set the existing QA API network}

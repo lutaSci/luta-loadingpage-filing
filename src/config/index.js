@@ -1,3 +1,5 @@
+import { resolveDeployment } from './deployment.js'
+
 export const DEFAULT_LUTA_API_BASE = 'https://api.lutaai.com'
 
 export function resolveLutaApiBase(value) {
@@ -30,7 +32,8 @@ export function resolveLutaApiBase(value) {
     }
 }
 
-const lutaApiBase = resolveLutaApiBase(
+const deployment = resolveDeployment(import.meta.env)
+const lutaApiBase = deployment.apiBase || resolveLutaApiBase(
     import.meta.env?.VITE_LUTA_API_BASE
     || import.meta.env?.VITE_API_BASE,
 )
@@ -53,7 +56,7 @@ export const config = {
         installDoc: 'https://gcnrjk2sw7wg.feishu.cn/docx/GvqHdM6ikoXXhhxcavYcq0owndb'
     },
     attribution: {
-        continueBase: import.meta.env?.VITE_ATTRIBUTION_CONTINUE_BASE || 'https://go.lutaai.com',
+        continueBase: deployment.continueBase,
         defaultSlug: import.meta.env?.VITE_ATTRIBUTION_DEFAULT_SLUG || 'website-direct',
         legacySlugMarkets: {
             'cn-store': 'cn',
@@ -68,14 +71,15 @@ export const config = {
         installContextBase: `${lutaApiBase}/api/v1/public/attribution/install-context`,
         legacyInstallContextBase: `${lutaApiBase}/api/v1/public/attribution/legacy-install-context`,
         installEventBase: `${lutaApiBase}/api/v1/public/attribution/install-event`,
-        appLinkBase: 'https://link.lutaai.com/l',
-        outBase: 'https://go.lutaai.com/out',
-        legacyOutBase: 'https://go.lutaai.com/r',
+        appLinkBase: deployment.appLinkBase,
+        outBase: deployment.outBase,
+        legacyOutBase: deployment.legacyOutBase,
         // Opt-in until QA proves state privacy, routing continuity and rollback.
         // Existing links continue to land on /install when this is disabled.
         homepageSurfaceEnabled: import.meta.env?.VITE_SMART_LINK_HOMEPAGE_SURFACE === 'true',
     },
     analytics: {
+        posthogEnabled: deployment.posthogEnabled,
         posthogKey: import.meta.env?.VITE_POSTHOG_KEY || 'phc_AJ9WrJztG6H87z7xD7Xfa97abfCau4EbYXMSDUxo6Rsv',
         posthogHost: import.meta.env?.VITE_POSTHOG_HOST || 'https://posthog.lutaai.com',
         captureDevelopment: import.meta.env?.VITE_POSTHOG_CAPTURE_DEVELOPMENT === 'true',

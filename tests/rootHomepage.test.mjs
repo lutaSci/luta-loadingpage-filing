@@ -65,7 +65,9 @@ test('production release forwards, persists and validates the Smart Link homepag
     ])
 
     assert.match(dockerfile, /ARG VITE_SMART_LINK_HOMEPAGE_SURFACE=false/)
-    assert.match(dockerfile, /COPY nginx\.conf \/etc\/nginx\/conf\.d\/default\.conf\s+RUN nginx -t/)
+    assert.match(dockerfile, /ARG VITE_DEPLOYMENT_ENV=production/)
+    assert.match(dockerfile, /COPY nginx\.conf \/tmp\/nginx-production\.conf/)
+    assert.match(dockerfile, /RUN cp \/tmp\/nginx-\$\{VITE_DEPLOYMENT_ENV\}\.conf \/etc\/nginx\/conf\.d\/default\.conf && nginx -t/)
     assert.match(
         dockerfile,
         /ENV VITE_SMART_LINK_HOMEPAGE_SURFACE=\$\{VITE_SMART_LINK_HOMEPAGE_SURFACE\}/,

@@ -1,6 +1,7 @@
 ## ---------------------------------------
 ## Stage 1: Build with Node
 ## ---------------------------------------
+ARG VITE_DEPLOYMENT_ENV=production
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -10,11 +11,17 @@ ENV CI=true
 # Vite variables are compiled into the static bundle. Keep the production API
 # explicit so Docker and static previews use the same HTTPS backend contract.
 ARG VITE_LUTA_API_BASE=https://api.lutaai.com
+ARG VITE_DEPLOYMENT_ENV
+ARG VITE_ATTRIBUTION_CONTINUE_BASE=https://go.lutaai.com
+ARG VITE_POSTHOG_ENABLED=true
 ARG VITE_SMART_LINK_HOMEPAGE_SURFACE=false
 ARG VITE_GLOBAL_MOBILE_HANDOFF=false
 ARG VITE_META_PIXEL_ENABLED=false
 ARG VITE_META_PIXEL_ID=
 ENV VITE_LUTA_API_BASE=${VITE_LUTA_API_BASE}
+ENV VITE_DEPLOYMENT_ENV=${VITE_DEPLOYMENT_ENV}
+ENV VITE_ATTRIBUTION_CONTINUE_BASE=${VITE_ATTRIBUTION_CONTINUE_BASE}
+ENV VITE_POSTHOG_ENABLED=${VITE_POSTHOG_ENABLED}
 ENV VITE_SMART_LINK_HOMEPAGE_SURFACE=${VITE_SMART_LINK_HOMEPAGE_SURFACE}
 ENV VITE_GLOBAL_MOBILE_HANDOFF=${VITE_GLOBAL_MOBILE_HANDOFF}
 ENV VITE_META_PIXEL_ENABLED=${VITE_META_PIXEL_ENABLED}
@@ -35,8 +42,12 @@ RUN npm run build
 FROM nginx:1.27-alpine
 
 # Copy custom nginx config (SPA fallback, caching, gzip)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-RUN nginx -t
+ARG VITE_DEPLOYMENT_ENV
+COPY nginx.conf /tmp/nginx-production.conf
+COPY ops/qa/nginx.conf /tmp/nginx-qa.conf
+# The same profile selects JS and edge configuration; QA cannot accidentally
+# retain the production proxy by omitting a second independent build argument.
+RUN cp /tmp/nginx-${VITE_DEPLOYMENT_ENV}.conf /etc/nginx/conf.d/default.conf && nginx -t
 
 # Copy build output
 COPY --from=builder /app/dist /usr/share/nginx/html
