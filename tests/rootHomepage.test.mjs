@@ -85,59 +85,46 @@ test('production release forwards, persists and validates the Smart Link homepag
     assert.match(nginx, /location = \/install \{[\s\S]*Cache-Control "no-store, max-age=0"/)
 })
 
-test('traditional Chinese browser detection and html language use the standard tag', async () => {
+test('language provider uses region defaults and standard HTML language tags', async () => {
     const source = await readFile(new URL('../src/contexts/LanguageContext.jsx', import.meta.url), 'utf8')
 
     assert.match(source, /currentLanguage === 'zhTW' \? 'zh-TW'/)
-    assert.match(source, /navigator\.languages/)
     assert.match(source, /Intl\.DateTimeFormat\(\)\.resolvedOptions\(\)\.timeZone/)
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-TW' }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hant' }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hant-TW' }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-HK' }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-MO' }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({ browserLanguage: 'zh-Hans-SG' }), 'zh')
+    assert.doesNotMatch(source, /navigator\.(languages|language|userLanguage)/)
+    assert.doesNotMatch(source, /localStorage\.setItem\('preferred-language', currentLanguage\)/)
 })
 
-test('language resolution follows explicit choice, saved choice, ordered language, region, and timezone priority', () => {
-    assert.equal(resolvePreferredLanguage({
-        explicitLanguage: 'zhTW',
-        savedLanguage: 'zh',
-        browserLanguages: ['zh-Hans-CN'],
-        timeZone: 'Asia/Shanghai',
-    }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({
-        savedLanguage: 'zhTW',
-        browserLanguages: ['zh-Hans-CN'],
-    }), 'zhTW')
-
-    for (const retiredLanguage of ['en', 'ja', 'ko']) {
-        assert.equal(resolvePreferredLanguage({
-            savedLanguage: retiredLanguage,
-            browserLanguages: ['en-US', 'zh-Hant-HK'],
-        }), 'zhTW')
+test('language priority is explicit route, saved choice, mainland timezone, then Traditional', () => {
+    for (const timeZone of ['Asia/Shanghai', 'Asia/Taipei', 'America/New_York', undefined]) {
+        assert.equal(resolvePreferredLanguage({ explicitLanguage: 'zhTW', savedLanguage: 'zh', timeZone }), 'zhTW')
+        assert.equal(resolvePreferredLanguage({ explicitLanguage: 'zh', savedLanguage: 'zhTW', timeZone }), 'zh')
+        assert.equal(resolvePreferredLanguage({ savedLanguage: 'zh', timeZone }), 'zh')
+        assert.equal(resolvePreferredLanguage({ savedLanguage: 'zhTW', timeZone }), 'zhTW')
     }
 
-    assert.equal(resolvePreferredLanguage({
-        browserLanguages: ['en-US', 'zh-Hant-HK'],
-        timeZone: 'America/New_York',
-    }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({
-        browserLanguages: ['ja-JP', 'zh-Hans-SG'],
-        timeZone: 'Asia/Taipei',
-    }), 'zh')
-    assert.equal(resolvePreferredLanguage({
-        browserLanguages: ['zh', 'en-HK'],
-        timeZone: 'America/New_York',
-    }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({
-        browserLanguages: ['zh'],
-        timeZone: 'Asia/Taipei',
-    }), 'zhTW')
-    assert.equal(resolvePreferredLanguage({
-        browserLanguages: ['en-US'],
-        timeZone: 'America/New_York',
-    }), 'zh')
+    for (const invalidLanguage of ['en', 'ja', 'ko', 'invalid', '', null]) {
+        assert.equal(resolvePreferredLanguage({ explicitLanguage: invalidLanguage, savedLanguage: invalidLanguage }), 'zhTW')
+        assert.equal(resolvePreferredLanguage({ savedLanguage: invalidLanguage, timeZone: 'Asia/Shanghai' }), 'zh')
+    }
+})
+
+test('automatic language follows timezone regardless of the browser language list', () => {
+    const mainlandTimeZones = ['Asia/Shanghai', 'Asia/Chongqing', 'Asia/Urumqi', 'Asia/Harbin', 'Asia/Chungking', 'PRC', ' asia/SHANGHAI ']
+    const otherTimeZones = ['Asia/Taipei', 'Asia/Hong_Kong', 'Asia/Macau', 'Asia/Macao', 'Asia/Singapore', 'Asia/Kuala_Lumpur', 'Asia/Tokyo', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'UTC', 'invalid', '', null, undefined]
+    const browserLanguageLists = [['en-US'], ['zh-Hans-SG'], ['zh-CN'], ['zh-Hant-TW'], ['ja-JP', 'zh-Hans-CN'], []]
+
+    for (const [expected, timeZones] of [['zh', mainlandTimeZones], ['zhTW', otherTimeZones]]) {
+        for (const timeZone of timeZones) {
+            for (const browserLanguages of browserLanguageLists) {
+                assert.equal(resolvePreferredLanguage({
+                    timeZone,
+                    browserLanguages,
+                    browserLanguage: browserLanguages[0],
+                }), expected, `${timeZone}: ${browserLanguages.join(',')}`)
+            }
+        }
+    }
+    assert.equal(resolvePreferredLanguage(), 'zhTW')
 })
 
 test('retired locale redirect preserves URL state for the active root experience', async () => {
@@ -147,16 +134,17 @@ test('retired locale redirect preserves URL state for the active root experience
     assert.match(source, /<Navigate replace to=\{`\/\$\{search\}\$\{hash\}`\} \/>/)
 })
 
-test('marketing routes persist their explicit locale and own page metadata', async () => {
+test('marketing routes persist explicit locales but never persist root defaults', async () => {
     const landing = await readFile(new URL('../src/pages/MarketingLanding.jsx', import.meta.url), 'utf8')
     const provider = await readFile(new URL('../src/contexts/LanguageContext.jsx', import.meta.url), 'utf8')
 
-    assert.match(landing, /changeLanguage\(content\.languageKey\)/)
+    assert.match(landing, /changeLanguage\(content\.languageKey, \{ persist: Boolean\(getMarketingLocaleByPath\(pathname\)\) \}\)/)
     assert.doesNotMatch(landing, /currentLanguage !== language/)
     assert.match(provider, /isMarketingPath\(window\.location\.pathname\)/)
     assert.match(provider, /if \(!isMarketingLanding\)/)
     assert.match(provider, /localStorage\.setItem\('preferred-language', language\)/)
-    assert.match(provider, /const changeLanguage = useCallback/)
+    assert.match(provider, /const changeLanguage = useCallback\(\(language, \{ persist = true \} = \{\}\)/)
+    assert.match(provider, /if \(persist\) \{\s*try \{ localStorage\.setItem/)
     assert.doesNotMatch(landing, /document\.title = previous/)
     assert.doesNotMatch(landing, /document\.documentElement\.lang = previous/)
 })
