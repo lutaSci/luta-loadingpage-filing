@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 
 import MarketingHero from '../components/marketing/MarketingHero.jsx'
 import PageShell from '../components/marketing/PageShell.jsx'
@@ -27,6 +28,7 @@ import {
     resolveMarketingCtaCopyExperiment,
 } from '../lib/marketingCtaExperiment.js'
 import { applyMarketingMetadata } from '../lib/marketingSeo.js'
+import { getMarketingLocaleByPath } from '../lib/marketingLocales.js'
 import '../components/marketing/marketing.css'
 
 function LineTitle({ lines }) {
@@ -89,6 +91,7 @@ function FinalCallToAction({ content, adapter, storeActions }) {
 }
 
 export default function MarketingLanding({ locale }) {
+    const { pathname } = useLocation()
     const content = getMarketingContent(locale)
     const { controller, entry, usesHomepageSurface } = useSmartLinkJourney()
     const trafficPurpose = usesHomepageSurface
@@ -181,8 +184,8 @@ export default function MarketingLanding({ locale }) {
     }, [testflightExpanded])
 
     useEffect(() => {
-        changeLanguage(content.languageKey)
-    }, [changeLanguage, content.languageKey])
+        changeLanguage(content.languageKey, { persist: Boolean(getMarketingLocaleByPath(pathname)) })
+    }, [changeLanguage, content.languageKey, pathname])
 
     useEffect(() => {
         const previousScrollBehavior = document.documentElement.style.scrollBehavior

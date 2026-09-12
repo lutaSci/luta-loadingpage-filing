@@ -565,8 +565,6 @@ const detectLanguage = () => {
     return resolvePreferredLanguage({
         explicitLanguage: getMarketingLocaleByPath(window.location.pathname)?.languageKey,
         savedLanguage,
-        browserLanguages: navigator.languages,
-        browserLanguage: navigator.language || navigator.userLanguage,
         timeZone,
     });
 };
@@ -589,9 +587,6 @@ export const LanguageProvider = ({ children }) => {
     const [currentLanguage, setCurrentLanguage] = useState(detectLanguage);
 
     useEffect(() => {
-        // 保存语言设置到localStorage
-        try { localStorage.setItem('preferred-language', currentLanguage); } catch { /* Keep the page usable without storage. */ }
-
         // 更新页面标题和meta信息
         const trans = translations[currentLanguage];
         const isInstallGate = window.location.pathname === '/install';
@@ -617,9 +612,13 @@ export const LanguageProvider = ({ children }) => {
         }
     }, [currentLanguage]);
 
-    const changeLanguage = useCallback((language) => {
+    const changeLanguage = useCallback((language, { persist = true } = {}) => {
         if (isActiveMarketingLanguage(language)) {
-            try { localStorage.setItem('preferred-language', language); } catch { /* Keep the in-memory choice. */ }
+            // Only an explicit route or user selection is a saved preference.
+            // Automatic defaults must be reevaluated on the next visit.
+            if (persist) {
+                try { localStorage.setItem('preferred-language', language); } catch { /* Keep the in-memory choice. */ }
+            }
             setCurrentLanguage(language);
         }
     }, []);
