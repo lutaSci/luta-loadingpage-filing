@@ -1438,34 +1438,138 @@
     margin-block-start: 4.5rem;
 }
 
+/* The footer adds social destinations without changing the install journey. */
 .luta-marketing-footer {
-    min-height: 13rem;
-    padding: 2.25rem 1.5rem 1.75rem;
+    padding: 1.5rem 1.5rem 1.75rem;
     background: var(--luta-marketing-color-surface-paper);
     border-top: 1px solid var(--luta-marketing-color-line);
 }
 
 .luta-marketing-footer-layout {
-    min-height: 8.75rem;
     display: grid;
     align-content: center;
-    row-gap: 1.75rem;
+    gap: 1rem;
 }
 
-.luta-marketing-footer-main {
+.luta-marketing-footer-heading {
+    display: grid;
+    gap: 1rem;
+}
+
+.luta-marketing-footer-heading .luta-marketing-wordmark-mark {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.luta-marketing-footer-heading .luta-marketing-wordmark-copy strong {
+    font-size: 1.5rem;
+}
+
+.luta-marketing-footer-heading h2 {
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.035em;
+    color: var(--luta-marketing-color-surface-pine);
+}
+
+.luta-marketing-footer-heading p,
+.luta-marketing-footer-contact p {
+    margin-block-start: 0.5rem;
+    color: var(--luta-marketing-color-text-muted);
+    font-size: 0.875rem;
+    line-height: 1.65;
+}
+
+.luta-marketing-footer h3 {
+    margin-block-end: 0.5rem;
+    font-size: 1rem;
+    font-weight: 620;
+    line-height: 1.5;
+}
+
+.luta-marketing-footer-group-links {
     display: grid;
 }
 
-.luta-marketing-footer nav {
-    margin-block-start: 1.75rem;
+.luta-marketing-social-link {
+    min-width: 0;
+    min-height: 3rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 1.25rem;
-    color: var(--luta-marketing-color-text-muted);
-    font-size: 0.625rem;
+    align-items: center;
+    gap: 0.875rem;
+    color: var(--luta-marketing-color-text);
+    font-size: 1rem;
+    line-height: 1.5;
+    transition: color var(--luta-marketing-motion-fast), background-color var(--luta-marketing-motion-fast);
 }
 
-.luta-marketing-footer nav button {
+.luta-marketing-social-link img {
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+}
+
+.luta-marketing-social-link span {
+    overflow-wrap: anywhere;
+}
+
+.luta-marketing-social-link svg {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+}
+
+.luta-marketing-social-link .luta-marketing-social-arrow-desktop {
+    display: none;
+}
+
+.luta-marketing-footer-group-links .luta-marketing-social-link {
+    min-height: 3rem;
+    padding-block: 0.5rem;
+    border-top: 1px solid var(--luta-marketing-color-line);
+}
+
+.luta-marketing-footer-secondary {
+    display: grid;
+    gap: 1rem;
+}
+
+.luta-marketing-footer-secondary section {
+    padding-block-start: 1rem;
+    border-top: 1px solid var(--luta-marketing-color-line);
+}
+
+.luta-marketing-footer-contact-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    gap: 1.25rem;
+}
+
+.luta-marketing-footer-contact-links .luta-marketing-social-link {
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+}
+
+.luta-marketing-footer-legal {
+    padding-block-start: 1rem;
+    border-top: 1px solid var(--luta-marketing-color-line);
+}
+
+.luta-marketing-footer-legal nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
+    color: var(--luta-marketing-color-text-muted);
+    font-size: 0.875rem;
+}
+
+.luta-marketing-footer-legal nav :where(a, button) {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+}
+
+.luta-marketing-footer-legal nav button {
     padding: 0;
     color: inherit;
     background: transparent;
@@ -1476,21 +1580,49 @@
     color: var(--luta-marketing-color-action);
 }
 
-.luta-marketing-icp {
-    margin-block-start: 1rem;
-    color: #8a938f;
-    font-size: 0.625rem;
+.luta-marketing-social-link:hover {
+    background: var(--luta-marketing-color-surface-mist);
 }
 
-.luta-marketing-footer-layout > small {
-    color: #9aa29e;
-    font-size: 0.625rem;
-    letter-spacing: 0.04em;
+.luta-marketing-footer-fine-print {
+    margin-block-start: 0.5rem;
+    display: grid;
+    gap: 0.5rem;
+    color: var(--luta-marketing-color-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.65;
+}
+
+.luta-marketing-icp {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    min-height: 2.75rem;
+}
+
+.luta-marketing-footer-fine-print small {
+    font-size: inherit;
 }
 
 @media (max-width: 63.999rem) {
     .luta-marketing-footer {
         padding-block-end: calc(8.5rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    .luta-marketing-footer :where(a, button) {
+        scroll-margin-block: 6rem 10rem;
+    }
+}
+
+@media (min-width: 48rem) and (max-width: 63.999rem) {
+    .luta-marketing-footer-group-links {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 2rem;
+    }
+
+    .luta-marketing-footer-secondary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 2rem;
     }
 }
 
@@ -2013,34 +2145,135 @@
     }
 
     .luta-marketing-footer {
-        min-height: 7.5rem;
-        padding: 1.5rem 0;
+        padding: 4.5rem 1.5rem 2rem;
     }
 
     .luta-marketing-footer-layout {
-        min-height: 4.5rem;
-        row-gap: 0.5rem;
+        gap: 3rem;
     }
 
-    .luta-marketing-footer-main {
-        grid-template-columns: 1fr auto 1fr;
+    .luta-marketing-footer-heading {
+        grid-template-columns: auto 1fr;
         align-items: center;
+        gap: 4rem;
     }
 
-    .luta-marketing-footer nav {
+    .luta-marketing-footer-heading .luta-marketing-wordmark {
+        gap: 1rem;
+    }
+
+    .luta-marketing-footer-heading .luta-marketing-wordmark-mark {
+        width: 4rem;
+        height: 4rem;
+    }
+
+    .luta-marketing-footer-heading .luta-marketing-wordmark-copy strong {
+        font-size: 2rem;
+    }
+
+    .luta-marketing-footer-heading .luta-marketing-wordmark-copy > span {
+        font-size: 0.75rem;
+    }
+
+    .luta-marketing-footer-heading h2 {
+        font-size: 3rem;
+    }
+
+    .luta-marketing-footer-heading p {
+        font-size: 1.125rem;
+    }
+
+    /* Keep the group name accessible while matching the selected desktop row. */
+    .luta-marketing-footer-groups > h3 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+    }
+
+    .luta-marketing-footer-group-links {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .luta-marketing-footer-group-links .luta-marketing-social-link {
+        min-height: 6rem;
+        padding: 1rem;
+        font-size: clamp(1rem, 1.25vw, 1.125rem);
+        border: 1px solid var(--luta-marketing-color-line);
+        border-radius: 0.625rem;
+    }
+
+    .luta-marketing-social-link img {
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+
+    .luta-marketing-social-link .luta-marketing-social-arrow-desktop {
+        display: block;
+    }
+
+    .luta-marketing-social-link .luta-marketing-social-arrow-mobile {
+        display: none;
+    }
+
+    .luta-marketing-footer-secondary {
+        padding-block: 2.5rem;
+        border-top: 1px solid var(--luta-marketing-color-line);
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .luta-marketing-footer-secondary section {
+        padding: 0;
+        border-top: 0;
+    }
+
+    .luta-marketing-footer-follow,
+    .luta-marketing-footer-contact {
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-content: center;
+        align-content: start;
+        align-items: center;
+        gap: 0 1.5rem;
+    }
+
+    .luta-marketing-footer-secondary h3 {
         margin: 0;
-        gap: 1.875rem;
-        font-size: 0.6875rem;
     }
 
-    .luta-marketing-icp {
+    .luta-marketing-footer-secondary .luta-marketing-footer-contact {
+        border-inline-start: 1px solid var(--luta-marketing-color-line);
+        padding-inline-start: 2rem;
+    }
+
+    .luta-marketing-footer-contact-links {
+        display: flex;
+        gap: 2rem;
+    }
+
+    .luta-marketing-footer-contact-links .luta-marketing-social-link {
+        gap: 0.75rem;
+        font-size: 1rem;
+    }
+
+    .luta-marketing-footer-contact p {
+        grid-column: 2;
+    }
+
+    .luta-marketing-footer-fine-print {
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    .luta-marketing-footer-fine-print small {
         justify-self: end;
-        margin: 0;
     }
 
-    .luta-marketing-footer-layout > small {
-        margin: 0;
-    }
 }
 
 @media (min-width: 64rem) and (max-height: 56rem) {
