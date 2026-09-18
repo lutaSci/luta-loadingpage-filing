@@ -6,6 +6,7 @@ import {
     isMarketingPath,
     MARKETING_LANGUAGE_KEYS,
 } from '../lib/marketingLocales.js';
+import { isStandaloneDocumentPath } from '../lib/marketingSeo.js';
 
 // 语言资源（依据 prd.md 调整为 LUTA/汝塔 的本土化表述，并新增繁体中文）
 const translations = {
@@ -591,23 +592,24 @@ export const LanguageProvider = ({ children }) => {
         const trans = translations[currentLanguage];
         const isInstallGate = window.location.pathname === '/install';
         const isMarketingLanding = isMarketingPath(window.location.pathname);
+        const isStandaloneDocument = isStandaloneDocumentPath(window.location.pathname);
         if (!isMarketingLanding) {
             document.documentElement.lang = currentLanguage === 'zhTW' ? 'zh-TW' : 'zh-CN';
         }
-        if (!isInstallGate && !isMarketingLanding) {
+        if (!isInstallGate && !isMarketingLanding && !isStandaloneDocument) {
             // 首页同时承载多个平台，标题只表达品牌；版本信息由安装页按渠道展示。
             document.title = `${trans.title} | ${trans.subtitle}`;
         }
 
         // 更新meta描述
         const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription && !isInstallGate && !isMarketingLanding) {
+        if (metaDescription && !isInstallGate && !isMarketingLanding && !isStandaloneDocument) {
             metaDescription.setAttribute('content', trans.metaDescription);
         }
 
         // 更新meta关键词
         const metaKeywords = document.querySelector('meta[name="keywords"]');
-        if (metaKeywords && !isInstallGate && !isMarketingLanding) {
+        if (metaKeywords && !isInstallGate && !isMarketingLanding && !isStandaloneDocument) {
             metaKeywords.setAttribute('content', trans.metaKeywords);
         }
     }, [currentLanguage]);

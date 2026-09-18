@@ -401,10 +401,6 @@ export default function StoreActionGroup({
                 </p>
             )}
 
-            {presentation === 'persistent-mobile' && (
-                <PlatformSelector adapter={adapter} content={content} />
-            )}
-
             {adapter.isDesktop && (
                 <div
                     className="luta-marketing-store-tabs"

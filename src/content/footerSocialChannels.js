@@ -27,3 +27,21 @@ export const FOOTER_SOCIAL_CHANNELS = Object.freeze([
         page: 'https://www.facebook.com/LutaSutraReading/',
     }),
 ])
+
+// Header quick entries: groups only, Facebook first as the mobile default.
+// Telegram stays footer-only until product asks for it.
+const HEADER_GROUP_IDS = Object.freeze(['facebook', 'whatsapp', 'line'])
+
+export const HEADER_GROUP_CHANNELS = Object.freeze(
+    HEADER_GROUP_IDS.map((id) => {
+        const channel = FOOTER_SOCIAL_CHANNELS.find(entry => entry.id === id)
+        if (!channel?.group) {
+            throw new Error(`Missing group URL for header channel: ${id}`)
+        }
+        return Object.freeze({
+            id: channel.id,
+            name: channel.name,
+            group: channel.group,
+        })
+    }),
+)

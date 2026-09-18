@@ -90,21 +90,33 @@ test('hero leads with reading, understanding, daily practice, and a truthful fre
     const traditional = MARKETING_CONTENT['zh-tw']
 
     assert.equal(simplified.navigation.getApp, '免费开始阅读')
-    assert.equal(simplified.hero.eyebrow, '面向全球中文读者的佛教经典阅读与理解工具')
+    assert.equal(simplified.hero.eyebrow, '面向全球中文读者的佛教经典阅读工具')
     assert.deepEqual(simplified.hero.desktopTitle, [
-        '从阅读经典开始',
-        '理解经文中的智慧',
-        '让修学融入日常',
+        '读懂佛教经典，从原文开始。',
+    ])
+    assert.deepEqual(simplified.hero.mobileTitle, [
+        '读懂佛教经典，从原文开始。',
     ])
     assert.match(simplified.hero.lead, /白话译文/)
-    assert.match(simplified.hero.lead, /AI 辅助理解/)
+    assert.match(simplified.hero.lead, /AI 辅助/)
     assert.deepEqual(simplified.hero.primaryCta, {
         label: '免费开始阅读',
         description: '基础阅读持续免费 · 将前往适合您的官方安装方式',
     })
+    assert.deepEqual(
+        simplified.hero.visuals.map(visual => visual.image),
+        ['practice', 'reading', 'tabao'],
+    )
 
     assert.equal(traditional.navigation.getApp, '免費開始閱讀')
     assert.match(traditional.hero.lead, /白話譯文/)
+    assert.deepEqual(traditional.hero.desktopTitle, [
+        '讀懂佛教經典，從原文開始。',
+    ])
+    assert.deepEqual(
+        traditional.hero.visuals.map(visual => visual.image),
+        ['practice', 'reading', 'tabao'],
+    )
 
     for (const locale of MARKETING_LOCALES) {
         const resource = MARKETING_CONTENT[locale]

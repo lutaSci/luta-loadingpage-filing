@@ -2,10 +2,13 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 
 import {
+    HERO_AUTOPLAY_INTERVAL_MS,
+    HERO_AUTOPLAY_RESUME_MS,
     moveHeroImage,
     resolveHeroDragDirection,
     resolveHeroPosition,
     resolveInitialHeroImage,
+    shouldHeroAutoplay,
 } from '../src/lib/heroCarousel.js'
 
 const visuals = [
@@ -39,4 +42,13 @@ test('hero carousel safely degrades for empty and single-screen inputs', () => {
     assert.equal(moveHeroImage([], null, 1), null)
     assert.equal(moveHeroImage([{ image: 'reading' }], 'reading', 1), 'reading')
     assert.equal(resolveHeroPosition([{ image: 'reading' }], 'reading', 'reading'), 'center')
+})
+
+test('hero autoplay uses an attention-friendly dwell and pauses on demand', () => {
+    assert.equal(HERO_AUTOPLAY_INTERVAL_MS >= 4500 && HERO_AUTOPLAY_INTERVAL_MS <= 7000, true)
+    assert.equal(HERO_AUTOPLAY_RESUME_MS >= HERO_AUTOPLAY_INTERVAL_MS, true)
+    assert.equal(shouldHeroAutoplay({ reducedMotion: false, visualCount: 3, paused: false }), true)
+    assert.equal(shouldHeroAutoplay({ reducedMotion: true, visualCount: 3, paused: false }), false)
+    assert.equal(shouldHeroAutoplay({ reducedMotion: false, visualCount: 3, paused: true }), false)
+    assert.equal(shouldHeroAutoplay({ reducedMotion: false, visualCount: 1, paused: false }), false)
 })

@@ -9,6 +9,14 @@ export const MARKETING_SOCIAL_IMAGE = Object.freeze({
 })
 export const MARKETING_SOCIAL_IMAGE_URL = MARKETING_SOCIAL_IMAGE.url
 
+// Legal and contact pages are first-class public documents with unique titles.
+// They must self-canonicalize instead of inheriting the homepage shell.
+export const STANDALONE_DOCUMENT_PATHS = Object.freeze([
+    '/terms',
+    '/privacy',
+    '/contact',
+])
+
 const OPEN_GRAPH_LOCALES = Object.freeze({
     'zh-cn': 'zh_CN',
     'zh-tw': 'zh_TW',
@@ -17,6 +25,37 @@ const OPEN_GRAPH_LOCALES = Object.freeze({
 function normalizePathname(pathname) {
     if (!pathname || pathname === '/') return '/'
     return pathname.replace(/\/+$/, '') || '/'
+}
+
+export function isStandaloneDocumentPath(pathname) {
+    return STANDALONE_DOCUMENT_PATHS.includes(normalizePathname(pathname))
+}
+
+export function applyStandaloneDocumentMetadata({
+    path,
+    title,
+    description,
+    documentRef = globalThis.document,
+} = {}) {
+    if (!documentRef) return
+
+    const canonicalPath = normalizePathname(path)
+    if (!STANDALONE_DOCUMENT_PATHS.includes(canonicalPath)) {
+        throw new Error(`Unsupported standalone document path: ${path}`)
+    }
+
+    const canonicalUrl = `${MARKETING_ORIGIN}${canonicalPath}`
+    documentRef.title = title
+    setMeta(documentRef, 'link[rel="canonical"]', 'href', canonicalUrl)
+    setMeta(documentRef, 'meta[property="og:url"]', 'content', canonicalUrl)
+    setMeta(documentRef, 'meta[property="og:title"]', 'content', title)
+    setMeta(documentRef, 'meta[name="twitter:title"]', 'content', title)
+
+    if (typeof description === 'string' && description.trim()) {
+        setMeta(documentRef, 'meta[name="description"]', 'content', description)
+        setMeta(documentRef, 'meta[property="og:description"]', 'content', description)
+        setMeta(documentRef, 'meta[name="twitter:description"]', 'content', description)
+    }
 }
 
 export function getMarketingSeoModel(content, pathname = content.path) {

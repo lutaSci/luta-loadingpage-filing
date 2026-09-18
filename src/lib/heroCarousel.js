@@ -4,6 +4,12 @@ export function resolveInitialHeroImage(visuals = []) {
         || null
 }
 
+/** Dwell time before advancing; long enough to register a phone UI, short enough to keep rhythm. */
+export const HERO_AUTOPLAY_INTERVAL_MS = 5500
+
+/** After user interaction, wait before autoplay resumes so control feels intentional. */
+export const HERO_AUTOPLAY_RESUME_MS = 8000
+
 export function resolveHeroPosition(visuals = [], activeImage, image) {
     if (visuals.length <= 1) return 'center'
 
@@ -40,4 +46,14 @@ export function resolveHeroDragDirection({
 
     if (Math.abs(projectedOffset) < threshold) return 0
     return projectedOffset < 0 ? 1 : -1
+}
+
+export function shouldHeroAutoplay({
+    reducedMotion = false,
+    visualCount = 0,
+    paused = false,
+} = {}) {
+    if (reducedMotion) return false
+    if (paused) return false
+    return visualCount > 1
 }
