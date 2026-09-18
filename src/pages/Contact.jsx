@@ -4,13 +4,14 @@ import { ArrowLeft, Mail, Twitter, Github, Copy, CheckCircle } from 'lucide-reac
 import { Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { config } from '../config';
+import { applyStandaloneDocumentMetadata } from '../lib/marketingSeo.js';
 
 const Contact = () => {
     const { t, currentLanguage } = useLanguage();
     const [copySuccess, setCopySuccess] = useState(false);
 
     // ═══════════════════════════════════════════════════════════════════
-    // 🎯 页面标题动态更新
+    // 🎯 页面标题与 self-canonical，避免继承首页 shell
     // ═══════════════════════════════════════════════════════════════════
     useEffect(() => {
         const titles = {
@@ -20,7 +21,19 @@ const Contact = () => {
             ja: 'お問い合わせ - 汝塔APP',
             ko: '문의하기 - 汝塔APP'
         };
-        document.title = titles[currentLanguage];
+        const descriptions = {
+            zh: '联系汝塔团队获取支持与合作信息。',
+            zhTW: '聯繫汝塔團隊取得支援與合作資訊。',
+            en: 'Contact the LUTA team for support and partnerships.',
+            ja: 'LUTA チームへのお問い合わせ。',
+            ko: 'LUTA 팀 문의.'
+        };
+        const title = titles[currentLanguage] || titles.zh;
+        applyStandaloneDocumentMetadata({
+            path: '/contact',
+            title,
+            description: descriptions[currentLanguage] || descriptions.zh,
+        });
     }, [currentLanguage]);
 
     // ═══════════════════════════════════════════════════════════════════

@@ -159,7 +159,81 @@ test('crawler discovery files expose the canonical marketing routes and protect 
     for (const href of new Set(MARKETING_HREFLANG_LINKS.map(link => link.href))) {
         assert.ok(sitemap.includes(`<loc>${href}</loc>`), `missing sitemap URL: ${href}`)
     }
+    for (const documentPath of ['/terms', '/privacy', '/contact']) {
+        assert.ok(
+            sitemap.includes(`<loc>https://lutaai.com${documentPath}</loc>`),
+            `missing sitemap URL: ${documentPath}`,
+        )
+    }
     for (const retiredLocale of ['en', 'ja', 'ko']) {
         assert.equal(sitemap.includes(`/global/${retiredLocale}`), false)
     }
+})
+
+test('standalone legal and contact pages self-canonicalize instead of inheriting the homepage shell', async () => {
+    const { applyStandaloneDocumentMetadata, isStandaloneDocumentPath } = await import('../src/lib/marketingSeo.js')
+
+    assert.equal(isStandaloneDocumentPath('/terms'), true)
+    assert.equal(isStandaloneDocumentPath('/privacy/'), true)
+    assert.equal(isStandaloneDocumentPath('/'), false)
+
+    for (const path of ['../src/pages/Privacy.jsx', '../src/pages/Terms.jsx', '../src/pages/Contact.jsx']) {
+        const source = await readFile(new URL(path, import.meta.url), 'utf8')
+        assert.match(source, /applyStandaloneDocumentMetadata/)
+        assert.match(source, /path:\s*'\/(?:terms|privacy|contact)'/)
+    }
+
+    const languageContext = await readFile(new URL('../src/contexts/LanguageContext.jsx', import.meta.url), 'utf8')
+    assert.match(languageContext, /isStandaloneDocumentPath/)
+    assert.match(languageContext, /!isStandaloneDocument/)
+
+    const attrs = new Map()
+    const documentRef = {
+        title: 'homepage',
+        querySelector(selector) {
+            if (!attrs.has(selector)) {
+                attrs.set(selector, {
+                    getAttribute(name) {
+                        return this[name]
+                    },
+                    setAttribute(name, value) {
+                        this[name] = value
+                    },
+                })
+            }
+            return attrs.get(selector)
+        },
+    }
+
+    applyStandaloneDocumentMetadata({
+        path: '/terms',
+        title: '用户协议 - 汝塔APP',
+        description: '汝塔 LUTA 用户服务协议。',
+        documentRef,
+    })
+
+    assert.equal(documentRef.title, '用户协议 - 汝塔APP')
+    assert.equal(attrs.get('link[rel="canonical"]').href, 'https://lutaai.com/terms')
+    assert.equal(attrs.get('meta[property="og:url"]').content, 'https://lutaai.com/terms')
+    assert.equal(attrs.get('meta[name="description"]').content, '汝塔 LUTA 用户服务协议。')
+})
+
+test('terms markdown isolates bare URLs so remark-gfm cannot swallow following Chinese text', async () => {
+    const { unified } = await import('unified')
+    const remarkParse = (await import('remark-parse')).default
+    const remarkGfm = (await import('remark-gfm')).default
+    const { visit } = await import('unist-util-visit')
+    const source = await readFile(new URL('../src/content/terms.md', import.meta.url), 'utf8')
+
+    assert.match(source, /\[https:\/\/lutaai\.com\/\]\(https:\/\/lutaai\.com\/\)/)
+    assert.match(source, /\[https:\/\/lutaai\.com\/privacy\]\(https:\/\/lutaai\.com\/privacy\)/)
+
+    const tree = unified().use(remarkParse).use(remarkGfm).parse(source)
+    const hrefs = []
+    visit(tree, 'link', (node) => hrefs.push(node.url))
+
+    assert.ok(hrefs.includes('https://lutaai.com/'))
+    assert.ok(hrefs.includes('https://lutaai.com/privacy'))
+    assert.equal(hrefs.some(href => href.includes('以下简称')), false)
+    assert.equal(hrefs.some(href => href.includes('该隐私政策')), false)
 })

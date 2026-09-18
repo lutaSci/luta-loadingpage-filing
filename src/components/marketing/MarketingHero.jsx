@@ -17,20 +17,34 @@ export default function MarketingHero({
             aria-labelledby="marketing-hero-title"
         >
             <div className="luta-marketing-container luta-marketing-hero-layout">
-                <div className="luta-marketing-hero-copy">
-                    <p className="luta-marketing-eyebrow">{content.hero.eyebrow}</p>
-                    <h1 id="marketing-hero-title" aria-label={content.hero.accessibleTitle}>
-                        <span className="luta-marketing-desktop-title" aria-hidden="true">
-                            <LineTitle lines={content.hero.desktopTitle} />
-                        </span>
-                        <span className="luta-marketing-mobile-title" aria-hidden="true">
-                            <LineTitle lines={content.hero.mobileTitle} />
-                        </span>
-                    </h1>
-                    <p className="luta-marketing-hero-lead">
-                        <span className="luta-marketing-desktop-copy">{content.hero.lead}</span>
-                        <span className="luta-marketing-mobile-copy">{content.hero.mobileLead}</span>
-                    </p>
+                <div className="luta-marketing-hero-primary">
+                    <div className="luta-marketing-hero-copy">
+                        <p className="luta-marketing-eyebrow">{content.hero.eyebrow}</p>
+                        <h1 id="marketing-hero-title" aria-label={content.hero.accessibleTitle}>
+                            <span className="luta-marketing-desktop-title" aria-hidden="true">
+                                <LineTitle lines={content.hero.desktopTitle} />
+                            </span>
+                            <span className="luta-marketing-mobile-title" aria-hidden="true">
+                                <LineTitle lines={content.hero.mobileTitle} />
+                            </span>
+                        </h1>
+                        <p className="luta-marketing-hero-lead">
+                            <span className="luta-marketing-desktop-copy">{content.hero.lead}</span>
+                            <span className="luta-marketing-mobile-copy">{content.hero.mobileLead}</span>
+                        </p>
+                    </div>
+
+                    <div className="luta-marketing-hero-actions">
+                        {storeActions || (
+                            <StoreActionGroup
+                                content={content.store}
+                                anchorId="download-options"
+                                adapter={storeAdapter}
+                                showSupport={false}
+                                valueCtaCopy={valueCtaCopy}
+                            />
+                        )}
+                    </div>
                 </div>
 
                 <div className="luta-marketing-hero-visual">
@@ -42,18 +56,6 @@ export default function MarketingHero({
                         carouselRoleDescription={content.hero.carouselRoleDescription}
                         slideRoleDescription={content.hero.slideRoleDescription}
                     />
-                </div>
-
-                <div className="luta-marketing-hero-actions">
-                    {storeActions || (
-                        <StoreActionGroup
-                            content={content.store}
-                            anchorId="download-options"
-                            adapter={storeAdapter}
-                            showSupport={false}
-                            valueCtaCopy={valueCtaCopy}
-                        />
-                    )}
                 </div>
             </div>
         </section>

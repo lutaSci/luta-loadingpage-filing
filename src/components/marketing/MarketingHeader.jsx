@@ -1,4 +1,5 @@
 import logoMark from '../../assets/logo_1.png'
+import HeaderSocialGroups from './HeaderSocialGroups.jsx'
 import LocaleSwitcher from './LocaleSwitcher.jsx'
 
 function Wordmark({ content }) {
@@ -31,6 +32,7 @@ export default function MarketingHeader({ content, installHref, onInstall }) {
                 <a href="#principles">{content.navigation.principles}</a>
             </nav>
             <div className="luta-marketing-header-actions">
+                <HeaderSocialGroups content={content} />
                 <LocaleSwitcher content={content} />
                 <a className="luta-marketing-header-cta" href={installHref} onClick={onInstall}>
                     {content.navigation.getApp}

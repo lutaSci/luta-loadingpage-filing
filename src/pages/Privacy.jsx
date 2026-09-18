@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import PaperDocument from '../components/PaperDocument';
 import { useLanguage } from '../contexts/LanguageContext';
 import { requestMeasurementConsentSettings } from '../lib/measurementConsent.js';
+import { applyStandaloneDocumentMetadata } from '../lib/marketingSeo.js';
 
 const Privacy = () => {
     const { currentLanguage } = useLanguage();
@@ -19,16 +20,28 @@ const Privacy = () => {
             });
     }, []);
 
-    // 动态更新页面标题
+    // 动态更新页面标题与 self-canonical，避免继承首页 shell。
     useEffect(() => {
         const titles = {
             zh: '隐私政策 - 汝塔APP',
-            'zhTW': '隱私政策 - 汝塔APP',
+            zhTW: '隱私政策 - 汝塔APP',
             en: 'Privacy Policy - LUTA APP',
             ja: 'プライバシーポリシー - LUTA APP',
             ko: '개인정보 보호정책 - LUTA APP'
         };
-        document.title = titles[currentLanguage] || titles.zh;
+        const descriptions = {
+            zh: '汝塔 LUTA 隐私政策。',
+            zhTW: '汝塔 LUTA 隱私政策。',
+            en: 'LUTA privacy policy.',
+            ja: 'LUTA プライバシーポリシー。',
+            ko: 'LUTA 개인정보 보호정책.'
+        };
+        const title = titles[currentLanguage] || titles.zh;
+        applyStandaloneDocumentMetadata({
+            path: '/privacy',
+            title,
+            description: descriptions[currentLanguage] || descriptions.zh,
+        });
     }, [currentLanguage]);
 
     const getTitle = () => {

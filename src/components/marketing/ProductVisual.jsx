@@ -1,15 +1,18 @@
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 
-import historyImage from '../../assets/marketing/home-reference-6a219cd7-375x812.png'
-import practiceImage from '../../assets/marketing/practice-plan-ce82267a-375x812.png'
-import readingImage from '../../assets/marketing/reading-ca76b87a-375x812.png'
-import tabaoImage from '../../assets/marketing/tabao-edf948ad-375x812.png'
+import historyImage from '../../assets/marketing/home-p1opt-20260918-375x812.png'
+import practiceImage from '../../assets/marketing/practice-p1opt-20260918-375x812.png'
+import readingImage from '../../assets/marketing/reading-p1opt-20260918-375x812.png'
+import tabaoImage from '../../assets/marketing/tabao-p1opt-20260918-375x812.png'
 import {
+    HERO_AUTOPLAY_INTERVAL_MS,
+    HERO_AUTOPLAY_RESUME_MS,
     moveHeroImage,
     resolveHeroDragDirection,
     resolveHeroPosition,
     resolveInitialHeroImage,
+    shouldHeroAutoplay,
 } from '../../lib/heroCarousel.js'
 
 const images = Object.freeze({
@@ -62,12 +65,43 @@ export function HeroVisualFan({
     const reducedMotion = useReducedMotion()
     const instructionsId = useId()
     const fanRef = useRef(null)
+    const resumeTimerRef = useRef(null)
     const [activeImage, setActiveImage] = useState(() => resolveInitialHeroImage(visuals))
+    const [autoplayPaused, setAutoplayPaused] = useState(false)
     const activeVisual = visuals.find(visual => visual.image === activeImage) || visuals[0]
     const activeIndex = Math.max(0, visuals.findIndex(visual => visual.image === activeVisual?.image))
+    const autoplayEnabled = shouldHeroAutoplay({
+        reducedMotion,
+        visualCount: visuals.length,
+        paused: autoplayPaused,
+    })
 
-    const move = (direction) => {
+    const clearResumeTimer = () => {
+        if (resumeTimerRef.current) {
+            window.clearTimeout(resumeTimerRef.current)
+            resumeTimerRef.current = null
+        }
+    }
+
+    const pauseAutoplay = ({ resumeAfterMs = HERO_AUTOPLAY_RESUME_MS } = {}) => {
+        setAutoplayPaused(true)
+        clearResumeTimer()
+        if (reducedMotion || visuals.length <= 1) return
+        if (resumeAfterMs == null) return
+        resumeTimerRef.current = window.setTimeout(() => {
+            setAutoplayPaused(false)
+            resumeTimerRef.current = null
+        }, resumeAfterMs)
+    }
+
+    const move = (direction, { userInitiated = false } = {}) => {
+        if (userInitiated) pauseAutoplay()
         setActiveImage(current => moveHeroImage(visuals, current, direction))
+    }
+
+    const selectImage = (image) => {
+        pauseAutoplay()
+        setActiveImage(image)
     }
 
     const handleDragEnd = (event, info) => {
@@ -77,20 +111,38 @@ export function HeroVisualFan({
             velocityX: info.velocity.x,
             width,
         })
-        if (direction) move(direction)
+        if (direction) move(direction, { userInitiated: true })
     }
 
     const handleKeyDown = (event) => {
         if (event.target !== event.currentTarget) return
 
-        if (event.key === 'ArrowLeft') move(-1)
-        else if (event.key === 'ArrowRight') move(1)
-        else if (event.key === 'Home') setActiveImage(visuals[0]?.image || null)
-        else if (event.key === 'End') setActiveImage(visuals.at(-1)?.image || null)
+        if (event.key === 'ArrowLeft') move(-1, { userInitiated: true })
+        else if (event.key === 'ArrowRight') move(1, { userInitiated: true })
+        else if (event.key === 'Home') {
+            pauseAutoplay()
+            setActiveImage(visuals[0]?.image || null)
+        }
+        else if (event.key === 'End') {
+            pauseAutoplay()
+            setActiveImage(visuals.at(-1)?.image || null)
+        }
         else return
 
         event.preventDefault()
     }
+
+    useEffect(() => () => clearResumeTimer(), [])
+
+    useEffect(() => {
+        if (!autoplayEnabled) return undefined
+
+        const timer = window.setInterval(() => {
+            setActiveImage(current => moveHeroImage(visuals, current, 1))
+        }, HERO_AUTOPLAY_INTERVAL_MS)
+
+        return () => window.clearInterval(timer)
+    }, [autoplayEnabled, visuals])
 
     return (
         <figure
@@ -101,6 +153,12 @@ export function HeroVisualFan({
             aria-describedby={instructionsId}
             tabIndex="0"
             onKeyDown={handleKeyDown}
+            onPointerEnter={() => pauseAutoplay({ resumeAfterMs: null })}
+            onPointerLeave={() => pauseAutoplay()}
+            onFocusCapture={() => pauseAutoplay({ resumeAfterMs: null })}
+            onBlurCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) pauseAutoplay()
+            }}
         >
             <span id={instructionsId} className="luta-marketing-visually-hidden">
                 {carouselInstructions}
@@ -113,6 +171,7 @@ export function HeroVisualFan({
                 dragElastic={reducedMotion ? 0 : 0.14}
                 dragMomentum={false}
                 dragSnapToOrigin="x"
+                onDragStart={() => pauseAutoplay({ resumeAfterMs: null })}
                 onDragEnd={handleDragEnd}
                 whileDrag={{ cursor: 'grabbing' }}
             >
@@ -143,7 +202,7 @@ export function HeroVisualFan({
                                 loading="eager"
                                 fetchPriority={isActive ? 'high' : 'low'}
                                 decoding="async"
-                                sizes="(max-width: 767px) 144px, 250px"
+                                sizes="(max-width: 767px) 168px, 280px"
                                 draggable="false"
                             />
                         </motion.div>
@@ -162,7 +221,7 @@ export function HeroVisualFan({
                             type="button"
                             aria-label={`${index + 1} / ${visuals.length} · ${visual.label}`}
                             aria-current={visual.image === activeVisual?.image ? 'true' : undefined}
-                            onClick={() => setActiveImage(visual.image)}
+                            onClick={() => selectImage(visual.image)}
                         >
                             <span aria-hidden="true" />
                         </button>

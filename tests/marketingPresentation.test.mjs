@@ -22,6 +22,11 @@ test('hero turns the three-screen contract into an accessible draggable carousel
     assert.match(visual, /ArrowRight/)
     assert.match(visual, /aria-current=/)
     assert.match(visual, /practice:\s*practiceImage/)
+    assert.match(visual, /HERO_AUTOPLAY_INTERVAL_MS/)
+    assert.match(visual, /shouldHeroAutoplay/)
+    assert.match(visual, /setInterval/)
+    assert.match(visual, /onPointerEnter/)
+    assert.match(visual, /prefers-reduced-motion|reducedMotion/)
 })
 
 test('hero viewport fills the first visual viewport without clipping short or zoomed content', async () => {
@@ -36,6 +41,27 @@ test('hero viewport fills the first visual viewport without clipping short or zo
     assert.doesNotMatch(css, /\.luta-marketing-hero-layout\s*\{[^}]*min-height:\s*(?:48\.75rem|51rem)/s)
 })
 
+test('desktop hero centers copy and product proof against the first viewport', async () => {
+    const [hero, css] = await Promise.all([
+        readSource('../src/components/marketing/MarketingHero.jsx'),
+        readSource('../src/components/marketing/marketing.css'),
+    ])
+
+    assert.match(hero, /className="luta-marketing-hero-primary"/)
+    assert.match(
+        css,
+        /@media \(min-width: 64rem\)[\s\S]*?\.luta-marketing-hero-layout\s*\{[^}]*align-items:\s*center/s,
+    )
+    assert.match(
+        css,
+        /@media \(min-width: 64rem\)[\s\S]*?\.luta-marketing-hero-primary\s*\{[^}]*display:\s*flex/s,
+    )
+    assert.match(
+        css,
+        /@media \(min-width: 64rem\)[\s\S]*?\.luta-marketing-hero-visual\s*\{[^}]*align-self:\s*center/s,
+    )
+})
+
 test('mobile landing exposes a viewport-fixed platform selector and synchronized install CTA', async () => {
     const [hero, pageShell, landing, storeGroup, css] = await Promise.all([
         readSource('../src/components/marketing/MarketingHero.jsx'),
@@ -47,10 +73,15 @@ test('mobile landing exposes a viewport-fixed platform selector and synchronized
     const copyIndex = hero.indexOf('className="luta-marketing-hero-copy"')
     const actionsIndex = hero.indexOf('className="luta-marketing-hero-actions"')
     const visualIndex = hero.indexOf('className="luta-marketing-hero-visual"')
+    const primaryIndex = hero.indexOf('className="luta-marketing-hero-primary"')
 
-    assert.ok(copyIndex >= 0, 'expected hero copy')
-    assert.ok(visualIndex > copyIndex, 'expected product visual after hero copy')
-    assert.ok(actionsIndex > visualIndex, 'expected install actions after the product visual')
+    assert.ok(primaryIndex >= 0, 'expected hero primary stack')
+    assert.ok(copyIndex > primaryIndex, 'expected hero copy inside primary stack')
+    assert.ok(actionsIndex > copyIndex, 'expected install actions after hero copy in primary stack')
+    assert.ok(visualIndex > primaryIndex, 'expected product visual beside the primary stack')
+    assert.match(css, /\.luta-marketing-hero-copy\s*\{[^}]*grid-row:\s*1/s)
+    assert.match(css, /\.luta-marketing-hero-visual\s*\{[^}]*grid-row:\s*2/s)
+    assert.match(css, /\.luta-marketing-hero-actions\s*\{[^}]*grid-row:\s*3/s)
     assert.doesNotMatch(hero, /useInstallDockVisibility|data-install-dock-visible|new IntersectionObserver/)
     assert.doesNotMatch(hero, /presentation="persistent-mobile"/)
     assert.match(pageShell, /className="luta-marketing-floating-actions"/)
@@ -67,10 +98,13 @@ test('mobile landing exposes a viewport-fixed platform selector and synchronized
     assert.match(css, /data-presentation="persistent-mobile"/)
     assert.match(css, /\.luta-marketing-store-action:not\(\[data-presented="true"\]\)/)
     assert.match(css, /width:\s*min\(\s*23rem,/)
-    assert.match(css, /grid-template-columns:\s*var\(--luta-marketing-floating-action-size\) minmax\(0, 1fr\)/)
+    assert.match(css, /grid-template-columns:\s*minmax\(0, 1fr\)/)
+    assert.match(css, /--luta-marketing-color-action-on-dark:\s*#fffefb/)
     assert.match(css, /min-height:\s*3\.5rem/)
     assert.match(css, /grid-template-columns:\s*1\.25rem minmax\(0, 1fr\) 1\.25rem/)
     assert.match(css, /padding-block-end:\s*calc\(8\.5rem \+ env\(safe-area-inset-bottom, 0px\)\)/)
+    assert.match(css, /\.luta-marketing-platform-selector\s*\{\s*display:\s*none;/)
+    assert.doesNotMatch(storeGroup, /presentation === 'persistent-mobile' && \(\s*<PlatformSelector/)
     assert.match(storeGroup, /aria-haspopup="menu"/)
     assert.match(storeGroup, /role="menuitemradio"/)
     assert.match(storeGroup, /adapter\.changeDesktopTab\(platform\)/)
@@ -110,6 +144,47 @@ test('sticky header has no bottom divider declaration', async () => {
     assert.ok(headerRule, 'expected the base marketing header rule')
     assert.match(headerRule, /position:\s*sticky/)
     assert.doesNotMatch(headerRule, /border-(?:bottom|block-end)\s*:/)
+})
+
+test('header exposes Facebook WhatsApp and LINE group shortcuts without Telegram', async () => {
+    const [header, social, channels] = await Promise.all([
+        readSource('../src/components/marketing/MarketingHeader.jsx'),
+        readSource('../src/components/marketing/HeaderSocialGroups.jsx'),
+        import('../src/content/footerSocialChannels.js'),
+    ])
+
+    assert.match(header, /HeaderSocialGroups/)
+    assert.match(social, /HEADER_GROUP_CHANNELS/)
+    assert.match(social, /data-presentation="desktop"/)
+    assert.match(social, /data-presentation="mobile"/)
+    assert.match(social, /aria-haspopup="menu"/)
+    assert.doesNotMatch(social, /telegram/)
+    assert.deepEqual(
+        channels.HEADER_GROUP_CHANNELS.map(channel => channel.id),
+        ['facebook', 'whatsapp', 'line'],
+    )
+    for (const channel of channels.HEADER_GROUP_CHANNELS) {
+        const footerChannel = channels.FOOTER_SOCIAL_CHANNELS.find(entry => entry.id === channel.id)
+        assert.equal(channel.group, footerChannel.group)
+    }
+})
+
+test('hero primary CTA keeps a static soft halo with desktop hover and pressed feedback', async () => {
+    const css = await readSource('../src/components/marketing/marketing.css')
+
+    assert.match(
+        css,
+        /\.luta-marketing-hero \.luta-marketing-store-action\[data-status="ready"\]\[data-variant="primary"\]\s*\{[^}]*box-shadow:/s,
+    )
+    assert.match(css, /@media \(hover: hover\) and \(pointer: fine\)/)
+    assert.match(
+        css,
+        /translateY\(-0\.125rem\)/,
+    )
+    assert.match(
+        css,
+        /prefers-reduced-motion: reduce[\s\S]*luta-marketing-hero[\s\S]*transform:\s*none !important/,
+    )
 })
 
 test('rounded surfaces and controls consume semantic radius tokens', async () => {
