@@ -1,7 +1,7 @@
 # Independent iOS connecting-code pilot — preparation
 
 Owner: yuhaoliu / Growth; implementation and evidence: Engineering.
-Status: offline preparation, not deployed or activated.
+Status: page wiring and separate artifact prepared; account activation and real-device acceptance pending.
 
 The user approved an independent iOS pilot on 2026-10-09, conditional on Singular
 confirming current entitlement, a dedicated base link and native reading/data-use
@@ -16,13 +16,14 @@ Company support record: [189319](https://support.singular.net/hc/en-us/requests/
 ## Prepared here
 
 - `singular-ios-pilot.html` is a standalone local QA page, outside the normal
-  React app and default Vite production build. It does not import the prepared
-  bootstrap module or include an external SDK script, API calls, storage or a
-  clipboard reader. PR #35 was merged on 2026-10-09; that does not activate it.
+  React app and default Vite production build. PR #35 (page) and #36 (bootstrap)
+  were merged on 2026-10-09. The page now imports the coordinator; default false
+  prerequisites and absent credentials keep it inactive. Importing or mounting
+  does not request a vendor script, initialize, copy, or record a page visit.
 - The first entry is fixed to the Facebook QA campaign/account. A bounded entry
   and optional `QA_` content ID survive refresh. Query credentials, user IDs,
   provider IDs, redirects and caller-selected formal campaign values are removed
-  before a future SDK bootstrap can observe the page URL.
+  before SDK bootstrap can observe the page URL.
 - The explicit copy choice and direct App Store action are separate. The SDK
   adapter requires account/native prerequisites and the exact approved HTTPS QA
   origin. It calls the two separate methods synchronously from a user click;
@@ -38,11 +39,15 @@ Company support record: [189319](https://support.singular.net/hc/en-us/requests/
   It initializes once and waits for the SDK's initialization callback. Load or
   readiness failure leaves the direct-download path available. A timed-out or
   cancelled attempt cannot initialize from a late library response.
-  No real credentials are provided, and the current page does not call it.
+  No real credentials are provided. `page-controller.js` starts it only after
+  the explicit checkbox choice and waits for readiness before enabling download.
+  Unchecking, direct download, page exit, failures or URL changes prevent a late
+  hand-off. Retrying after cancellation requires refreshing, avoiding a second
+  initialization under different privacy context on the same coordinator.
 
-The bootstrap does not copy anything or claim install/source success. Future page
-wiring must prepare after the explicit choice, then enable a separate synchronous
-download click; copying after awaiting a script load can lose browser activation.
+The bootstrap does not copy anything or claim install/source success. Page wiring
+prepares after the explicit choice, then enables a separate synchronous download
+click; copying after awaiting a script load can lose browser activation.
 `cancel()` cancels preparation/hand-off only. It cannot retract a page visit already
 emitted by SDK initialization and is not a vendor privacy-withdrawal API. SDK storage,
 native initialization, real paste prompts and privacy lifecycle need separate review.
@@ -54,12 +59,26 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run test:attribution
 npm run lint
 npm run build
+npm run build:singular-ios-pilot
 npm run dev -- --host 127.0.0.1 --port 4319 --strictPort
 ```
 
 Open `http://127.0.0.1:4319/singular-ios-pilot.html?entry=profile&content=QA_FB_01`.
-The copy action stays disabled because no account configuration or SDK bootstrap
-is supplied. Do not install an SDK by pasting script URLs into this page.
+The copy action stays disabled because approved account configuration and runtime
+credentials are absent. Do not install an SDK by pasting script URLs into this page.
+`build:singular-ios-pilot` emits only the standalone page and its JS/CSS into
+`dist-singular-ios-pilot`; it does not copy normal website assets or redirects.
+CI checks that normal `dist` excludes the pilot HTML and SDK loader. This build
+does not deploy the page or include a mobile test package.
+
+For an approved activation, configure `config.js` with verified account facts and
+inject only the vendor Web SDK credentials into the deployment-owned
+`window.lutaSingularIosPilotCredentials` before the module executes. Never read
+credentials, entitlement or source authority from URL parameters or storage.
+Any Web SDK credential used in a browser is necessarily visible to that browser;
+do not reuse a reporting, admin, REST or CAPI credential. The QA host must provide
+the reviewed CSP/noindex policy before deployment. Callback readiness enables the
+button but is not evidence of a vendor page visit or matched installation.
 
 The separate offline SDK check takes a previously obtained official bundle:
 
@@ -75,17 +94,21 @@ The vendor bundle is not committed or redistributed here.
 
 ## Remaining activation and acceptance
 
-1. Obtain account-specific Web App/Product ID, entitlement/fees and the correct QA
-   base link from Singular. Current blank values are intentional, not placeholders
-   to populate from an ordinary Custom tracker URL.
+1. Current Apps Configuration already contains Web `https://lutaai.com/` with the
+   same Bundle ID (the Web SDK Product ID), SDK not integrated. This self-service
+   field does not require a vendor answer. Confirm whether to use it or a separate
+   QA Web App, plus current entitlement/fees and the dedicated Web-to-App QA base
+   link from Singular. Blank gated values must not be filled from an ordinary
+   Custom tracker URL. The account's Starter plan and optional Web Attribution
+   upgrade listing alone do not prove this pilot is enabled or that fees apply.
 2. Confirm the iOS native reading scope and timing, compatible Flutter/native
    SDK versions and initialization threading. Current Reader initializes with
    `clipboardAttribution=false`. No client flag is changed in this PR: the native
    12.13.0 header warns about synchronous blocking reads, which is a candidate
    integration risk rather than a reproduced phone freeze or the current root cause.
-3. Under the confirmed constraints, wire the prepared bootstrap to the QA page
-   and runtime-provisioned credentials, review consent/storage lifecycle and
-   deployment/CSP, and implement the test client. SDK initialization itself emits
+3. Page wiring and its separate build are now implemented. Under the confirmed
+   constraints, provision credentials and reviewed deployment/CSP, complete the
+   consent/storage lifecycle review, and implement the test client. SDK initialization itself emits
    a page visit; no live initialization is part of this preparation. An integrity
    or CSP/CORS failure must preserve ordinary download, not disable browser checks.
 4. Build only the independently authorized Global iOS test channel after the
@@ -99,4 +122,4 @@ The vendor bundle is not committed or redistributed here.
 If Singular confirms a simpler account-supported hosted connection, prefer that
 route rather than adding unnecessary clipboard integration. Fees, excessive reading,
 unsupported initialization or UI blocking return to the owner for a route decision.
-Keeping this branch unmerged/default-inactive preserves the current public paths.
+Keeping the pilot default-inactive and outside the public build preserves the current paths.

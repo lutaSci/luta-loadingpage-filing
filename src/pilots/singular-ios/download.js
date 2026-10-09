@@ -1,5 +1,5 @@
 // Independent QA preparation. No SDK loading, initialization, telemetry, storage,
-// or clipboard reading occurs here. The prepared bootstrap is not wired yet.
+// or clipboard reading occurs here. The page coordinates initialization separately.
 export const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6778084383'
 
 const QA_ACCOUNT = 'facebook__luta_official'
