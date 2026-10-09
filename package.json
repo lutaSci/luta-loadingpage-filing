@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/prerender-marketing.mjs",
+    "build:singular-ios-pilot": "vite build --config vite.pilot.config.js",
     "test:attribution": "node --test tests/*.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"

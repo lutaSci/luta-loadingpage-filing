@@ -9,6 +9,8 @@ on:
       - 'dockerfile'
       - 'docker-compose.qa.yml'
       - 'vite.config.js'
+      - 'vite.pilot.config.js'
+      - 'singular-ios-pilot.html'
       - 'package*.json'
       - '.github/workflows/website-environments.yml'
 permissions:
@@ -26,6 +28,15 @@ jobs:
       - run: npm run lint
       - run: npm run test:attribution
       - run: npm run build
+      - name: Build the separate inactive iOS pilot artifact (no publish)
+        run: |
+          npm run build:singular-ios-pilot
+          test -f dist-singular-ios-pilot/singular-ios-pilot.html
+          test ! -e dist/singular-ios-pilot.html
+          if grep -r -q 'web-sdk-cdn.singular.net' dist; then
+            echo 'Pilot SDK loader must not enter the production website'
+            exit 1
+          fi
       - name: Build production image with unchanged defaults (no publish)
         run: docker build -f dockerfile -t luta-website-production:ci .
       - name: Build isolated QA image (no publish)

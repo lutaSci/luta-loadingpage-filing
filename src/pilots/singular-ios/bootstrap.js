@@ -1,12 +1,12 @@
-// Prepared for a later, approved QA activation. The page does not import this
-// module yet. No SDK load or initialization occurs on import or construction.
+// The QA page wires this module, but approval and explicit choice still gate
+// activation. No SDK load or initialization occurs on import or construction.
 import { approvedPilotBase, sanitizePilotPageUrl } from './download.js'
 
 export const PILOT_SDK_URL = 'https://web-sdk-cdn.singular.net/singular-sdk/1.4.8/singular-sdk.js'
 export const PILOT_SDK_INTEGRITY = 'sha256-YlcC2z5oFWYGd5KTt4n+xs508WypaEAXyA0EvMsenXc='
 
 // Constructing the loader is inert. Only the approved coordinator may call it.
-// The page has not wired either component while account prerequisites are open.
+// Missing account prerequisites keep the wired page inactive.
 export function createPilotSdkLoader({ document, sdkGlobal }) {
     let loading
     return url => {
