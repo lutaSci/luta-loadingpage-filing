@@ -1,5 +1,5 @@
 // Independent QA preparation. No SDK loading, initialization, telemetry, storage,
-// or clipboard reading occurs here. A vendor-approved bootstrap is still needed.
+// or clipboard reading occurs here. The prepared bootstrap is not wired yet.
 export const IOS_STORE_URL = 'https://apps.apple.com/us/app/id6778084383'
 
 const QA_ACCOUNT = 'facebook__luta_official'
@@ -29,7 +29,7 @@ export function sanitizePilotPageUrl(value) {
     return url.toString()
 }
 
-function approvedBase(config) {
+export function approvedPilotBase(config) {
     if (config?.entitlementConfirmed !== true || config?.nativeReadConfirmed !== true ||
         !config?.webProductId || !config?.supportEvidence || !config?.pageOrigin) return null
     try {
@@ -58,7 +58,7 @@ function compatibleLink(value, base) {
 const direct = reason => ({ url: IOS_STORE_URL, route: 'direct_store', copyStatus: 'not_attempted', reason })
 
 export function createPilotDownload({ config, sdk, pageUrl }) {
-    const base = approvedBase(config)
+    const base = approvedPilotBase(config)
     let page
     try { page = new URL(pageUrl) } catch { /* Disabled on malformed inputs. */ }
     const ready = !!(base && page && page.origin === config.pageOrigin &&

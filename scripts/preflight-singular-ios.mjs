@@ -6,10 +6,12 @@ import crypto from 'node:crypto'
 import assert from 'node:assert/strict'
 import process from 'node:process'
 import { createPilotDownload, sanitizePilotPageUrl } from '../src/pilots/singular-ios/download.js'
+import { createPilotBootstrap, PILOT_SDK_URL, PILOT_SDK_INTEGRITY } from '../src/pilots/singular-ios/bootstrap.js'
 
 const source = fs.readFileSync(process.argv[2], 'utf8')
 const sha256 = crypto.createHash('sha256').update(source).digest('hex')
 assert.equal(sha256, '625702db3e68156606779293b789fec6ce74f16ca9684017c80d04bccb1e9d77', 'Use the reviewed official 1.4.8 bundle')
+assert.equal(PILOT_SDK_INTEGRITY, 'sha256-' + crypto.createHash('sha256').update(source).digest('base64'))
 const pageUrl = sanitizePilotPageUrl('https://qa.example.invalid/singular-ios-pilot.html?entry=profile&content=QA_FB_01&token=must_not_forward&email=must_not_forward')
 const store = new Map()
 const effects = { networkAttempts: 0, copies: [], opened: [], copyAccepted: true }
@@ -44,7 +46,16 @@ const config = { entitlementConfirmed: true, nativeReadConfirmed: true, webProdu
     supportEvidence: 'offline_fixture', pageOrigin: 'https://qa.example.invalid', baseLink: 'https://lutaai.sng.link/QA/TEST' }
 // These mock credentials cannot authorize live service use. Network APIs above
 // are inert, and this Node VM is not a browser or a phone acceptance result.
-sdk.init(new context.SingularConfig('offline-key', 'offline-secret', config.webProductId))
+const bootstrap = createPilotBootstrap({ config, credentials: { sdkKey: 'offline-key', sdkSecret: 'offline-secret' },
+    page: { getUrl: () => context.location.href, replaceUrl: value => { context.location.href = value } },
+    loadSdk: async url => {
+        assert.equal(url, PILOT_SDK_URL)
+        return { sdk, Config: context.SingularConfig }
+    }, timeoutMs: 50,
+})
+const initialized = await bootstrap.start({ consent: true })
+assert.equal(initialized.status, 'ready')
+assert.equal(initialized.sdk, sdk)
 const first = createPilotDownload({ config, sdk, pageUrl }).prepare({ consent: true })
 const link = new URL(first.url)
 assert.equal(first.route, 'singular')
@@ -61,6 +72,7 @@ assert.equal(new URL(denied.url).searchParams.has('ecid'), true)
 assert.equal(denied.copyStatus, 'unknown')
 assert.equal(effects.opened.length, 0)
 process.stdout.write(JSON.stringify({ sdkVersion: '1.4.8', sha256, separateMethodsCompatible: true,
+    initializationCallbackCompatible: true, pinnedIntegrityMatches: true,
     sanitizedMarketingForwarded: true, refusedCopyNotClaimedSuccessful: true,
     networkAttempts: effects.networkAttempts, realNetworkRequests: 0, realClipboardWrites: 0,
     realNavigations: 0, deviceAcceptance: 'not_run' }, null, 2) + '\n')

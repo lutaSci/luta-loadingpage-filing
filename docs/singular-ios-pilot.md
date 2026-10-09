@@ -16,8 +16,9 @@ Company support record: [189319](https://support.singular.net/hc/en-us/requests/
 ## Prepared here
 
 - `singular-ios-pilot.html` is a standalone local QA page, outside the normal
-  React app and default Vite production build. It includes no analytics bootstrap,
-  API calls, external SDK script, storage or clipboard reader.
+  React app and default Vite production build. It does not import the prepared
+  bootstrap module or include an external SDK script, API calls, storage or a
+  clipboard reader. PR #35 was merged on 2026-10-09; that does not activate it.
 - The first entry is fixed to the Facebook QA campaign/account. A bounded entry
   and optional `QA_` content ID survive refresh. Query credentials, user IDs,
   provider IDs, redirects and caller-selected formal campaign values are removed
@@ -30,6 +31,21 @@ Company support record: [189319](https://support.singular.net/hc/en-us/requests/
   successful copying; `ecid` alone is recorded as **unknown**, never as installed,
   registered or correctly attributed. Clipboard contents and generated codes are
   not logged or persisted by this preparation.
+- `bootstrap.js` prepares an inert coordinator and official-version loader.
+  Only trusted prerequisites, runtime-injected SDK credentials, an explicit
+  measurement choice and the exact QA page may start it. It sanitizes/read-checks
+  the URL before loading the reviewed 1.4.8 bundle with subresource integrity.
+  It initializes once and waits for the SDK's initialization callback. Load or
+  readiness failure leaves the direct-download path available. A timed-out or
+  cancelled attempt cannot initialize from a late library response.
+  No real credentials are provided, and the current page does not call it.
+
+The bootstrap does not copy anything or claim install/source success. Future page
+wiring must prepare after the explicit choice, then enable a separate synchronous
+download click; copying after awaiting a script load can lose browser activation.
+`cancel()` cancels preparation/hand-off only. It cannot retract a page visit already
+emitted by SDK initialization and is not a vendor privacy-withdrawal API. SDK storage,
+native initialization, real paste prompts and privacy lifecycle need separate review.
 
 ## Checks and reproducible local preview
 
@@ -67,9 +83,11 @@ The vendor bundle is not committed or redistributed here.
    `clipboardAttribution=false`. No client flag is changed in this PR: the native
    12.13.0 header warns about synchronous blocking reads, which is a candidate
    integration risk rather than a reproduced phone freeze or the current root cause.
-3. Review and add the actual SDK bootstrap, consent lifecycle, deployment/CSP and
-   test-client implementation under those confirmed constraints. SDK initialization
-   itself can emit a page visit; it is not part of this offline preparation.
+3. Under the confirmed constraints, wire the prepared bootstrap to the QA page
+   and runtime-provisioned credentials, review consent/storage lifecycle and
+   deployment/CSP, and implement the test client. SDK initialization itself emits
+   a page visit; no live initialization is part of this preparation. An integrity
+   or CSP/CORS failure must preserve ordinary download, not disable browser checks.
 4. Build only the independently authorized Global iOS test channel after the
    prerequisites are satisfied. Do not resume the unified formal release or China.
 5. Verify the real Facebook entry on a clean iPhone installation, including first
