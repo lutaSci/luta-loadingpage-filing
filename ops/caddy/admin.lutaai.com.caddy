@@ -1,26 +1,4 @@
-# Desired production site block for the shared Caddy gateway.
-# HTML must converge on the current release; hashed assets remain immutable.
-admin.lutaai.com {
-  root * /home/luta-admin
-
-  @adminAssets path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.webp *.woff *.woff2 *.ttf *.eot
-  header @adminAssets Cache-Control "public, max-age=31536000, immutable"
-
-  @adminHtml {
-    not path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.webp *.woff *.woff2 *.ttf *.eot
-  }
-  header @adminHtml Cache-Control "no-store, max-age=0, must-revalidate"
-  header @adminHtml Pragma "no-cache"
-  header @adminHtml Expires "0"
-
-  file_server {
-    index index.html
-  }
-
-  @adminSpaFallback {
-    not path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.webp *.woff *.woff2 *.ttf *.eot
-  }
-  rewrite @adminSpaFallback /index.html
-
-  tls {$ACME_EMAIL}
-}
+# Retired configuration location. Do not import this file into Caddy.
+# Admin and public deletion sites are owned and installed by lutaSci/luta-admin:
+# https://github.com/lutaSci/luta-admin/blob/main/ops/caddy/admin-sites.caddy
+# Release entry: scripts/admin_release.py in that repository.

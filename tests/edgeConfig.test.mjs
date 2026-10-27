@@ -18,12 +18,10 @@ test('website exposes only the bounded legacy Admin API bridge', () => {
     assert.doesNotMatch(nginx, /47\.76\.135\.140/)
 })
 
-test('Admin Caddy policy keeps HTML fresh and hashed assets immutable', () => {
-    assert.match(adminCaddy, /admin\.lutaai\.com \{/)
-    assert.match(adminCaddy, /root \* \/home\/luta-admin/)
-    assert.match(adminCaddy, /header @adminHtml Cache-Control "no-store, max-age=0, must-revalidate"/)
-    assert.match(adminCaddy, /header @adminAssets Cache-Control "public, max-age=31536000, immutable"/)
-    assert.match(adminCaddy, /rewrite @adminSpaFallback \/index\.html/)
+test('Admin configuration has one owning repository', () => {
+    assert.match(adminCaddy, /github\.com\/lutaSci\/luta-admin\/blob\/main\/ops\/caddy\/admin-sites\.caddy/)
+    assert.doesNotMatch(adminCaddy, /admin\.lutaai\.com \{/)
+    assert.doesNotMatch(adminCaddy, /root \* \/home\/luta-admin/)
 })
 
 test('APK delivery route logs only opaque aggregate-delivery fields', () => {
