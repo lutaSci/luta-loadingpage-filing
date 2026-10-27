@@ -107,7 +107,7 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
 `download.lutaai.com` 的期望生产站点块单独记录在 [`ops/caddy/download.lutaai.com.caddy`](ops/caddy/download.lutaai.com.caddy)。中国 Android 新版本只使用版本 + SHA 不可变路径；该前缀通过 HTTPS 直连 `luta-public` OSS endpoint，同时保留已绑定的 `Host: static.lutaai.co`。受控出站接口签发`/dl/{traffic_purpose}/{download_id}/{artifact_size}/releases/android/china/{version+build}/{sha256}.apk`；Caddy 在回源前移除受控前缀，并仅把用途、不透明`download_id`、`artifact_id`、预期大小、粗粒度机器人标记、版本、构建、HTTP 状态、实际响应`Content-Range`和实际写出字节写入专用滚动日志。请求 URI、IP、User-Agent 原文、请求 Range、完整响应头和其他请求头不得进入该日志。不要把该回源改成 `https://static.lutaai.co`：它会再次经过 Cloudflare，并可能把上传前的 OSS `NoSuchKey` 缓存为长期 404。历史路径继续回源 `luta-app`。
 
-`admin.lutaai.com` 的期望生产站点块记录在 [`ops/caddy/admin.lutaai.com.caddy`](ops/caddy/admin.lutaai.com.caddy)：HTML 与 SPA fallback 必须 `no-store`，带 hash 的静态资源保持一年 immutable。这样浏览器每次导航都会取得当前入口文件，同时历史 bundle 在兼容窗口内仍可完成迁移。
+Admin 与公开注销入口的 Caddy 配置及 SHA 发布脚本由 [lutaSci/luta-admin](https://github.com/lutaSci/luta-admin/blob/main/ops/RELEASE.md) 唯一维护。本站仓库的旧 Admin 配置路径仅保留迁移提示，不再提供可部署站点块；官网发布不得覆盖这两个入口。HTML/版本标识 no-store、SHA 资源 immutable 和回退由 Admin 统一入口校验。
 
 生产 `/home/caddy/Caddyfile` 是 Docker 单文件 bind mount。若通过原子替换改变宿主机 inode，运行中的容器仍可能读取旧 inode；此时不能只执行 reload。应先验证候选配置，再重建 `caddy` 单个容器使挂载持久生效，并立即 smoke 官网、旧 APK URL 和新的不可变 APK URL。
 
